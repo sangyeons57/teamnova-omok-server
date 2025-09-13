@@ -29,7 +29,7 @@ jobs:
               with: 
                 switches: -avzr --delete
                 path: ./
-                remote_path: /var/www/html/ # 실제 배포 경로
+                remote_path: /home/sangyeons57/www/ # 실제 배포 경로
                 remote_host: ${{ secrets.REMOTE_HOST }}
                 remote_user: ${{ secrets.REMOTE_USER }}
                 remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
