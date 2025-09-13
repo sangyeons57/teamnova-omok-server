@@ -27,6 +27,16 @@ jobs:
             - name: Deploy to Server
               uses: appleboy/ssh-action@v1.0.3
               with: 
+                # -a: 아카이브 모드(권한 등 속성 유지), -v: 상세 로그 출력, -z: 압축 전송, -r: 하위 디렉터리 포함
+                # --delete: 소스에는 없는데 목적지에만 있는 파일은 삭제 (매우 유용한 옵션!)
+                switches: -avzr --delete
+                # Actions 가상 머신에 있는 소스 경로. './'는 체크아웃된 저장소 전체를 의미합니다.
+                # 만약 'src' 폴더만 배포하고 싶다면 'src/' 로 변경하면 됩니다.
+                path: ./
+
+                # 배포할 서버의 목적지 경로. 예: 아파치 웹 루트 디렉터리
+                remote_path: /home/sangyeons57/www/
+
                 # 서버 주소. 우리가 GitHub Secrets에 저장한 값을 가져옵니다.
                 host: ${{ secrets.REMOTE_HOST }}
                 # 접속할 사용자 이름. 역시 Secrets에서 가져옵니다.
