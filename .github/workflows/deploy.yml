@@ -44,4 +44,4 @@ jobs:
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
                     # 어떤 버전(커밋)이 배포되었는지 함께 기록하면 나중에 추적하기 훨씬 좋습니다.
-                    echo "Deployment from commit ${{ github.sha }} successful at $(date)" > /var/www/html/deploy-check.txt
+                    echo "Deployment from commit ${{ github.sha }} successful at $(date)" > /home/deployer/deploy-check.txt
