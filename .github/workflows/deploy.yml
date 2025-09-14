@@ -83,13 +83,27 @@ jobs:
                 script: |
                   set -e
                   mkdir -p ${{ env.ROOT }}
-                  # 기존 프로세스 종료 (실행 중이 아니어도 에러 없이 진행)
-                  pkill -f "${{ env.JAR_NAME }}" || echo "Application is not running"
+
+                  # 기존 프로세스 확인 및 종료
+                  echo "Checking for existing processes..."
+                  if pgrep -f "${{ env.JAR_NAME }}"; then
+                    echo "Stopping existing application..."
+                    pkill -f "${{ env.JAR_NAME }}" || true
+                    echo "Application stopped"
+                  else
+                    echo "No existing application found"
+                  fi
 
                   sleep 5
-                  # 새 버전 실행 (로그 파일에 출력)
+
+                  # 새 버전 실행
+                  echo "Starting new application..."
                   nohup java -jar ${{ env.ROOT }}/${{ env.JAR_NAME }} > ${{ env.ROOT }}/app.log 2>&1 &
                   disown || true
+
+                  sleep 2
+                  echo "Application started successfully"
+                  ps aux | grep "${{ env.JAR_NAME }}" | grep -v grep || echo "Warning: Process not found"
                   
 
             - name: Create deployment check file
