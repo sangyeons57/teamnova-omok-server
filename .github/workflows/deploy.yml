@@ -75,22 +75,41 @@ jobs:
 
             # 7단계: 서버에 접속하여 애플리케이션 재시작 및 배포 체크 파일 생성
             - name: Restart application and write deploy-check on server
-              uses: appleboy/ssh-action@v1.0.3
+              uses: appleboy/ssh-action@v1.1.0
               with:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
+                timeout: 60s
+                command_timeout: 30s
                 script: |
+                  set -e  # 에러 발생 시 즉시 종료
+
+                  # 시스템 환경 확인
+                  echo "=== System Environment Check ==="
+                  echo "Current user: $(whoami)"
+                  echo "User ID: $(id)"
+                  echo "Current directory: $(pwd)"
+                  echo "Available disk space:"
+                  df -h ${{ env.ROOT }}
+
                   # 기존 프로세스 종료
-                  echo "Stopping existing application..."
+                  echo "=== Stopping Existing Application ==="
                   pkill -f "${{ env.JAR_NAME }}" || echo "No existing application found"
 
                   sleep 5
 
                   # JAR 파일 존재 및 권한 확인
-                  echo "Checking JAR file..."
+                  echo "=== JAR File Check ==="
                   if [ -f "${{ env.JAR_PATH }}" ]; then
                     echo "✅ JAR file exists: ${{ env.JAR_PATH }}"
+                    echo "File details:"
+                    ls -la "${{ env.JAR_PATH }}"
+
+                    # JAR 파일 실행 권한 설정
+                    echo "Setting execute permissions..."
+                    chmod +x "${{ env.JAR_PATH }}"
+                    echo "Updated permissions:"
                     ls -la "${{ env.JAR_PATH }}"
                   else
                     echo "❌ JAR file not found: ${{ env.JAR_PATH }}"
@@ -100,27 +119,36 @@ jobs:
                   fi
 
                   # Java 환경 확인
-                  echo "Checking Java environment..."
+                  echo "=== Java Environment Check ==="
                   java -version 2>&1 || echo "❌ Java not found in PATH"
 
                   # 새 버전 실행
-                  echo "Starting new application..."
+                  echo "=== Starting Application ==="
                   nohup java -jar ${{ env.JAR_PATH }} > ${{ env.ROOT }}/app.log 2>&1 &
-                  echo "Application started with PID: $!"
+                  APP_PID=$!
+                  echo "Application started with PID: $APP_PID"
 
                   sleep 3
 
                   # 즉시 로그 확인 (에러 진단용)
-                  echo "Application log (first 20 lines):"
-                  head -20 ${{ env.ROOT }}/app.log 2>/dev/null || echo "No log file yet"
+                  echo "=== Application Log Check ==="
+                  if [ -f "${{ env.ROOT }}/app.log" ]; then
+                    echo "Application log (first 20 lines):"
+                    head -20 ${{ env.ROOT }}/app.log
+                  else
+                    echo "No log file created yet"
+                  fi
 
                   # 실행 확인
+                  echo "=== Process Status Check ==="
                   if pgrep -f "${{ env.JAR_NAME }}"; then
                     echo "✅ Application is running successfully"
+                    echo "Running processes:"
+                    ps aux | grep "${{ env.JAR_NAME }}" | grep -v grep
                   else
                     echo "❌ Application failed to start"
                     echo "Full application log:"
-                    cat ${{ env.ROOT }}/app.log 2>/dev/null || echo "No log file"
+                    cat ${{ env.ROOT }}/app.log 2>/dev/null || echo "No log file found"
                     exit 1
                   fi
                   
