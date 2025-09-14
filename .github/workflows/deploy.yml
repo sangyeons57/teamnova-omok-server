@@ -14,16 +14,37 @@ jobs:
         # 이 작업을 실행할 가상 머신의 종류를 지정합니다. 'ubuntu-latest'가 가장 일반적입니다.
         runs-on: ubuntu-latest
 
+        env:
+          APP_DIR: /home/sangyeons57/app
+          JAR_NAME: teamnova-omok-server-tcp-1.0.0.jar
+
         # 실제 작업 단계(Step)들을 순서대로 나열합니다.
         steps:
             # 1단계: 코드 체크아웃
-            # GitHub 저장소에 있는 코드를 가상 머신으로 내려받는(Checkout) 표준 액션입니다.
-            # 이게 있어야 우리가 push한 최신 코드를 기반으로 작업을 수행할 수 있습니다.
             - name: Checkout code
               uses: actions/checkout@v4
 
+            # 2단계: JDK 17 설정 (Temurin)
+            - name: Set up JDK 17
+              uses: actions/setup-java@v4
+              with:
+                distribution: 'temurin'
+                java-version: '17'
 
-            # 2단계: rsync를 사용하여 파일 서버에 배포 (실제 파일들 전송)
+            # 3단계: gradlew 실행권한 부여 (존재할 때만). 없더라도 실패하지 않음
+            - name: Make gradlew executable if present
+              run: |
+                if [ -f ./tcp/gradlew ]; then chmod +x ./tcp/gradlew; fi
+
+            # 4단계: Gradle 설치 (러너에 미포함되어 있으므로 apt로 설치)
+            - name: Install Gradle
+              run: sudo apt-get update && sudo apt-get install -y gradle
+
+            # 5단계: TCP 모듈 빌드 (Java 17로)
+            - name: Build tcp module
+              run: gradle -p ./tcp clean build --no-daemon
+
+            # 6단계: 기존 정적 파일 등은 계속 rsync 배포
             - name: Deploy files via rsync 
               uses: burnett01/rsync-deployments@6.0.0
               with: 
@@ -34,8 +55,35 @@ jobs:
                 remote_user: ${{ secrets.REMOTE_USER }}
                 remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-            # 3단계: 서버에 접속하여 배포 완료 기록 남기기 (사용자께서 원하신 부분)
-            # 바로 이 부분입니다! rsync 작업 아래에 별도의 step으로 추가합니다.
+            # 7단계: 빌드된 JAR만 별도로 서버 APP_DIR로 전송
+            - name: Upload built JAR via rsync
+              uses: burnett01/rsync-deployments@6.0.0
+              with:
+                switches: -avzr
+                path: ./tcp/build/libs/${{ env.JAR_NAME }}
+                remote_path: ${{ env.APP_DIR }}/
+                remote_host: ${{ secrets.REMOTE_HOST }}
+                remote_user: ${{ secrets.REMOTE_USER }}
+                remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+            # 8단계: 서버에 접속하여 애플리케이션 재시작 (pkill 후 nohup으로 백그라운드 실행)
+            - name: Restart application on server
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                host: ${{ secrets.REMOTE_HOST }}
+                username: ${{ secrets.REMOTE_USER }}
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                script: |
+                  set -e
+                  mkdir -p ${{ env.APP_DIR }}
+                  # 기존 프로세스 종료 (실행 중이 아니어도 에러 없이 진행)
+                  pkill -f "${{ env.JAR_NAME }}" || true
+                  sleep 2
+                  # 새 버전 실행 (로그 파일에 출력)
+                  nohup java -jar ${{ env.APP_DIR }}/${{ env.JAR_NAME }} > ${{ env.APP_DIR }}/app.log 2>&1 &
+                  disown || true
+
+            # 9단계: 배포 체크 파일 생성 (기존 유지)
             - name: Create deployment check file
               uses: appleboy/ssh-action@v1.0.3
               with:
@@ -43,5 +91,4 @@ jobs:
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
-                    # 어떤 버전(커밋)이 배포되었는지 함께 기록하면 나중에 추적하기 훨씬 좋습니다.
                     echo "Deployment from commit ${{ github.sha }} successful at $(date)" > /home/deployer/deploy-check.txt
