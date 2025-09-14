@@ -15,8 +15,11 @@ jobs:
         runs-on: ubuntu-latest
 
         env:
-          APP_DIR: /home/sangyeons57/app
-          WEB_DIR: /home/sangyeons57/www
+          # 서버 경로 설정
+          ROOT: /home/sangyeons57/www
+          HTML_DIR: /home/sangyeons57/www/html
+
+          # 빌드 관련 설정
           JAR_NAME: teamnova-omok-server-tcp-1.0.0.jar
 
         # 실제 작업 단계(Step)들을 순서대로 나열합니다.
@@ -40,24 +43,24 @@ jobs:
               working-directory: ./tcp
               run: ./gradlew clean build --no-daemon
 
-            - name: Deploy HTML via rsync (html -> WEB_DIR)
+            - name: Deploy HTML via rsync (html -> HTML_DIR)
               uses: burnett01/rsync-deployments@6.0.0
               with:
                 switches: -avzr --delete
                 path: ./html/
-                remote_path: ${{ env.WEB_DIR }}/
+                remote_path: ${{ env.HTML_DIR }}/
                 remote_host: ${{ secrets.REMOTE_HOST }}
                 remote_user: ${{ secrets.REMOTE_USER }}
                 remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-            - name: Upload JAR via SCP (tcp/build/libs -> APP_DIR)
+            - name: Upload JAR via SCP (tcp/build/libs -> ROOT)
               uses: appleboy/scp-action@v0.1.7
               with:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 source: "tcp/build/libs/${{ env.JAR_NAME }}"
-                target: ${{ env.APP_DIR }}
+                target: ${{ env.ROOT }}
 
 
             # 7단계: 서버에 접속하여 애플리케이션 재시작 및 배포 체크 파일 생성
@@ -69,13 +72,13 @@ jobs:
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
                   set -e
-                  mkdir -p ${{ env.APP_DIR }}
+                  mkdir -p ${{ env.ROOT }}
                   # 기존 프로세스 종료 (실행 중이 아니어도 에러 없이 진행)
                   pkill -f "${{ env.JAR_NAME }}" || echo "Application is not running"
-                  
+
                   sleep 5
                   # 새 버전 실행 (로그 파일에 출력)
-                  nohup java -jar ${{ env.APP_DIR }}/${{ env.JAR_NAME }} > ${{ env.APP_DIR }}/app.log 2>&1 &
+                  nohup java -jar ${{ env.ROOT }}/${{ env.JAR_NAME }} > ${{ env.ROOT }}/app.log 2>&1 &
                   disown || true
                   
 
