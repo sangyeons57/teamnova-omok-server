@@ -30,16 +30,22 @@ jobs:
               with:
                 distribution: 'temurin'
                 java-version: '17'
+                cache: 'gradle'
 
             # 3단계: gradlew 실행권한 부여 (존재할 때만). 없더라도 실패하지 않음
             - name: Make gradlew executable if present
-              run: chmod +x ./tcp/gradlew
               working-directory: ./tcp
+              run: |
+                echo "Listening repo root:"
+                ls -la 
+                echo "Listening tcp dir:"
+                ls -la ./tcp
+                if [ -f ./tcp/gradlew ]; then chmod +x ./tcp/gradlew; fi
 
             # 4단계: TCP 모듈 빌드 (Wrapper 사용)
             - name: Build tcp module
-              run: ./tcp/gradlew build --no-daemon
               working-directory: ./tcp
+              run: ./tcp/gradlew clean build --no-daemon
 
             # 5단계: 기존 정적 파일 등은 계속 rsync 배포
             - name: Deploy files via rsync 
