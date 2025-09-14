@@ -16,6 +16,7 @@ jobs:
 
         env:
           APP_DIR: /home/sangyeons57/app
+          WEB_DIR: /home/sangyeons57/www
           JAR_NAME: teamnova-omok-server-tcp-1.0.0.jar
 
         # 실제 작업 단계(Step)들을 순서대로 나열합니다.
@@ -32,53 +33,33 @@ jobs:
                 java-version: '17'
                 cache: 'gradle'
 
-            # 3단계: gradlew 실행권한 부여 (존재할 때만). 없더라도 실패하지 않음
             - name: Make gradlew executable if present
-              working-directory: ./tcp
               run: |
-                echo "Listening repo root:"
-                ls -la 
-                echo "Listening tcp dir:"
-                ls -la ./tcp
                 if [ -f ./tcp/gradlew ]; then chmod +x ./tcp/gradlew; fi
 
-            # 4단계: TCP 모듈 빌드 (Wrapper 사용)
-            - name: Build tcp module
+            - name: Build tcp module with Gradle Wrapper
               working-directory: ./tcp
-              run: ./tcp/gradlew clean build --no-daemon
+              run: ./gradlew clean build --no-daemon
 
-            # 5단계: 기존 정적 파일 등은 계속 rsync 배포
-            - name: Deploy files via rsync 
-              uses: burnett01/rsync-deployments@6.0.0
-              with: 
-                switches: -avzr --delete
-                path: ./
-                remote_path: /home/sangyeons57/www/ # 실제 배포 경로
-                remote_host: ${{ secrets.REMOTE_HOST }}
-                remote_user: ${{ secrets.REMOTE_USER }}
-                remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-            # 6단계: 빌드된 JAR만 별도로 서버 APP_DIR로 전송
-            - name: Upload built JAR via rsync
+            - name: Deploy HTML via rsync (html -> WEB_DIR)
               uses: burnett01/rsync-deployments@6.0.0
               with:
-                switches: -avzr
-                path: ./tcp/build/libs/${{ env.JAR_NAME }}
-                remote_path: ${{ env.APP_DIR }}/
+                switches: -avzr --delete
+                path: ./html/
+                remote_path: ${{ env.WEB_DIR }}/
                 remote_host: ${{ secrets.REMOTE_HOST }}
                 remote_user: ${{ secrets.REMOTE_USER }}
                 remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-            # 5단계: 빌드된 JAR 파일을 서버로 전송
-            # scp-action을 사용하여 build/libs/ 폴더에 생성된 JAR 파일을 원격 서버로 복사합니다.
-            - name: Copy JAR to server
+            - name: Upload JAR via SCP (tcp/build/libs -> APP_DIR)
               uses: appleboy/scp-action@v0.1.7
               with:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
-                source: "tcp/build/libs/*.jar"  # 빌드 결과물이 있는 경로
-                target: ${{ env.APP_DIR }} # 서버에 파일이 저장될 경로 (예: /home/sangyeons57/app)
+                source: "tcp/build/libs/${{ env.JAR_NAME }}"
+                target: ${{ env.APP_DIR }}
+
 
             # 7단계: 서버에 접속하여 애플리케이션 재시작 및 배포 체크 파일 생성
             - name: Restart application and write deploy-check on server
@@ -96,5 +77,14 @@ jobs:
                   sleep 5
                   # 새 버전 실행 (로그 파일에 출력)
                   nohup java -jar ${{ env.APP_DIR }}/${{ env.JAR_NAME }} > ${{ env.APP_DIR }}/app.log 2>&1 &
-                  # 배포 체크 파일 기록
+                  disown || true
+                  
+
+            - name: Create deployment check file
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                host: ${{ secrets.REMOTE_HOST }}
+                username: ${{ secrets.REMOTE_USER }}
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                script: |
                   echo "Deployment from commit ${{ github.sha }} successful at $(date)" > /home/deployer/deploy-check.txt
