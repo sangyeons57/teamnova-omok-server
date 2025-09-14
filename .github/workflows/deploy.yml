@@ -16,13 +16,13 @@ jobs:
 
         env:
           # 서버 경로 설정
-          ROOT: /home/sangyeons57/www
-          HTML_DIR: /home/sangyeons57/www/html
+          ROOT: /home/deployer/www
+          HTML_DIR: /home/deployer/www/html
 
           # 빌드 관련 설정
           JAR_NAME: teamnova-omok-server-tcp-1.0.0.jar
           JAR_LOCAL_PATH: ./tcp/build/libs/teamnova-omok-server-tcp-1.0.0.jar
-          JAR_PATH: /home/sangyeons57/www/teamnova-omok-server-tcp-1.0.0.jar
+          JAR_PATH: /home/deployer/www/teamnova-omok-server-tcp-1.0.0.jar
 
         # 실제 작업 단계(Step)들을 순서대로 나열합니다.
         steps:
