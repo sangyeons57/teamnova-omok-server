@@ -63,27 +63,37 @@ jobs:
                 source: "./html/*"
                 target: ${{ env.HTML_DIR }}/
 
-            - name: Upload JAR via SCP (tcp/build/libs -> ROOT)
+            - name: Upload JAR file directly
               uses: appleboy/scp-action@v0.1.7
               with:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 source: "${{ env.JAR_LOCAL_PATH }}"
-                target: ${{ env.ROOT }}/
+                target: "${{ env.JAR_PATH }}"
 
-            # 간단한 진단 테스트
-            - name: SSH Connection Test
+            # 애플리케이션 재시작
+            - name: Restart application
               uses: appleboy/ssh-action@v1.1.0
               with:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
-                  echo "SSH connection successful"
-                  whoami
-                  pwd
-                  ls -la ${{ env.ROOT }}/
+                  # 기존 프로세스 종료
+                  pkill -f teamnova-omok-server || true
+
+                  # 애플리케이션 실행
+                  nohup java -jar ${{ env.JAR_PATH }} > ${{ env.ROOT }}/app.log 2>&1 &
+
+                  # 실행 확인
+                  sleep 3
+                  if pgrep -f teamnova-omok-server > /dev/null; then
+                    echo "✅ Application started successfully"
+                  else
+                    echo "❌ Application failed to start"
+                    exit 1
+                  fi
 
             - name: Create deployment check file
               uses: appleboy/ssh-action@v1.0.3
