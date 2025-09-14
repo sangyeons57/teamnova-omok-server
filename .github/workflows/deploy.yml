@@ -87,6 +87,22 @@ jobs:
 
                   sleep 5
 
+                  # JAR 파일 존재 및 권한 확인
+                  echo "Checking JAR file..."
+                  if [ -f "${{ env.JAR_PATH }}" ]; then
+                    echo "✅ JAR file exists: ${{ env.JAR_PATH }}"
+                    ls -la "${{ env.JAR_PATH }}"
+                  else
+                    echo "❌ JAR file not found: ${{ env.JAR_PATH }}"
+                    echo "Files in target directory:"
+                    ls -la ${{ env.ROOT }}/
+                    exit 1
+                  fi
+
+                  # Java 환경 확인
+                  echo "Checking Java environment..."
+                  java -version 2>&1 || echo "❌ Java not found in PATH"
+
                   # 새 버전 실행
                   echo "Starting new application..."
                   nohup java -jar ${{ env.JAR_PATH }} > ${{ env.ROOT }}/app.log 2>&1 &
@@ -94,12 +110,18 @@ jobs:
 
                   sleep 3
 
+                  # 즉시 로그 확인 (에러 진단용)
+                  echo "Application log (first 20 lines):"
+                  head -20 ${{ env.ROOT }}/app.log 2>/dev/null || echo "No log file yet"
+
                   # 실행 확인
                   if pgrep -f "${{ env.JAR_NAME }}"; then
                     echo "✅ Application is running successfully"
                   else
                     echo "❌ Application failed to start"
-                    tail -10 ${{ env.ROOT }}/app.log 2>/dev/null || echo "No log file"
+                    echo "Full application log:"
+                    cat ${{ env.ROOT }}/app.log 2>/dev/null || echo "No log file"
+                    exit 1
                   fi
                   
 
