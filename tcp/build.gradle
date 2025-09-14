@@ -1,0 +1,60 @@
+plugins {
+    id 'java'
+}
+version = '1.0.0'
+repositories {
+    mavenCentral()
+}
+// ... existing code ...
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+ext {
+    // 의존성과 빌드 산출물에 쓰이는 상수를 한 곳에서 관리
+    jacksonDatabind = 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
+    junitJupiter = 'org.junit.jupiter:junit-jupiter:5.10.3'
+    mainClassName = 'Main'
+    jarBaseName = 'teamnova-omok-server-tcp'
+}
+dependencies {
+    implementation jacksonDatabind
+    testImplementation junitJupiter
+}
+test {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+    }
+}
+// 공통 컴파일 옵션(가독성: 소스 인코딩 고정)
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+jar {
+    // 실행 가능한 JAR 메타데이터
+    manifest {
+        attributes(
+                'Main-Class': mainClassName
+        )
+    }
+    // README에 명시된 산출물 이름을 안정적으로 보장
+    archiveBaseName = jarBaseName
+    // 재현 가능한 빌드 설정
+    reproducibleFileOrder = true
+    preserveFileTimestamps = false
+}
+// Use existing simple folder layout
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['test']
+        }
+    }
+}
