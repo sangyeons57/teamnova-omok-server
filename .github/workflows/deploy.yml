@@ -64,7 +64,7 @@ jobs:
             # 5단계: 빌드된 JAR 파일을 서버로 전송
             # scp-action을 사용하여 build/libs/ 폴더에 생성된 JAR 파일을 원격 서버로 복사합니다.
             - name: Copy JAR to server
-              uses: appleboy/scp-action@v1.0.3
+              uses: appleboy/scp-action@v0.1.7
               with:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
