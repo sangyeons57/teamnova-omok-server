@@ -52,6 +52,7 @@ jobs:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
+                insecure: true
                 script: rm -rf ${{ env.HTML_DIR }}/*
 
             - name: Deploy HTML via SCP (html -> HTML_DIR)
@@ -60,6 +61,7 @@ jobs:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
+                insecure: true
                 source: "./html/*"
                 target: ${{ env.HTML_DIR }}/
 
@@ -69,6 +71,7 @@ jobs:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
+                insecure: true
                 source: "${{ env.JAR_LOCAL_PATH }}"
                 target: "${{ env.JAR_PATH }}"
 
@@ -79,6 +82,7 @@ jobs:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
+                insecure: true
                 script: |
                   # 기존 프로세스 종료
                   pkill -f teamnova-omok-server || true
@@ -101,5 +105,6 @@ jobs:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
+                insecure: true
                 script: |
                   echo "Deployment from commit ${{ github.sha }} successful at $(date)" > /home/deployer/deploy-check.txt
