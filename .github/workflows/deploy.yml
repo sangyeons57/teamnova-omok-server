@@ -4,13 +4,13 @@ name: Deploy to Production
 # 이 워크플로우가 언제 실행될지를 정의하는 '트리거(Trigger)' 설정입니다.
 on:
   push:
-    branches: 
+    branches:
         - main # 오직 'main' 브랜치에 push 이벤트가 발생했을 때만 실행됩니다.
 
 # 실행될 작업(Job)들을 정의합니다.
-jobs: 
-    # 'deploy' 라는 이름의 작업을 정의합니다. 
-    deploy: 
+jobs:
+    # 'deploy' 라는 이름의 작업을 정의합니다.
+    deploy:
         # 이 작업을 실행할 가상 머신의 종류를 지정합니다. 'ubuntu-latest'가 가장 일반적입니다.
         runs-on: ubuntu-latest
 
@@ -72,110 +72,35 @@ jobs:
                 source: "${{ env.JAR_LOCAL_PATH }}"
                 target: ${{ env.ROOT }}/
 
-            - name: Move JAR file to correct location
+            # 간단한 배포 및 재시작
+            - name: Deploy and restart application
               uses: appleboy/ssh-action@v1.1.0
               with:
                 host: ${{ secrets.REMOTE_HOST }}
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
-                  # 기존 잘못된 디렉토리 정리
-                  rm -rf ${{ env.ROOT }}/teamnova-omok-server-tcp-1.0.0.jar
-
-                  # JAR 파일을 올바른 위치로 이동
-                  if [ -f "${{ env.ROOT }}/tcp/build/libs/${{ env.JAR_NAME }}" ]; then
-                    mv "${{ env.ROOT }}/tcp/build/libs/${{ env.JAR_NAME }}" "${{ env.JAR_PATH }}"
-                    echo "✅ JAR file moved to: ${{ env.JAR_PATH }}"
-                  else
-                    echo "❌ JAR file not found in expected location"
-                    exit 1
-                  fi
-
-                  # 불필요한 디렉토리 정리
+                  # 모든 관련 파일/디렉토리 정리
+                  rm -rf ${{ env.ROOT }}/teamnova-omok-server-tcp*
                   rm -rf ${{ env.ROOT }}/tcp
 
-
-            # 7단계: 서버에 접속하여 애플리케이션 재시작 및 배포 체크 파일 생성
-            - name: Restart application and write deploy-check on server
-              uses: appleboy/ssh-action@v1.1.0
-              with:
-                host: ${{ secrets.REMOTE_HOST }}
-                username: ${{ secrets.REMOTE_USER }}
-                key: ${{ secrets.SSH_PRIVATE_KEY }}
-                timeout: 60s
-                command_timeout: 30s
-                script: |
-                  set -e  # 에러 발생 시 즉시 종료
-
-                  # 시스템 환경 확인
-                  echo "=== System Environment Check ==="
-                  echo "Current user: $(whoami)"
-                  echo "User ID: $(id)"
-                  echo "Current directory: $(pwd)"
-                  echo "Available disk space:"
-                  df -h ${{ env.ROOT }}
+                  # JAR 파일 찾아서 올바른 위치에 복사 (어디 있든)
+                  find ${{ env.ROOT }} -name "*teamnova-omok-server-tcp*.jar" -type f | head -1 | xargs -I {} cp {} ${{ env.JAR_PATH }}
 
                   # 기존 프로세스 종료
-                  echo "=== Stopping Existing Application ==="
-                  set +e  # pkill 명령어는 에러를 무시
-                  pkill -f "${{ env.JAR_NAME }}" || echo "No existing application found"
-                  set -e  # 다시 에러 처리 활성화
+                  pkill -f teamnova-omok-server || true
 
-                  sleep 5
-
-                  # JAR 파일 존재 및 권한 확인
-                  echo "=== JAR File Check ==="
-                  if [ -f "${{ env.JAR_PATH }}" ]; then
-                    echo "✅ JAR file exists: ${{ env.JAR_PATH }}"
-                    echo "File details:"
-                    ls -la "${{ env.JAR_PATH }}"
-
-                    # JAR 파일 실행 권한 설정
-                    echo "Setting execute permissions..."
-                    chmod +x "${{ env.JAR_PATH }}"
-                    echo "Updated permissions:"
-                    ls -la "${{ env.JAR_PATH }}"
-                  else
-                    echo "❌ JAR file not found: ${{ env.JAR_PATH }}"
-                    echo "Files in target directory:"
-                    ls -la ${{ env.ROOT }}/
-                    exit 1
-                  fi
-
-                  # Java 환경 확인
-                  echo "=== Java Environment Check ==="
-                  java -version 2>&1 || echo "❌ Java not found in PATH"
-
-                  # 새 버전 실행
-                  echo "=== Starting Application ==="
+                  # 애플리케이션 실행
                   nohup java -jar ${{ env.JAR_PATH }} > ${{ env.ROOT }}/app.log 2>&1 &
-                  APP_PID=$!
-                  echo "Application started with PID: $APP_PID"
 
+                  # 3초 대기 후 실행 확인
                   sleep 3
-
-                  # 즉시 로그 확인 (에러 진단용)
-                  echo "=== Application Log Check ==="
-                  if [ -f "${{ env.ROOT }}/app.log" ]; then
-                    echo "Application log (first 20 lines):"
-                    head -20 ${{ env.ROOT }}/app.log
-                  else
-                    echo "No log file created yet"
-                  fi
-
-                  # 실행 확인
-                  echo "=== Process Status Check ==="
-                  if pgrep -f "${{ env.JAR_NAME }}"; then
-                    echo "✅ Application is running successfully"
-                    echo "Running processes:"
-                    ps aux | grep "${{ env.JAR_NAME }}" | grep -v grep
+                  if pgrep -f teamnova-omok-server > /dev/null; then
+                    echo "✅ Application started successfully"
                   else
                     echo "❌ Application failed to start"
-                    echo "Full application log:"
-                    cat ${{ env.ROOT }}/app.log 2>/dev/null || echo "No log file found"
                     exit 1
                   fi
-                  
 
             - name: Create deployment check file
               uses: appleboy/ssh-action@v1.0.3
