@@ -81,15 +81,19 @@ jobs:
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
-                  set -e
+                  # 디렉터리 생성 (실패하면 중단)
                   mkdir -p ${{ env.ROOT }}
+                  if [ $? -ne 0 ]; then
+                    echo "Failed to create directory"
+                    exit 1
+                  fi
 
                   # 기존 프로세스 확인 및 종료
                   echo "Checking for existing processes..."
                   if pgrep -f "${{ env.JAR_NAME }}"; then
                     echo "Stopping existing application..."
-                    pkill -f "${{ env.JAR_NAME }}" || true
-                    echo "Application stopped"
+                    pkill -f "${{ env.JAR_NAME }}"
+                    echo "Application stopped (exit code $?)"
                   else
                     echo "No existing application found"
                   fi
@@ -98,12 +102,24 @@ jobs:
 
                   # 새 버전 실행
                   echo "Starting new application..."
-                  nohup java -jar ${{ env.ROOT }}/${{ env.JAR_NAME }} > ${{ env.ROOT }}/app.log 2>&1 &
-                  disown || true
+                  if [ -f "${{ env.ROOT }}/${{ env.JAR_NAME }}" ]; then
+                    nohup java -jar ${{ env.ROOT }}/${{ env.JAR_NAME }} > ${{ env.ROOT }}/app.log 2>&1 &
+                    echo "Application started with PID: $!"
+                  else
+                    echo "ERROR: JAR file not found at ${{ env.ROOT }}/${{ env.JAR_NAME }}"
+                    exit 1
+                  fi
 
-                  sleep 2
-                  echo "Application started successfully"
-                  ps aux | grep "${{ env.JAR_NAME }}" | grep -v grep || echo "Warning: Process not found"
+                  sleep 3
+
+                  # 프로세스 확인
+                  if pgrep -f "${{ env.JAR_NAME }}"; then
+                    echo "✅ Application is running successfully"
+                  else
+                    echo "❌ Application failed to start - checking logs..."
+                    tail -20 ${{ env.ROOT }}/app.log || echo "No log file found"
+                    exit 1
+                  fi
                   
 
             - name: Create deployment check file
