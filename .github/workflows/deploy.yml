@@ -53,7 +53,15 @@ jobs:
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 insecure: true
-                script: rm -rf ${{ env.HTML_DIR }}/*
+                debug: true
+                script: |
+                  echo "=== SSH Debug Info ==="
+                  whoami
+                  id
+                  pwd
+                  echo "=== Cleaning HTML directory ==="
+                  rm -rf ${{ env.HTML_DIR }}/*
+                  echo "=== Clean completed ==="
 
             - name: Deploy HTML via SCP (html -> HTML_DIR)
               uses: appleboy/scp-action@v0.1.7
