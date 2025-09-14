@@ -95,7 +95,9 @@ jobs:
 
                   # 기존 프로세스 종료
                   echo "=== Stopping Existing Application ==="
+                  set +e  # pkill 명령어는 에러를 무시
                   pkill -f "${{ env.JAR_NAME }}" || echo "No existing application found"
+                  set -e  # 다시 에러 처리 활성화
 
                   sleep 5
 
