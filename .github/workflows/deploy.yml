@@ -30,16 +30,14 @@ jobs:
               with:
                 distribution: 'temurin'
                 java-version: '17'
-                cache: 'gradle'
 
             # 3단계: gradlew 실행권한 부여 (존재할 때만). 없더라도 실패하지 않음
             - name: Make gradlew executable if present
-              run: |
-                if [ -f ./tcp/gradlew ]; then chmod +x ./tcp/gradlew; fi
+              run: chmod +x ./tcp/gradlew
 
             # 4단계: TCP 모듈 빌드 (Wrapper 사용)
             - name: Build tcp module
-              run: ./tcp/gradlew -p ./tcp clean build --no-daemon
+              run: ./tcp/gradlew build --no-daemon
 
             # 5단계: 기존 정적 파일 등은 계속 rsync 배포
             - name: Deploy files via rsync 
@@ -63,6 +61,17 @@ jobs:
                 remote_user: ${{ secrets.REMOTE_USER }}
                 remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+            # 5단계: 빌드된 JAR 파일을 서버로 전송
+            # scp-action을 사용하여 build/libs/ 폴더에 생성된 JAR 파일을 원격 서버로 복사합니다.
+            - name: Copy JAR to server
+              uses: appleboy/scp-action@v1.0.3
+              with:
+                host: ${{ secrets.REMOTE_HOST }}
+                username: ${{ secrets.REMOTE_USER }}
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                source: "build/libs/*.jar"  # 빌드 결과물이 있는 경로
+                target: ${{ env.APP_DIR }} # 서버에 파일이 저장될 경로 (예: /home/sangyeons57/app)
+
             # 7단계: 서버에 접속하여 애플리케이션 재시작 및 배포 체크 파일 생성
             - name: Restart application and write deploy-check on server
               uses: appleboy/ssh-action@v1.0.3
@@ -74,11 +83,10 @@ jobs:
                   set -e
                   mkdir -p ${{ env.APP_DIR }}
                   # 기존 프로세스 종료 (실행 중이 아니어도 에러 없이 진행)
-                  pkill -f "${{ env.JAR_NAME }}" || true
-                  sleep 2
+                  pkill -f "${{ env.JAR_NAME }}" || echo "Application is not running"
+                  
+                  sleep 5
                   # 새 버전 실행 (로그 파일에 출력)
                   nohup java -jar ${{ env.APP_DIR }}/${{ env.JAR_NAME }} > ${{ env.APP_DIR }}/app.log 2>&1 &
                   # 배포 체크 파일 기록
                   echo "Deployment from commit ${{ github.sha }} successful at $(date)" > /home/deployer/deploy-check.txt
-                  # 백그라운드 작업 분리 (호환되지 않으면 무시)
-                  disown || true
