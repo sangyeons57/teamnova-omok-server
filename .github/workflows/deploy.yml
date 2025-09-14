@@ -34,8 +34,7 @@ jobs:
                 cache: 'gradle'
 
             - name: Make gradlew executable if present
-              run: |
-                if [ -f ./tcp/gradlew ]; then chmod +x ./tcp/gradlew; fi
+              run: chmod +x ./tcp/gradlew
 
             - name: Build tcp module with Gradle Wrapper
               working-directory: ./tcp
