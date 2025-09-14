@@ -70,7 +70,29 @@ jobs:
                 username: ${{ secrets.REMOTE_USER }}
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 source: "${{ env.JAR_LOCAL_PATH }}"
-                target: ${{ env.JAR_PATH }}
+                target: ${{ env.ROOT }}/
+
+            - name: Move JAR file to correct location
+              uses: appleboy/ssh-action@v1.1.0
+              with:
+                host: ${{ secrets.REMOTE_HOST }}
+                username: ${{ secrets.REMOTE_USER }}
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                script: |
+                  # 기존 잘못된 디렉토리 정리
+                  rm -rf ${{ env.ROOT }}/teamnova-omok-server-tcp-1.0.0.jar
+
+                  # JAR 파일을 올바른 위치로 이동
+                  if [ -f "${{ env.ROOT }}/tcp/build/libs/${{ env.JAR_NAME }}" ]; then
+                    mv "${{ env.ROOT }}/tcp/build/libs/${{ env.JAR_NAME }}" "${{ env.JAR_PATH }}"
+                    echo "✅ JAR file moved to: ${{ env.JAR_PATH }}"
+                  else
+                    echo "❌ JAR file not found in expected location"
+                    exit 1
+                  fi
+
+                  # 불필요한 디렉토리 정리
+                  rm -rf ${{ env.ROOT }}/tcp
 
 
             # 7단계: 서버에 접속하여 애플리케이션 재시작 및 배포 체크 파일 생성
