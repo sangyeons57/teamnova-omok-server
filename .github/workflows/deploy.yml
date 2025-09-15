@@ -90,13 +90,26 @@ jobs:
       - name: Prepare Java artifact for deployment
         if: contains(github.event.head_commit.message, '[java]')
         run: |
-          echo "Preparing Java artifact..."
-          # 1. 배포할 파일만 담을 깨끗한 폴더를 만듭니다.
-          mkdir staging
-          # 2. 빌드된 JAR 파일을 그 폴더로 복사합니다.
-          cp ${{ env.JAVA_PROJECT_DIR }}/build/libs/${{ env.JAVA_JAR_NAME }} ${{ env.STAGING_DIR }}/
-          echo "Artifact prepared in staging directory."
-          ls -R ${{ env.STAGING_DIR }}/
+          run: |
+          # 셸이 실행하는 모든 명령어를 그대로 출력합니다 (디버깅용)
+          set -x
+
+          # 1. 빌드 결과물이 정말로 존재하는지 다시 한번 확인합니다.
+          echo "Verifying existence of JAR file..."
+          ls -l ${{ env.JAVA_PROJECT_DIR }}/build/libs/
+
+          # 2. 서버에 생성될 폴더와 똑같은 이름으로 폴더를 만듭니다.
+          echo "Creating staging directory..."
+          mkdir ${{ env.STAGING_DIR }} 
+
+          # 3. 빌드된 JAR 파일을 그 폴더 안으로 복사합니다.
+          #    대상 디렉터리 뒤의 슬래시(/)를 제거하여 모호함을 없앱니다.
+          echo "Copying JAR to staging directory..."
+          cp ${{ env.JAVA_PROJECT_DIR }}/build/libs/${{ env.JAVA_JAR_NAME }} ${{ env.STAGING_DIR }} 
+
+          # 4. 최종 준비 상태를 확인합니다.
+          echo "Final check of the staging directory:"
+          ls -R .
 
       - name: Deploy Java JAR via SCP
         if: contains(github.event.head_commit.message, '[java]')
