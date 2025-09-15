@@ -87,11 +87,12 @@ jobs:
       - name: Deploy Java JAR via SCP
         if: contains(github.event.head_commit.message, '[java]')
         uses: appleboy/scp-action@v0.1.7
+        working-directory: ${{ env.JAVA_PROJECT_DIR }}/build/libs
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "${{ env.JAVA_PROJECT_DIR }}/build/libs/${{ env.JAVA_JAR_NAME }}"
+          source: "${{ env.JAVA_JAR_NAME }}"
           target: "${{ env.JAVA_TARGET_PATH }}"
 
       # 5. 서버에서 서비스 재시작
