@@ -21,7 +21,7 @@ jobs:
 
       # Java 관련 경로 및 이름
       JAVA_PROJECT_DIR: ./tcp
-      JAVA_TARGET_PATH: /opt
+      JAVA_TARGET_PATH: /opt/java-tcp-server
       JAVA_JAR_NAME: java-tcp-server-1.0.0.jar
       JAVA_SERVICE_NAME: java-tcp-server.service
 
@@ -99,7 +99,7 @@ jobs:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "staging/*"
+          source: "${{ env.JAVA_PROJECT_DIR }}/build/libs/${{ env.JAVA_JAR_NAME }}"
           target: "${{ env.JAVA_TARGET_PATH }}"
 
       # 5. 서버에서 서비스 재시작
