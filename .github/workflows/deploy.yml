@@ -17,7 +17,7 @@ jobs:
     env:
       # PHP 관련 경로
       PHP_SRC_PATH: ./html
-      PHP_TARGET_PATH: /var/www/html
+      PHP_TARGET_PATH: /var/www
 
       # Java 관련 경로 및 이름
       JAVA_PROJECT_DIR: ./tcp
@@ -85,6 +85,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "${{ env.PHP_SRC_PATH }}/*"
           target: "${{ env.PHP_TARGET_PATH }}"
+          script_before: rm -rf ${{ env.PHP_TARGET_PATH }}/html
 
 
       - name: Prepare Java artifact for deployment
