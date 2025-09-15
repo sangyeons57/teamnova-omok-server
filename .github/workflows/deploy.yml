@@ -106,7 +106,7 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           # 3. 이제 소스는 깨끗하게 준비된 staging 폴더의 내용물을 지정합니다.
-          source: "${{ env.STAGING_DIR }}/*"
+          source: "${{ env.STAGING_DIR }}"
           target: "${{ env.JAVA_TARGET_PATH }}"
 
       # 5. 서버에서 서비스 재시작
