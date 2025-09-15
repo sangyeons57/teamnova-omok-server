@@ -76,6 +76,18 @@ jobs:
 
       # 4. GCP VM으로 배포
       # ----------------------------------------------------
+      - name: Clean previous PHP deployment
+        if: contains(github.event.head_commit.message, '[php]')
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "Removing old html directory..."
+            rm -rf ${{ env.PHP_TARGET_PATH }}/html
+            echo "Directory removed."
+
       - name: Deploy PHP files via SCP
         if: contains(github.event.head_commit.message, '[php]')
         uses: appleboy/scp-action@v0.1.7
@@ -85,7 +97,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "${{ env.PHP_SRC_PATH }}/*"
           target: "${{ env.PHP_TARGET_PATH }}"
-          script_before: rm -rf ${{ env.PHP_TARGET_PATH }}/html
 
 
       - name: Prepare Java artifact for deployment
