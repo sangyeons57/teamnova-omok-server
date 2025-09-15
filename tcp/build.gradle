@@ -1,60 +1,62 @@
+/*
+ * Gradle 빌드 스크립트 (Groovy DSL)
+ * 이 파일은 Java TCP 서버 애플리케이션을 빌드합니다.
+ */
+
+// 1. 플러그인 설정
 plugins {
-    id 'java'
+    // 자바 애플리케이션을 빌드하고 실행하는 데 필요한 기본 기능을 제공합니다.
+    id 'application'
 }
+
+// 2. 프로젝트 기본 정보
+// group은 보통 회사의 도메인을 역순으로 사용합니다. (예: com.example)
+group = 'site.bamsol'
+// 버전은 GitHub Actions의 JAVA_JAR_NAME과 일치시켜야 합니다.
 version = '1.0.0'
+
+// 3. 자바 컴파일러 설정
+java {
+    // CI/CD 환경과 동일한 JDK 버전을 지정합니다.
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+
+// 4. 의존성 라이브러리를 다운로드할 원격 저장소
 repositories {
+    // 가장 대중적인 자바 라이브러리 저장소입니다.
     mavenCentral()
 }
-// ... existing code ...
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-ext {
-    // 의존성과 빌드 산출물에 쓰이는 상수를 한 곳에서 관리
-    jacksonDatabind = 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
-    junitJupiter = 'org.junit.jupiter:junit-jupiter:5.10.3'
-    mainClassName = 'Main'
-    jarBaseName = 'teamnova-omok-server-tcp'
-}
+
+// 5. 프로젝트 의존성 설정
 dependencies {
-    implementation jacksonDatabind
-    testImplementation junitJupiter
+    // 이 곳에 필요한 라이브러리를 추가합니다.
+    // 예: implementation 'com.google.code.gson:gson:2.10.1'
+
+    // 테스트 코드용 의존성
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
 }
+
+// 6. 애플리케이션 실행 및 JAR 파일 설정
+application {
+    // 애플리케이션의 시작점(main 메서드가 있는 클래스)을 지정합니다.
+    // 소스 파일이 ./tcp/src/main/java/com/yourcompany/Main.java 라면
+    // mainClass = 'com.yourcompany.Main' 으로 지정해야 합니다.
+    // 패키지 없이 Main.java만 있다면 'Main'으로 지정합니다.
+    mainClass = 'Main'
+}
+
+// 7. 최종 빌드 결과물(JAR) 이름 설정
+jar {
+    // JAR 파일의 기본 이름을 지정합니다.
+    archiveBaseName = 'java-tcp-server'
+
+    // 위에서 설정한 version 변수('1.0.0')가 자동으로 뒤에 붙습니다.
+    // 최종 결과: java-tcp-server-1.0.0.jar
+    // 이 이름이 GitHub Actions의 JAVA_JAR_NAME 환경 변수와 정확히 일치해야 합니다.
+}
+
+// (선택사항) 테스트 실행 설정
 test {
     useJUnitPlatform()
-    testLogging {
-        events 'passed', 'skipped', 'failed'
-    }
-}
-// 공통 컴파일 옵션(가독성: 소스 인코딩 고정)
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-}
-jar {
-    // 실행 가능한 JAR 메타데이터
-    manifest {
-        attributes(
-                'Main-Class': mainClassName
-        )
-    }
-    // README에 명시된 산출물 이름을 안정적으로 보장
-    archiveBaseName = jarBaseName
-    // 재현 가능한 빌드 설정
-    reproducibleFileOrder = true
-    preserveFileTimestamps = false
-}
-// Use existing simple folder layout
-sourceSets {
-    main {
-        java {
-            srcDirs = ['src']
-        }
-    }
-    test {
-        java {
-            srcDirs = ['test']
-        }
-    }
 }
