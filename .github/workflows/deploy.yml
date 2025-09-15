@@ -66,6 +66,12 @@ jobs:
         run: |
           echo "Java 테스트 영역입니다."
 
+      - name: Check build artifacts
+        if: contains(github.event.head_commit.message, '[java]')
+        run: |
+          echo "Listing all files in the workspace..."
+          ls -R
+
       # 4. GCP VM으로 배포
       # ----------------------------------------------------
       - name: Deploy PHP files via SCP
