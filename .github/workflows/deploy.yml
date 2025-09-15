@@ -84,15 +84,22 @@ jobs:
           source: "${{ env.PHP_SRC_PATH }}/*"
           target: "${{ env.PHP_TARGET_PATH }}"
 
+      - name: Prepare Java artifact for deployment
+        if: contains(github.event.head_commit.message, '[java]')
+        run: |
+          # 1. 배포할 파일만 담을 깨끗한 폴더를 만듭니다.
+          mkdir staging
+          # 2. 빌드된 JAR 파일을 그 폴더로 복사합니다.
+          cp ${{ env.JAVA_PROJECT_DIR }}/build/libs/${{ env.JAVA_JAR_NAME }} staging/
+
       - name: Deploy Java JAR via SCP
         if: contains(github.event.head_commit.message, '[java]')
         uses: appleboy/scp-action@v0.1.7
-        working-directory: ${{ env.JAVA_PROJECT_DIR }}/build/libs
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "${{ env.JAVA_JAR_NAME }}"
+          source: "staging/*"
           target: "${{ env.JAVA_TARGET_PATH }}"
 
       # 5. 서버에서 서비스 재시작
