@@ -1,0 +1,87 @@
+# Root .gitignore for Java (Gradle) and PHP project
+
+# ==========================
+# OS / Editor junk
+# ==========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# VS Code
+.vscode/
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# ==========================
+# Java / Gradle
+# ==========================
+# Compiled class files
+*.class
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+*.hprof
+
+# Logs
+*.log
+
+# Gradle caches and build outputs
+.gradle/
+build/
+out/
+bin/
+
+# Packaged archives (built artifacts)
+*.jar
+*.war
+*.ear
+
+# Keep Gradle wrapper scripts and jar tracked
+!gradle/wrapper/gradle-wrapper.jar
+!gradlew
+!gradlew.bat
+
+# ==========================
+# PHP
+# ==========================
+# Dependencies (installed by Composer)
+vendor/
+composer.phar
+# Keep composer.lock tracked for applications (recommended)
+# composer.lock
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# PHP/unit caches and runtime files
+.phpunit.result.cache
+cache/
+tmp/
+logs/
+
+# ==========================
+# Node (if front-end assets exist under html/)
+# ==========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==========================
+# Coverage and reports
+# ==========================
+coverage/
+.clover
