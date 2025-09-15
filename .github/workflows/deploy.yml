@@ -101,6 +101,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: "${{ env.JAVA_PROJECT_DIR }}/build/libs/${{ env.JAVA_JAR_NAME }}"
           target: "${{ env.JAVA_TARGET_PATH }}"
+          strip_components: 3
 
       # 5. 서버에서 서비스 재시작
       # ----------------------------------------------------
