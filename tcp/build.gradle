@@ -54,6 +54,11 @@ jar {
     // 위에서 설정한 version 변수('1.0.0')가 자동으로 뒤에 붙습니다.
     // 최종 결과: java-tcp-server-1.0.0.jar
     // 이 이름이 GitHub Actions의 JAVA_JAR_NAME 환경 변수와 정확히 일치해야 합니다.
+    manifest {
+        attributes(
+                'Main-Class': application.mainClass.get()
+        )
+    }
 }
 
 // (선택사항) 테스트 실행 설정
