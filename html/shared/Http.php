@@ -52,15 +52,66 @@ class Http {
         ));
     }
 
+    // 예외 포함 응답(디버깅 상세)
+    public static function exceptionWithException($status, $error, $message, Exception $e) {
+        $payload = array(
+            'success' => false,
+            'error' => $error,
+            'message' => $message,
+            'exception' => array(
+                'class' => get_class($e),
+                'code'  => $e->getCode(),
+                'msg'   => $e->getMessage(),
+                'file'  => $e->getFile(),
+                'line'  => $e->getLine(),
+                'trace' => self::formatTrace($e->getTrace())
+            )
+        );
+        $prev = $e->getPrevious();
+        if ($prev instanceof Exception) {
+            $payload['exception']['previous'] = array(
+                'class' => get_class($prev),
+                'code'  => $prev->getCode(),
+                'msg'   => $prev->getMessage(),
+            );
+        }
+        self::json($status, $payload);
+    }
+
     public static function badRequest($error, $message) {
         self::exception(400, $error, $message);
     }
 
-    public static function exceptionDbError($message = '데이터베이스 오류가 발생했습니다.') {
+    public static function exceptionDbError($message = '데이터베이스 오류가 발생했습니다.', Exception $e = null) {
+        if ($e instanceof Exception) {
+            self::exceptionWithException(500, 'DB_ERROR', $message, $e);
+        }
         self::exception(500, 'DB_ERROR', $message);
     }
 
-    public static function exceptionInternal($message = '내부 오류가 발생했습니다.', $error = 'INTERNAL_ERROR') {
+    public static function exceptionInternal($message = '내부 오류가 발생했습니다.', Exception $e = null, $error = 'INTERNAL_ERROR') {
+        if ($e instanceof Exception) {
+            self::exceptionWithException(500, $error, $message, $e);
+        }
         self::exception(500, $error, $message);
+    }
+
+    // 스택트레이스 간략화(상위 10프레임)
+    private static function formatTrace($trace) {
+        $out = array();
+        if (!is_array($trace)) {
+            return $out;
+        }
+        $limit = 10;
+        $i = 0;
+        foreach ($trace as $frame) {
+            if ($i++ >= $limit) break;
+            $out[] = array(
+                'file' => isset($frame['file']) ? $frame['file'] : null,
+                'line' => isset($frame['line']) ? $frame['line'] : null,
+                'func' => (isset($frame['class']) ? $frame['class'] . $frame['type'] : '') . (isset($frame['function']) ? $frame['function'] : '')
+            );
+        }
+        return $out;
     }
 }

@@ -97,8 +97,6 @@ $pdo = null;
 try {
     $pdo = Database::pdo();
 
-    Http::json( 200, "test");
-
     $account = new AccountService($pdo);
     $result = $account->createOrGetUser($provider, $provider_user_id, $display_name, $profile_icon_code);
 
@@ -131,14 +129,14 @@ try {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    Http::exceptionDbError('데이터베이스 오류가 발생했습니다.');
+    Http::exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
 } catch (Exception $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
     if ($e->getMessage() === 'DATA_INTEGRITY_ERROR') {
-        Http::exception(500, 'DATA_INTEGRITY_ERROR', 'auth_providers는 있으나 users가 없습니다.');
+        Http::exceptionInternal('auth_providers는 있으나 users가 없습니다.', $e, 'DATA_INTEGRITY_ERROR');
     }
-    Http::exceptionInternal('내부 오류가 발생했습니다.');
+    Http::exceptionInternal('내부 오류가 발생했습니다.', $e);
 }
 
