@@ -97,6 +97,8 @@ $pdo = null;
 try {
     $pdo = Database::pdo();
 
+    Http::json( 200, "test");
+
     $account = new AccountService($pdo);
     $result = $account->createOrGetUser($provider, $provider_user_id, $display_name, $profile_icon_code);
 
