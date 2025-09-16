@@ -3,7 +3,7 @@ class Http {
     public static function json($statusCode, $payload) {
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode($payload);
+        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
     }
 
