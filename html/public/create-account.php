@@ -12,9 +12,9 @@
  * 요구 파라미터(JSON, POST):
  * - provider: "GUEST" | "GOOGLE"
  * - provider_user_id: 문자열(디바이스ID/랜덤키 또는 Google OAuth sub)
- * - display_name: 표시명
- * - profile_icon_code: 선택
- * - issue_tokens: true/false (기본 true) — true면 가입 후 즉시 로그인 처리
+ * - display_name: auto-generated (user-XXXXXXXXXXXX)
+ * - profile_icon_code: default '0'
+ * - tokens: always issued immediately
  *
  * 환경 변수:
  * - DB_HOST, DB_NAME, DB_USER, DB_PASS
@@ -48,9 +48,8 @@ $body = Http::readJsonBody();
 // 파라미터 파싱
 $provider = isset($body['provider']) ? trim($body['provider']) : '';
 $provider_user_id = isset($body['provider_user_id']) ? trim($body['provider_user_id']) : '';
-$display_name = isset($body['display_name']) ? trim($body['display_name']) : '';
-$profile_icon_code = isset($body['profile_icon_code']) ? trim($body['profile_icon_code']) : null;
-$issue_tokens = isset($body['issue_tokens']) ? (bool)$body['issue_tokens'] : true;
+$display_name = 'user-' . substr(str_replace('-', '', Uuid::v4()), 0, 12);
+$profile_icon_code = '0';
 
 // 유효성 검증
 $allowed_providers = array('GUEST', 'GOOGLE');
@@ -76,22 +75,6 @@ if ($provider === 'GOOGLE') {
     $provider_user_id = null;
 }
 
-if ($display_name === '' || Validation::mbLength($display_name) > 30) {
-    Http::json(400, array(
-        'success' => false,
-        'error' => 'INVALID_DISPLAY_NAME',
-        'message' => 'display_name은 1~30자여야 합니다.'
-    ));
-}
-
-if ($profile_icon_code !== null && $profile_icon_code !== '' && Validation::mbLength($profile_icon_code) > 64) {
-    Http::json(400, array(
-        'success' => false,
-        'error' => 'INVALID_PROFILE_ICON_CODE',
-        'message' => 'profile_icon_code 길이가 너무 깁니다(최대 64).'
-    ));
-}
-
 // 비즈니스 로직
 $pdo = null;
 try {
@@ -113,15 +96,13 @@ try {
         )
     );
 
-    if ($issue_tokens) {
-        $refreshRepo = new RefreshTokenRepository($pdo);
-        $tokens = (new TokenService($refreshRepo))->issue(
-            $result['user']['user_id'],
-            $provider,
-            $result['user']['role']
-        );
-        $response = array_merge($response, $tokens);
-    }
+    $refreshRepo = new RefreshTokenRepository($pdo);
+    $tokens = (new TokenService($refreshRepo))->issue(
+        $result['user']['user_id'],
+        $provider,
+        $result['user']['role']
+    );
+    $response = array_merge($response, $tokens);
 
     Http::json($result['created'] ? 201 : 200, $response);
 
@@ -139,4 +120,3 @@ try {
     }
     Http::exceptionInternal('내부 오류가 발생했습니다.', $e);
 }
-

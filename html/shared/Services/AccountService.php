@@ -15,7 +15,8 @@ class AccountService {
     }
 
     // 반환: array('created' => bool, 'user' => row)
-    public function createOrGetUser($provider, $providerUserId, $displayName, $iconCode) {
+    public function createOrGetUser($provider, $providerUserId, $displayName, $iconCode): array
+    {
         // provider_user_id가 빈 문자열이면 null로 정규화(일반 처리)
         $pid = ($providerUserId === '' ? null : $providerUserId);
 
