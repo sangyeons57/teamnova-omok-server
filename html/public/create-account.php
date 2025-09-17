@@ -97,10 +97,9 @@ try {
     );
 
     $refreshRepo = new RefreshTokenRepository($pdo);
-    $tokens = (new TokenService($refreshRepo))->issue(
-        $result['user']['user_id'],
-        $provider,
-        $result['user']['role']
+    $userRepo = new UserRepository($pdo);
+    $tokens = (new TokenService($refreshRepo, $userRepo))->issue(
+        $result['user']['user_id']
     );
     $response = array_merge($response, $tokens);
 
