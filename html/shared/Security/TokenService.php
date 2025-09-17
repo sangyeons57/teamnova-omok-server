@@ -2,7 +2,6 @@
 require_once __DIR__ . '/../Config.php';
 require_once __DIR__ . '/../Util/Crypto.php';
 require_once __DIR__ . '/../Util/Clock.php';
-require_once __DIR__ . '/../Http.php';
 require_once __DIR__ . '/../Repositories/UserRepository.php';
 require_once __DIR__ . '/Jwt.php';
 
@@ -125,29 +124,19 @@ class TokenService {
     }
 
     /**
-     * 액세스 토큰 검증에 실패하면 즉시 401 응답을 보내고 종료합니다.
-     * - 성공: 페이로드 배열 반환
-     * - 실패: Http::json(401, ...) 호출 후 exit
+     * 액세스 토큰(JWT, HS256) 유효성 검증(순수).
+     * - 성공: array('valid'=>true, 'payload'=>array)
+     * - 실패: array('valid'=>false, 'error'=>'ACCESS_TOKEN_INVALID'|'ACCESS_TOKEN_EXPIRED')
      */
-    public function validateAccessToken(string $jwt)
+    public function validateAccessToken(string $jwt): array
     {
         if (!is_string($jwt) || $jwt === '') {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_INVALID',
-                'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                'retry_with_refresh' => true
-            ));
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
 
         $parts = explode('.', $jwt);
         if (count($parts) !== 3) {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_INVALID',
-                'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                'retry_with_refresh' => true
-            ));
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
         list($h, $p, $s) = $parts;
 
@@ -156,76 +145,41 @@ class TokenService {
         $sigBin      = self::b64urlDecode($s);
 
         if ($headerJson === false || $payloadJson === false || $sigBin === false) {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_INVALID',
-                'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                'retry_with_refresh' => true
-            ));
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
 
         $header = json_decode($headerJson, true);
         $payload = json_decode($payloadJson, true);
         if (!is_array($header) || !is_array($payload)) {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_INVALID',
-                'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                'retry_with_refresh' => true
-            ));
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
 
         if (!isset($header['alg']) || $header['alg'] !== 'HS256') {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_INVALID',
-                'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                'retry_with_refresh' => true
-            ));
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
 
         // 서명 검증
         $signingInput = $h . '.' . $p;
         $expectedSig = hash_hmac('sha256', $signingInput, Config::jwtSecret(), true);
         if (!hash_equals($expectedSig, $sigBin)) {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_INVALID',
-                'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                'retry_with_refresh' => true
-            ));
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
 
         $now = time();
 
         // 만료 검사
         if (!isset($payload['exp']) || !is_numeric($payload['exp'])) {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_INVALID',
-                'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                'retry_with_refresh' => true
-            ));
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
-        if ($payload['exp'] <= $now) {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_EXPIRED',
-                'message' => '액세스 토큰이 만료되었습니다. refresh_token으로 재발급을 요청하세요.',
-                'retry_with_refresh' => true
-            ));
+        if ((int)$payload['exp'] <= $now) {
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_EXPIRED');
         }
 
         // iss가 있으면 검증
         if (isset($payload['iss']) && $payload['iss'] !== 'teamnova-omok') {
-            Http::json(401, array(
-                'success' => false,
-                'error' => 'ACCESS_TOKEN_INVALID',
-                'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                'retry_with_refresh' => true
-            ));
+            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
 
-        return $payload;
+        return array('valid' => true, 'payload' => $payload);
     }
 }

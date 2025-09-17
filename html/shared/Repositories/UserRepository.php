@@ -20,4 +20,12 @@ class UserRepository {
             ':icon' => ($iconCode === '' ? null : $iconCode),
         ));
     }
+
+    public function updateStatus($userId, $status) {
+        $st = $this->pdo->prepare('UPDATE users SET status = :status WHERE user_id = :id');
+        $st->execute(array(
+            ':status' => $status,
+            ':id' => $userId,
+        ));
+    }
 }

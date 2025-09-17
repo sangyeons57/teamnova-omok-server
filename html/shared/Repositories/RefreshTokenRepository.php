@@ -30,4 +30,14 @@ class RefreshTokenRepository {
             ':th'  => $tokenHash,
         ));
     }
+
+    public function revokeAllByUserId($userId) {
+        $nowUtc = new DateTime('now', new DateTimeZone('UTC'));
+        $st = $this->pdo->prepare('UPDATE refresh_tokens SET revoked_at = :now WHERE user_id = :uid AND revoked_at IS NULL');
+        $st->execute(array(
+            ':now' => $nowUtc->format('Y-m-d H:i:s'),
+            ':uid' => $userId,
+        ));
+    }
+
 }
