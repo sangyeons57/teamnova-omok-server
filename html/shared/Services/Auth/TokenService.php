@@ -1,17 +1,19 @@
 <?php
-require_once __DIR__ . '/../Config.php';
-require_once __DIR__ . '/../Util/Crypto.php';
-require_once __DIR__ . '/../Util/Clock.php';
-require_once __DIR__ . '/../Repositories/UserRepository.php';
-require_once __DIR__ . '/Jwt.php';
+require_once __DIR__ . '/../../Config.php';
+require_once __DIR__ . '/../../Repositories/UserRepository.php';
+require_once __DIR__ . '/JwtService.php';
 
 class TokenService {
     private $refreshRepo;
     private $userRepo;
+    private $crypto;
+    private $clock;
 
-    public function __construct($refreshRepo, $userRepo) {
+    public function __construct($refreshRepo, $userRepo, $crypto, $clock) {
         $this->refreshRepo = $refreshRepo;
         $this->userRepo = $userRepo;
+        $this->crypto = $crypto;
+        $this->clock = $clock;
     }
 
     public function issue($userId): array
@@ -23,7 +25,7 @@ class TokenService {
         $user = $this->userRepo->findById($userId);
         $role = ($user && isset($user['role'])) ? $user['role'] : 'USER';
 
-        $jwt = Jwt::encodeHS256(array(
+        $jwt = JwtService::encodeHS256(array(
             'iss' => 'teamnova-omok',
             'sub' => $userId,
             'iat' => $now,
@@ -32,10 +34,10 @@ class TokenService {
             'scope' => 'user',
         ), Config::jwtSecret());
 
-        $refresh = Crypto::base64url(Crypto::randomBytes(32));
-        $hash = Crypto::sha256($refresh);
+        $refresh = $this->crypto->base64url($this->crypto->randomBytes(32));
+        $hash = $this->crypto->sha256($refresh);
 
-        $expiresAt = Clock::nowUtc();
+        $expiresAt = $this->clock->nowUtc();
         $expiresAt->modify('+' . Config::refreshTtlDays() . ' days');
 
         $this->refreshRepo->save($userId, $hash, $expiresAt);
@@ -51,10 +53,11 @@ class TokenService {
     /**
      * 기존 리프레시 토큰을 비활성화(revoked_at 설정)합니다.
      * 존재하지 않거나 이미 비활성화된 경우에도 에러 없이 종료합니다(멱등).
+     * @throws Exception
      */
     public function revoke(string $refreshToken): void
     {
-        $hash = Crypto::sha256($refreshToken);
+        $hash = $this->crypto->sha256($refreshToken);
         if (method_exists($this->refreshRepo, 'revokeByHash')) {
             $this->refreshRepo->revokeByHash($hash);
             return;
@@ -71,7 +74,7 @@ class TokenService {
      */
     public function refresh(string $refreshToken): array
     {
-        $hash = Crypto::sha256($refreshToken);
+        $hash = $this->crypto->sha256($refreshToken);
 
         if (!method_exists($this->refreshRepo, 'findByHash')) {
             throw new Exception('REFRESH_REPO_FIND_NOT_SUPPORTED');
@@ -82,10 +85,10 @@ class TokenService {
             throw new Exception('INVALID_REFRESH_TOKEN');
         }
 
-        $nowUtc = Clock::nowUtc();
+        $nowUtc = $this->clock->nowUtc();
 
         // revoked_at 검사
-        if (isset($record['revoked_at']) && $record['revoked_at'] !== null && $record['revoked_at'] !== '') {
+        if (isset($record['revoked_at']) && $record['revoked_at'] !== '') {
             throw new Exception('REFRESH_TOKEN_REVOKED');
         }
 
@@ -112,7 +115,7 @@ class TokenService {
         return $this->issue($userId);
     }
 
-    private static function b64urlDecode(string $data)
+    private static function b64urlDecode(string $data): false|string
     {
         $data = strtr($data, '-_', '+/');
         $pad = strlen($data) % 4;
@@ -130,7 +133,7 @@ class TokenService {
      */
     public function validateAccessToken(string $jwt): array
     {
-        if (!is_string($jwt) || $jwt === '') {
+        if ($jwt === '') {
             return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
         }
 

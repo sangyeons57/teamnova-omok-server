@@ -1,9 +1,7 @@
 <?php
-require_once __DIR__ . '/../Util/Crypto.php';
-
-class Jwt {
+class JwtService {
     private static function base64url($data) {
-        return Crypto::base64url($data);
+        return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 
     public static function encodeHS256($payload, $secret) {

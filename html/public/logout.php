@@ -10,34 +10,52 @@
  */
 
 require_once __DIR__ . '/../shared/Database.php';
-require_once __DIR__ . '/../shared/Http.php';
-require_once __DIR__ . '/../shared/Security/TokenService.php';
-require_once __DIR__ . '/../shared/Security/AccessTokenGuard.php';
 require_once __DIR__ . '/../shared/Repositories/RefreshTokenRepository.php';
+require_once __DIR__ . '/../shared/Container/Container.php';
+require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
+require_once __DIR__ . '/../shared/Container/AppProvider.php';
+require_once __DIR__ . '/../shared/Container/UtilProvider.php';
+require_once __DIR__ . '/../shared/Container/AuthProvider.php';
+require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
+require_once __DIR__ . '/../shared/Container/RequestProvider.php';
+require_once __DIR__ . '/../shared/Container/GuardProvider.php';
 
-Http::setJsonResponseHeader();
-Http::assertMethod('POST');
-$body = Http::readJsonBody();
-
-$payload = AccessTokenGuard::requirePayload($body);
+$container = new Container();
+(new AppProvider())->register($container);
+(new UtilProvider())->register($container);
+(new AuthProvider())->register($container);
+(new ResponseProvider())->register($container);
+(new RequestProvider())->register($container);
+(new GuardProvider())->register($container);
+/** @var ResponseService $response */
+$response = $container->get(ResponseService::class);
+/** @var RequestService $request */
+$request = $container->get(RequestService::class);
+$response->setJsonResponseHeader();
+$request->assertMethod('POST');
+$body = $request->readJsonBody();
+/** @var AccessTokenGuardService $guard */
+$guard = $container->get(AccessTokenGuardService::class);
+$payload = $guard->requirePayload($body);
 
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
 
 $pdo = null;
 try {
     $pdo = Database::pdo();
-    $refreshRepo = new RefreshTokenRepository($pdo);
+    /** @var RefreshTokenRepository $refreshRepo */
+    $refreshRepo = $container->get(RefreshTokenRepository::class);
     $refreshRepo->revokeAllByUserId($userId);
 
-    Http::json(200, array('success' => true));
+    $response->json(200, array('success' => true));
 } catch (PDOException $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    Http::exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
+    $response->exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
 } catch (Exception $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    Http::exceptionInternal('로그아웃 처리 중 오류가 발생했습니다.', $e);
+    $response->exceptionInternal('로그아웃 처리 중 오류가 발생했습니다.', $e);
 }

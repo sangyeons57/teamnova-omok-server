@@ -1,17 +1,26 @@
 <?php
-require_once __DIR__ . '/../Http.php';
-require_once __DIR__ . '/TokenService.php';
+require_once __DIR__ . '/../Auth/TokenService.php';
+require_once __DIR__ . '/../Http/ResponseService.php';
 
 /**
- * 액세스 토큰 공통 가드:
- * - Authorization: Bearer ... 또는 body.access_token에서 토큰을 추출
- * - TokenService::validateAccessToken으로 검증(순수 반환)
- * - 검증 실패 시 여기서 401 응답 후 종료
+ * 액세스 토큰 가드 서비스
+ * - Authorization 헤더 또는 body.access_token에서 토큰을 추출
+ * - TokenService::validateAccessToken으로 검증
+ * - 실패 시 401 응답 반환 후 종료
  * - 성공 시 JWT payload 배열 반환
  */
-final class AccessTokenGuard
+class AccessTokenGuardService
 {
-    public static function requirePayload(array $body): array
+    private $tokenService;
+    private $response;
+
+    public function __construct($tokenService, $response)
+    {
+        $this->tokenService = $tokenService;
+        $this->response = $response;
+    }
+
+    public function requirePayload(array $body): array
     {
         $accessToken = '';
         $authHeader = isset($_SERVER['HTTP_AUTHORIZATION']) ? trim($_SERVER['HTTP_AUTHORIZATION']) : '';
@@ -21,20 +30,19 @@ final class AccessTokenGuard
             $accessToken = is_string($body['access_token']) ? trim($body['access_token']) : '';
         }
 
-        $tokenService = new TokenService(null, null);
-        $result = $tokenService->validateAccessToken($accessToken);
+        $result = $this->tokenService->validateAccessToken($accessToken);
 
-        if (!isset($result['valid']) || $result['valid'] !== true) {
-            $error = isset($result['error']) ? $result['error'] : 'ACCESS_TOKEN_INVALID';
+        if (!$result['valid']) {
+            $error = $result['error'] ?? 'ACCESS_TOKEN_INVALID';
             if ($error === 'ACCESS_TOKEN_EXPIRED') {
-                Http::json(401, array(
+                $this->response->json(401, array(
                     'success' => false,
                     'error' => 'ACCESS_TOKEN_EXPIRED',
                     'message' => '액세스 토큰이 만료되었습니다. refresh_token으로 재발급을 요청하세요.',
                     'retry_with_refresh' => true
                 ));
             } else {
-                Http::json(401, array(
+                $this->response->json(401, array(
                     'success' => false,
                     'error' => 'ACCESS_TOKEN_INVALID',
                     'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',

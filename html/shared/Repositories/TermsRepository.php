@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/../Util/Normalize.php';
 class TermsRepository {
     private $pdo;
 

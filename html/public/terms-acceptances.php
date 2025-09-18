@@ -19,21 +19,40 @@
  * - 400/401/405/500: 에러
  */
 require_once __DIR__ . '/../shared/Database.php';
-require_once __DIR__ . '/../shared/Http.php';
-require_once __DIR__ . '/../shared/Security/AccessTokenGuard.php';
 require_once __DIR__ . '/../shared/Repositories/TermsRepository.php';
 require_once __DIR__ . '/../shared/Repositories/UserRepository.php';
 require_once __DIR__ . '/../shared/Constants/UserStatus.php';
+require_once __DIR__ . '/../shared/Container/Container.php';
+require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
+require_once __DIR__ . '/../shared/Container/AppProvider.php';
+require_once __DIR__ . '/../shared/Container/UtilProvider.php';
+require_once __DIR__ . '/../shared/Container/AuthProvider.php';
+require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
+require_once __DIR__ . '/../shared/Container/RequestProvider.php';
+require_once __DIR__ . '/../shared/Container/GuardProvider.php';
 
-Http::setJsonResponseHeader();
-Http::assertMethod('POST');
-$body = Http::readJsonBody();
+$container = new Container();
+(new AppProvider())->register($container);
+(new UtilProvider())->register($container);
+(new AuthProvider())->register($container);
+(new ResponseProvider())->register($container);
+(new RequestProvider())->register($container);
+(new GuardProvider())->register($container);
+/** @var ResponseService $response */
+$response = $container->get(ResponseService::class);
+/** @var RequestService $request */
+$request = $container->get(RequestService::class);
+$response->setJsonResponseHeader();
+$request->assertMethod('POST');
+$body = $request->readJsonBody();
 
 // 인증 및 페이로드 추출
-$payload = AccessTokenGuard::requirePayload($body);
+/** @var AccessTokenGuardService $guard */
+$guard = $container->get(AccessTokenGuardService::class);
+$payload = $guard->requirePayload($body);
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
 if ($userId === '') {
-    Http::json(401, array(
+    $response->json(401, array(
         'success' => false,
         'error' => 'ACCESS_TOKEN_INVALID',
         'message' => '유효한 사용자 식별자를 확인할 수 없습니다.',
@@ -46,15 +65,17 @@ try {
     $pdo = Database::pdo();
     $pdo->beginTransaction();
 
-    $termsRepo = new TermsRepository($pdo);
-    $userRepo  = new UserRepository($pdo);
+    /** @var TermsRepository $termsRepo */
+    $termsRepo = $container->get(TermsRepository::class);
+    /** @var UserRepository $userRepo */
+    $userRepo  = $container->get(UserRepository::class);
 
     // (옵션) terms_type 배열로 동의 기록
     $acceptedCount = null;
     if (isset($body['accept_types'])) {
         if (!is_array($body['accept_types'])) {
             $pdo->rollBack();
-            Http::json(400, array(
+            $response->json(400, array(
                 'success' => false,
                 'error' => 'INVALID_ACCEPT_TYPES',
                 'message' => 'accept_types는 terms_type 문자열 배열이어야 합니다.'
@@ -93,15 +114,15 @@ try {
         $resp['accepted_count'] = $acceptedCount;
     }
 
-    Http::json(200, $resp);
+    $response->json(200, $resp);
 } catch (PDOException $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    Http::exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
+    $response->exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
 } catch (Exception $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    Http::exceptionInternal('약관 동의 내역을 조회하는 중 오류가 발생했습니다.', $e);
+    $response->exceptionInternal('약관 동의 내역을 조회하는 중 오류가 발생했습니다.', $e);
 }

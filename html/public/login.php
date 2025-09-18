@@ -9,15 +9,34 @@
  * - 400/401/405/500: 에러
  */
 
-require_once __DIR__ . '/../shared/Http.php';
-require_once __DIR__ . '/../shared/Security/TokenService.php';
-require_once __DIR__ . '/../shared/Security/AccessTokenGuard.php';
+require_once __DIR__ . '/../shared/Container/Container.php';
+require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
+require_once __DIR__ . '/../shared/Container/AppProvider.php';
+require_once __DIR__ . '/../shared/Container/UtilProvider.php';
+require_once __DIR__ . '/../shared/Container/AuthProvider.php';
+require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
+require_once __DIR__ . '/../shared/Container/RequestProvider.php';
+require_once __DIR__ . '/../shared/Container/RequestProvider.php';
+require_once __DIR__ . '/../shared/Container/GuardProvider.php';
 
-Http::setJsonResponseHeader();
-Http::assertMethod('POST');
-$body = Http::readJsonBody();
-
-$payload = AccessTokenGuard::requirePayload($body);
+// 컨테이너 초기화 및 가드/요청/응답 서비스
+$container = new Container();
+(new AppProvider())->register($container);
+(new UtilProvider())->register($container);
+(new AuthProvider())->register($container);
+(new ResponseProvider())->register($container);
+(new RequestProvider())->register($container);
+(new GuardProvider())->register($container);
+/** @var ResponseService $response */
+$response = $container->get(ResponseService::class);
+/** @var RequestService $request */
+$request = $container->get(RequestService::class);
+$response->setJsonResponseHeader();
+$request->assertMethod('POST');
+$body = $request->readJsonBody();
+/** @var AccessTokenGuardService $guard */
+$guard = $container->get(AccessTokenGuardService::class);
+$payload = $guard->requirePayload($body);
 
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
 
@@ -34,4 +53,4 @@ if (isset($payload['exp']) && is_numeric($payload['exp'])) {
     $response['expires_at'] = (int)$payload['exp'];
 }
 
-Http::json(200, $response);
+$response->json(200, $response);

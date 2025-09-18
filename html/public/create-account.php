@@ -26,24 +26,39 @@
  * - 400/405/500: 에러
  */
 
+use Cassandra\Uuid;
+
 require_once __DIR__ . '/../shared/Config.php';
 require_once __DIR__ . '/../shared/Database.php';
-require_once __DIR__ . '/../shared/Http.php';
-require_once __DIR__ . '/../shared/Validation.php';
-require_once __DIR__ . '/../shared/Util/Crypto.php';
-require_once __DIR__ . '/../shared/Util/Uuid.php';
-require_once __DIR__ . '/../shared/Util/Clock.php';
-require_once __DIR__ . '/../shared/Security/Jwt.php';
-require_once __DIR__ . '/../shared/Security/TokenService.php';
+require_once __DIR__ . '/../shared/Services/Auth/JwtService.php';
+require_once __DIR__ . '/../shared/Services/Auth/TokenService.php';
 require_once __DIR__ . '/../shared/Repositories/UserRepository.php';
 require_once __DIR__ . '/../shared/Repositories/AuthProviderRepository.php';
 require_once __DIR__ . '/../shared/Repositories/RefreshTokenRepository.php';
 require_once __DIR__ . '/../shared/Services/AccountService.php';
+require_once __DIR__ . '/../shared/Container/Container.php';
+require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
+require_once __DIR__ . '/../shared/Container/AppProvider.php';
+require_once __DIR__ . '/../shared/Container/UtilProvider.php';
+require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
+require_once __DIR__ . '/../shared/Container/RequestProvider.php';
+
+// 컨테이너 초기화 및 프로바이더 등록
+$container = new Container();
+(new AppProvider())->register($container);
+(new UtilProvider())->register($container);
+(new ResponseProvider())->register($container);
+(new RequestProvider())->register($container);
+
+/** @var ResponseService $response */
+$response = $container->get(ResponseService::class);
+/** @var RequestService $request */
+$request = $container->get(RequestService::class);
 
 // 공통 시작부
-Http::setJsonResponseHeader();
-Http::assertMethod('POST');
-$body = Http::readJsonBody();
+$response->setJsonResponseHeader();
+$request->assertMethod('POST');
+$body = $request->readJsonBody();
 
 // 파라미터 파싱
 $provider = isset($body['provider']) ? trim($body['provider']) : '';
@@ -52,9 +67,10 @@ $display_name = 'user-' . substr(str_replace('-', '', Uuid::v4()), 0, 12);
 $profile_icon_code = '0';
 
 // 유효성 검증
+$validator = $container->get(ValidationService::class);
 $allowed_providers = array('GUEST', 'GOOGLE');
-if ($provider === '' || !Validation::inArrayStrict($provider, $allowed_providers)) {
-    Http::json(400, array(
+if ($provider === '' || !$validator->inArrayStrict($provider, $allowed_providers)) {
+    $response->json(400, array(
         'success' => false,
         'error' => 'INVALID_PROVIDER',
         'message' => 'provider는 GUEST 또는 GOOGLE 이어야 합니다.'
@@ -63,8 +79,8 @@ if ($provider === '' || !Validation::inArrayStrict($provider, $allowed_providers
 
 if ($provider === 'GOOGLE') {
     // GOOGLE은 provider_user_id 필수
-    if ($provider_user_id === '' || Validation::mbLength($provider_user_id) > 255) {
-        Http::json(400, array(
+    if ($provider_user_id === '' || $validator->mbLength($provider_user_id) > 255) {
+        $response->json(400, array(
             'success' => false,
             'error' => 'INVALID_PROVIDER_USER_ID',
             'message' => 'provider_user_id가 비어있거나 길이가 너무 깁니다(최대 255).'
@@ -78,9 +94,15 @@ if ($provider === 'GOOGLE') {
 // 비즈니스 로직
 $pdo = null;
 try {
-    $pdo = Database::pdo();
+    // 컨테이너 초기화 및 프로바이더 등록
+    $container = new Container();
+    (new AppProvider())->register($container);
+    (new UtilProvider())->register($container);
 
-    $account = new AccountService($pdo);
+    // PDO/서비스 가져오기
+    $pdo = $container->get(PDO::class);
+
+    $account = $container->get(AccountService::class);
     $result = $account->createOrGetUser($provider, $provider_user_id, $display_name, $profile_icon_code);
 
     $response = array(
@@ -96,26 +118,25 @@ try {
         )
     );
 
-    $refreshRepo = new RefreshTokenRepository($pdo);
-    $userRepo = new UserRepository($pdo);
-    $tokens = (new TokenService($refreshRepo, $userRepo))->issue(
+    $tokenService = $container->get(TokenService::class);
+    $tokens = $tokenService->issue(
         $result['user']['user_id']
     );
     $response = array_merge($response, $tokens);
 
-    Http::json($result['created'] ? 201 : 200, $response);
+    $response->json($result['created'] ? 201 : 200, $response);
 
 } catch (PDOException $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    Http::exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
+    $response->exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
 } catch (Exception $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
     if ($e->getMessage() === 'DATA_INTEGRITY_ERROR') {
-        Http::exceptionInternal('auth_providers는 있으나 users가 없습니다.', $e, 'DATA_INTEGRITY_ERROR');
+        $response->exceptionInternal('auth_providers는 있으나 users가 없습니다.', $e, 'DATA_INTEGRITY_ERROR');
     }
-    Http::exceptionInternal('내부 오류가 발생했습니다.', $e);
+    $response->exceptionInternal('내부 오류가 발생했습니다.', $e);
 }
