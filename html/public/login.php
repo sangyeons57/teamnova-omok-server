@@ -16,7 +16,6 @@ require_once __DIR__ . '/../shared/Container/UtilProvider.php';
 require_once __DIR__ . '/../shared/Container/AuthProvider.php';
 require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
 require_once __DIR__ . '/../shared/Container/RequestProvider.php';
-require_once __DIR__ . '/../shared/Container/RequestProvider.php';
 require_once __DIR__ . '/../shared/Container/GuardProvider.php';
 
 // 컨테이너 초기화 및 가드/요청/응답 서비스
@@ -27,30 +26,30 @@ $container = new Container();
 (new ResponseProvider())->register($container);
 (new RequestProvider())->register($container);
 (new GuardProvider())->register($container);
-/** @var ResponseService $response */
-$response = $container->get(ResponseService::class);
-/** @var RequestService $request */
-$request = $container->get(RequestService::class);
-$response->setJsonResponseHeader();
-$request->assertMethod('POST');
-$body = $request->readJsonBody();
+/** @var ResponseService $responseService */
+$responseService = $container->get(ResponseService::class);
+/** @var RequestService $requestService */
+$requestService = $container->get(RequestService::class);
+$responseService->setJsonResponseHeader();
+$requestService->assertMethod('POST');
+$body = $requestService->readJsonBody();
 /** @var AccessTokenGuardService $guard */
 $guard = $container->get(AccessTokenGuardService::class);
 $payload = $guard->requirePayload($body);
 
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
 
-$response = array(
+$responsePayload = array(
     'success' => true,
     'user_id' => $userId,
 );
 
 if (isset($payload['role'])) {
-    $response['role'] = $payload['role'];
+    $responsePayload['role'] = $payload['role'];
 }
 
 if (isset($payload['exp']) && is_numeric($payload['exp'])) {
-    $response['expires_at'] = (int)$payload['exp'];
+    $responsePayload['expires_at'] = (int)$payload['exp'];
 }
 
-$response->json(200, $response);
+$responseService->json(200, $responsePayload);

@@ -1,16 +1,19 @@
 <?php
 require_once __DIR__ . '/../Repositories/UserRepository.php';
 require_once __DIR__ . '/../Repositories/AuthProviderRepository.php';
+require_once __DIR__ . '/../Services/Util/UuidService.php';
 
 class AccountService {
     private $pdo;
     private $users;
     private $auth;
+    private $uuid;
 
-    public function __construct($pdo) {
+    public function __construct($pdo, $users, $auth, $uuid) {
         $this->pdo = $pdo;
-        $this->users = new UserRepository($pdo);
-        $this->auth = new AuthProviderRepository($pdo);
+        $this->users = $users;
+        $this->auth = $auth;
+        $this->uuid = $uuid;
     }
 
     // 반환: array('created' => bool, 'user' => row)
@@ -35,7 +38,7 @@ class AccountService {
         try {
             $this->pdo->beginTransaction();
 
-            $newId = Uuid::v4();
+            $newId = $this->uuid->v4();
             $this->users->insert($newId, $displayName, $iconCode);
             // provider_user_id는 null일 수 있음(예: GUEST)
             $this->auth->insert($newId, $provider, $pid);

@@ -1,9 +1,11 @@
 <?php
 class TermsRepository {
     private $pdo;
+    private $normalize;
 
-    public function __construct($pdo) {
+    public function __construct($pdo, $normalize) {
         $this->pdo = $pdo;
+        $this->normalize = $normalize;
     }
 
     /**
@@ -65,7 +67,7 @@ class TermsRepository {
     public function acceptByTypes($userId, array $types): array
     {
         // 정규화: 공통 유틸 사용(트림 + 중복 제거 + 빈값 제거)
-        $types = Normalize::stringArrayDistinctTrimmed($types);
+        $types = $this->normalize->stringArrayDistinctTrimmed($types);
         if (empty($types)) {
             return array('accepted_count' => 0, 'accepted_terms_ids' => array());
         }

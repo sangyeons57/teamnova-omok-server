@@ -40,6 +40,7 @@ require_once __DIR__ . '/../shared/Container/Container.php';
 require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
 require_once __DIR__ . '/../shared/Container/AppProvider.php';
 require_once __DIR__ . '/../shared/Container/UtilProvider.php';
+require_once __DIR__ . '/../shared/Container/AuthProvider.php';
 require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
 require_once __DIR__ . '/../shared/Container/RequestProvider.php';
 
@@ -47,18 +48,21 @@ require_once __DIR__ . '/../shared/Container/RequestProvider.php';
 $container = new Container();
 (new AppProvider())->register($container);
 (new UtilProvider())->register($container);
+(new AuthProvider())->register($container);
 (new ResponseProvider())->register($container);
 (new RequestProvider())->register($container);
 
-/** @var ResponseService $response */
-$response = $container->get(ResponseService::class);
-/** @var RequestService $request */
-$request = $container->get(RequestService::class);
+/** @var ResponseService $responseService */
+$responseService = $container->get(ResponseService::class);
+/** @var RequestService $requestService */
+$requestService = $container->get(RequestService::class);
+/** @var ValidationService $validator */
+$validator = $container->get(ValidationService::class);
 
 // 공통 시작부
-$response->setJsonResponseHeader();
-$request->assertMethod('POST');
-$body = $request->readJsonBody();
+$responseService->setJsonResponseHeader();
+$requestService->assertMethod('POST');
+$body = $requestService->readJsonBody();
 
 // 파라미터 파싱
 $provider = isset($body['provider']) ? trim($body['provider']) : '';
@@ -67,10 +71,9 @@ $display_name = 'user-' . substr(str_replace('-', '', Uuid::v4()), 0, 12);
 $profile_icon_code = '0';
 
 // 유효성 검증
-$validator = $container->get(ValidationService::class);
 $allowed_providers = array('GUEST', 'GOOGLE');
 if ($provider === '' || !$validator->inArrayStrict($provider, $allowed_providers)) {
-    $response->json(400, array(
+    $responseService->json(400, array(
         'success' => false,
         'error' => 'INVALID_PROVIDER',
         'message' => 'provider는 GUEST 또는 GOOGLE 이어야 합니다.'
@@ -80,7 +83,7 @@ if ($provider === '' || !$validator->inArrayStrict($provider, $allowed_providers
 if ($provider === 'GOOGLE') {
     // GOOGLE은 provider_user_id 필수
     if ($provider_user_id === '' || $validator->mbLength($provider_user_id) > 255) {
-        $response->json(400, array(
+        $responseService->json(400, array(
             'success' => false,
             'error' => 'INVALID_PROVIDER_USER_ID',
             'message' => 'provider_user_id가 비어있거나 길이가 너무 깁니다(최대 255).'
@@ -94,18 +97,14 @@ if ($provider === 'GOOGLE') {
 // 비즈니스 로직
 $pdo = null;
 try {
-    // 컨테이너 초기화 및 프로바이더 등록
-    $container = new Container();
-    (new AppProvider())->register($container);
-    (new UtilProvider())->register($container);
-
-    // PDO/서비스 가져오기
+    /** @var PDO $pdo */
     $pdo = $container->get(PDO::class);
 
+    /** @var AccountService $account */
     $account = $container->get(AccountService::class);
     $result = $account->createOrGetUser($provider, $provider_user_id, $display_name, $profile_icon_code);
 
-    $response = array(
+    $responsePayload = array(
         'success' => true,
         'created' => $result['created'],
         'user' => array(
@@ -118,25 +117,24 @@ try {
         )
     );
 
+    /** @var TokenService $tokenService */
     $tokenService = $container->get(TokenService::class);
-    $tokens = $tokenService->issue(
-        $result['user']['user_id']
-    );
-    $response = array_merge($response, $tokens);
+    $tokens = $tokenService->issue($result['user']['user_id']);
+    $responsePayload = array_merge($responsePayload, $tokens);
 
-    $response->json($result['created'] ? 201 : 200, $response);
+    $responseService->json($result['created'] ? 201 : 200, $responsePayload);
 
 } catch (PDOException $e) {
-    if ($pdo && $pdo->inTransaction()) {
+    if ($pdo instanceof PDO && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
-    $response->exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
+    $responseService->exceptionDbError('데이터베이스 오류가 발생했습니다.', $e);
 } catch (Exception $e) {
-    if ($pdo && $pdo->inTransaction()) {
+    if ($pdo instanceof PDO && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
     if ($e->getMessage() === 'DATA_INTEGRITY_ERROR') {
-        $response->exceptionInternal('auth_providers는 있으나 users가 없습니다.', $e, 'DATA_INTEGRITY_ERROR');
+        $responseService->exceptionInternal('auth_providers는 있으나 users가 없습니다.', $e, 'DATA_INTEGRITY_ERROR');
     }
-    $response->exceptionInternal('내부 오류가 발생했습니다.', $e);
+    $responseService->exceptionInternal('내부 오류가 발생했습니다.', $e);
 }
