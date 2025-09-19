@@ -16,14 +16,9 @@
  * - profile_icon_code: default '0'
  * - tokens: always issued immediately
  *
- * 환경 변수:
- * - DB_HOST, DB_NAME, DB_USER, DB_PASS
- * - JWT_SECRET
- *
  * 응답:
- * - 201 Created: 새로 생성, { created: true, user_id, access_token?, refresh_token?, expires_in? }
- * - 200 OK: 이미 존재(멱등), { created: false, ... }
- * - 400/405/500: 에러
+ * - 201/200: Envelope(meta, data{type: account_create, id: user_id, payload: {...}}, error: null)
+ * - 400/405/500: Envelope(meta, data: null, error: {...})
  */
 
 use Cassandra\Uuid;
@@ -60,7 +55,6 @@ $requestService = $container->get(RequestService::class);
 $validator = $container->get(ValidationService::class);
 
 // 공통 시작부
-$responseService->setJsonResponseHeader();
 $requestService->assertMethod('POST');
 $body = $requestService->readJsonBody();
 
@@ -73,21 +67,13 @@ $profile_icon_code = '0';
 // 유효성 검증
 $allowed_providers = array('GUEST', 'GOOGLE');
 if ($provider === '' || !$validator->inArrayStrict($provider, $allowed_providers)) {
-    $responseService->json(400, array(
-        'success' => false,
-        'error' => 'INVALID_PROVIDER',
-        'message' => 'provider는 GUEST 또는 GOOGLE 이어야 합니다.'
-    ));
+    $responseService->error('INVALID_PROVIDER', 400, 'provider는 GUEST 또는 GOOGLE 이어야 합니다.');
 }
 
 if ($provider === 'GOOGLE') {
     // GOOGLE은 provider_user_id 필수
     if ($provider_user_id === '' || $validator->mbLength($provider_user_id) > 255) {
-        $responseService->json(400, array(
-            'success' => false,
-            'error' => 'INVALID_PROVIDER_USER_ID',
-            'message' => 'provider_user_id가 비어있거나 길이가 너무 깁니다(최대 255).'
-        ));
+        $responseService->error('INVALID_PROVIDER_USER_ID', 400, 'provider_user_id가 비어있거나 길이가 너무 깁니다(최대 255).');
     }
 } else if ($provider === 'GUEST') {
     // GUEST는 provider_user_id 미사용: 항상 NULL로 강제
@@ -104,8 +90,11 @@ try {
     $account = $container->get(AccountService::class);
     $result = $account->createOrGetUser($provider, $provider_user_id, $display_name, $profile_icon_code);
 
-    $responsePayload = array(
-        'success' => true,
+    /** @var TokenService $tokenService */
+    $tokenService = $container->get(TokenService::class);
+    $tokens = $tokenService->issue($result['user']['user_id']);
+
+    $payloadOut = array(
         'created' => $result['created'],
         'user' => array(
             'user_id' => $result['user']['user_id'],
@@ -114,15 +103,11 @@ try {
             'role' => $result['user']['role'],
             'status' => $result['user']['status'],
             'score' => intval($result['user']['score']),
-        )
+        ),
     );
+    $payloadOut = array_merge($payloadOut, $tokens);
 
-    /** @var TokenService $tokenService */
-    $tokenService = $container->get(TokenService::class);
-    $tokens = $tokenService->issue($result['user']['user_id']);
-    $responsePayload = array_merge($responsePayload, $tokens);
-
-    $responseService->json($result['created'] ? 201 : 200, $responsePayload);
+    $responseService->success($result['created'] ? 201 : 200, 'account_create', $result['user']['user_id'], $payloadOut);
 
 } catch (PDOException $e) {
     if ($pdo instanceof PDO && $pdo->inTransaction()) {

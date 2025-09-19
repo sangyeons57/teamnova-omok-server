@@ -6,17 +6,6 @@
  *
  * 요청(JSON, POST):
  * - access_token: string (Authorization: Bearer ... 사용 가능)
- *
- * 응답:
- * - 200 OK: {
- *     success: true,
- *     accepted_terms: [
- *       { terms_id, terms_type, version, is_required, published_at, accepted_at }, ...
- *     ],
- *     user_status: "ACTIVE" | "PENDING" | "INACTIVE" | "BLOCKED",
- *     activated: true|false
- *   }
- * - 400/401/405/500: 에러
  */
 require_once __DIR__ . '/../shared/Database.php';
 require_once __DIR__ . '/../shared/Repositories/TermsRepository.php';
@@ -42,7 +31,7 @@ $container = new Container();
 $response = $container->get(ResponseService::class);
 /** @var RequestService $request */
 $request = $container->get(RequestService::class);
-$response->setJsonResponseHeader();
+
 $request->assertMethod('POST');
 $body = $request->readJsonBody();
 
@@ -52,12 +41,7 @@ $guard = $container->get(AccessTokenGuardService::class);
 $payload = $guard->requirePayload($body);
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
 if ($userId === '') {
-    $response->json(401, array(
-        'success' => false,
-        'error' => 'ACCESS_TOKEN_INVALID',
-        'message' => '유효한 사용자 식별자를 확인할 수 없습니다.',
-        'retry_with_refresh' => true
-    ));
+    $response->error('ACCESS_TOKEN_INVALID', 401, '유효한 사용자 식별자를 확인할 수 없습니다.');
 }
 
 $pdo = null;
@@ -75,11 +59,7 @@ try {
     if (isset($body['accept_types'])) {
         if (!is_array($body['accept_types'])) {
             $pdo->rollBack();
-            $response->json(400, array(
-                'success' => false,
-                'error' => 'INVALID_ACCEPT_TYPES',
-                'message' => 'accept_types는 terms_type 문자열 배열이어야 합니다.'
-            ));
+            $response->error('INVALID_ACCEPT_TYPES', 400, 'accept_types는 terms_type 문자열 배열이어야 합니다.');
         }
         $result = $termsRepo->acceptByTypes($userId, $body['accept_types']);
         $acceptedCount = isset($result['accepted_count']) ? (int)$result['accepted_count'] : 0;
@@ -104,17 +84,16 @@ try {
 
     $pdo->commit();
 
-    $resp = array(
-        'success' => true,
+    $payloadOut = array(
         'accepted_terms' => $accepted,
         'user_status' => $currentStatus,
         'activated' => $activated,
     );
     if ($acceptedCount !== null) {
-        $resp['accepted_count'] = $acceptedCount;
+        $payloadOut['accepted_count'] = $acceptedCount;
     }
 
-    $response->json(200, $resp);
+    $response->success(200, 'terms_acceptances', $userId, $payloadOut);
 } catch (PDOException $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();

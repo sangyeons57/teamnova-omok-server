@@ -3,10 +3,6 @@
  * 로그인 상태 확인(Access Token 검증)
  * 요청(JSON, POST):
  * - access_token: string (Authorization 헤더를 사용할 경우 생략 가능)
- *
- * 응답:
- * - 200 OK: { success: true, user_id, role?, expires_at? }
- * - 400/401/405/500: 에러
  */
 
 require_once __DIR__ . '/../shared/Container/Container.php';
@@ -30,7 +26,7 @@ $container = new Container();
 $responseService = $container->get(ResponseService::class);
 /** @var RequestService $requestService */
 $requestService = $container->get(RequestService::class);
-$responseService->setJsonResponseHeader();
+
 $requestService->assertMethod('POST');
 $body = $requestService->readJsonBody();
 /** @var AccessTokenGuardService $guard */
@@ -39,17 +35,16 @@ $payload = $guard->requirePayload($body);
 
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
 
-$responsePayload = array(
-    'success' => true,
+$payloadOut = array(
     'user_id' => $userId,
 );
 
 if (isset($payload['role'])) {
-    $responsePayload['role'] = $payload['role'];
+    $payloadOut['role'] = $payload['role'];
 }
 
 if (isset($payload['exp']) && is_numeric($payload['exp'])) {
-    $responsePayload['expires_at'] = (int)$payload['exp'];
+    $payloadOut['expires_at'] = (int)$payload['exp'];
 }
 
-$responseService->json(200, $responsePayload);
+$responseService->success(200, 'login_status', $userId, $payloadOut);

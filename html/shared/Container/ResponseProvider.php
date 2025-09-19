@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../Services/Http/ResponseService.php';
+require_once __DIR__ . '/../Services/Util/StopwatchService.php';
 
 class ResponseProvider implements ServiceProvider
 {

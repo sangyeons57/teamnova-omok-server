@@ -38,10 +38,24 @@ class ResponseService
                 $detail  = isset($payload['detail']) ? (string)$payload['detail'] : null;
                 $fields  = isset($payload['fields']) && is_array($payload['fields']) ? $payload['fields'] : null;
 
+                // 알려진 키를 제외한 나머지는 extra로 보존하여 하위호환성 강화
+                $known = array('success' => 1, 'error' => 1, 'message' => 1, 'detail' => 1, 'fields' => 1, '_meta' => 1);
+                $extra = array();
+                foreach ($payload as $k => $v) {
+                    if (!isset($known[$k])) {
+                        $extra[$k] = $v;
+                    }
+                }
+
+                $errorArr = $this->makeError($code, $statusCode, $message, $detail, $fields);
+                if (!empty($extra)) {
+                    $errorArr['extra'] = $extra;
+                }
+
                 $this->sendEnvelope(
                     $statusCode,
                     null,
-                    $this->makeError($code, $statusCode, $message, $detail, $fields),
+                    $errorArr,
                     $metaOverrides
                 );
                 return;
@@ -179,22 +193,4 @@ class ResponseService
         return bin2hex(random_bytes(8));
     }
 
-    private function formatTrace($trace): array
-    {
-        $out = array();
-        if (!is_array($trace)) {
-            return $out;
-        }
-        $limit = 10;
-        $i = 0;
-        foreach ($trace as $frame) {
-            if ($i++ >= $limit) break;
-            $out[] = array(
-                'file' => isset($frame['file']) ? $frame['file'] : null,
-                'line' => isset($frame['line']) ? $frame['line'] : null,
-                'func' => (isset($frame['class']) ? $frame['class'] . $frame['type'] : '') . (isset($frame['function']) ? $frame['function'] : '')
-            );
-        }
-        return $out;
-    }
 }
