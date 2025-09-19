@@ -4,6 +4,7 @@ require_once __DIR__ . '/../Services/Util/CryptoService.php';
 require_once __DIR__ . '/../Services/Util/NormalizeService.php';
 require_once __DIR__ . '/../Services/Util/UuidService.php';
 require_once __DIR__ . '/../Services/Util/ValidationService.php';
+require_once __DIR__ . '/../Services/Util/StopwatchService.php';
 
 class UtilProvider implements ServiceProvider
 {
@@ -23,6 +24,9 @@ class UtilProvider implements ServiceProvider
         });
         $c->set(ValidationService::class, function () {
             return new ValidationService();
+        });
+        $c->set(StopwatchService::class, function () {
+            return new StopwatchService();
         });
     }
 }

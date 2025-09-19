@@ -5,8 +5,8 @@ class ResponseProvider implements ServiceProvider
 {
     public function register(Container $c): void
     {
-        $c->set(ResponseService::class, function () {
-            return new ResponseService();
+        $c->set(ResponseService::class, function (Container $c) {
+            return new ResponseService($c->get(StopwatchService::class));
         });
     }
 }
