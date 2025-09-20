@@ -96,14 +96,7 @@ try {
 
     $payloadOut = array(
         'created' => $result['created'],
-        'user' => array(
-            'user_id' => $result['user']['user_id'],
-            'display_name' => $result['user']['display_name'],
-            'profile_icon_code' => $result['user']['profile_icon_code'],
-            'role' => $result['user']['role'],
-            'status' => $result['user']['status'],
-            'score' => intval($result['user']['score']),
-        ),
+        'user_id' => $result['user']['user_id'],
     );
     $payloadOut = array_merge($payloadOut, $tokens);
 
