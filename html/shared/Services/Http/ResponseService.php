@@ -76,6 +76,20 @@ class ResponseService
         header('Content-Type: application/json; charset=UTF-8');
     }
 
+    public function overrideRequestId(?string $requestId): void
+    {
+        if ($requestId === null) {
+            return;
+        }
+
+        $requestId = trim($requestId);
+        if ($requestId === '') {
+            return;
+        }
+
+        $this->requestId = $requestId;
+    }
+
     // 신규: 명시적 성공 응답
     public function success(int $httpStatus, string $type, ?string $id, $payload = null, array $metaOverrides = []): void
     {

@@ -57,6 +57,8 @@ class RequestService
             $this->response->error('INVALID_BODY_FORMAT', 400, 'body 필드는 객체여야 합니다.');
         }
 
+        $this->response->overrideRequestId($requestId);
+
         return array(
             'requestId' => $requestId,
             'timestamp' => $timestamp,
