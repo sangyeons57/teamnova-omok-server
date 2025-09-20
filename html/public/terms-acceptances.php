@@ -29,12 +29,12 @@ $container = new Container();
 (new GuardProvider())->register($container);
 /** @var ResponseService $response */
 $response = $container->get(ResponseService::class);
-/** @var RequestService $request */
-$request = $container->get(RequestService::class);
+/** @var RequestService $requestService */
+$requestService = $container->get(RequestService::class);
 
-$request->assertMethod('POST');
-$body = $request->readJsonBody();
-
+// 공통 시작부
+$envelope = $requestService->readEnvelope('POST');
+$body = $envelope['body'];
 // 인증 및 페이로드 추출
 /** @var AccessTokenGuardService $guard */
 $guard = $container->get(AccessTokenGuardService::class);

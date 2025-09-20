@@ -21,8 +21,6 @@
  * - 400/405/500: Envelope(meta, data: null, error: {...})
  */
 
-use Cassandra\Uuid;
-
 require_once __DIR__ . '/../shared/Config.php';
 require_once __DIR__ . '/../shared/Database.php';
 require_once __DIR__ . '/../shared/Services/Auth/JwtService.php';
@@ -53,15 +51,17 @@ $responseService = $container->get(ResponseService::class);
 $requestService = $container->get(RequestService::class);
 /** @var ValidationService $validator */
 $validator = $container->get(ValidationService::class);
+/** @var UuidService $uuidService */
+$uuidService = $container->get(UuidService::class);
 
 // 공통 시작부
-$requestService->assertMethod('POST');
-$body = $requestService->readJsonBody();
+$envelope = $requestService->readEnvelope('POST');
+$body = $envelope['body'];
 
 // 파라미터 파싱
 $provider = isset($body['provider']) ? trim($body['provider']) : '';
 $provider_user_id = isset($body['provider_user_id']) ? trim($body['provider_user_id']) : '';
-$display_name = 'user-' . substr(str_replace('-', '', Uuid::v4()), 0, 12);
+$display_name = 'user-' . substr(str_replace('-', '', $uuidService->v4()), 0, 12);
 $profile_icon_code = '0';
 
 // 유효성 검증

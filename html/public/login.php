@@ -27,8 +27,8 @@ $responseService = $container->get(ResponseService::class);
 /** @var RequestService $requestService */
 $requestService = $container->get(RequestService::class);
 
-$requestService->assertMethod('POST');
-$body = $requestService->readJsonBody();
+// 공통 시작부
+$body = $requestService->readBody('POST');
 /** @var AccessTokenGuardService $guard */
 $guard = $container->get(AccessTokenGuardService::class);
 $payload = $guard->requirePayload($body);

@@ -25,11 +25,11 @@ $container = new Container();
 (new RequestProvider())->register($container);
 /** @var ResponseService $response */
 $response = $container->get(ResponseService::class);
-/** @var RequestService $request */
-$request = $container->get(RequestService::class);
+/** @var RequestService $requestService */
+$requestService = $container->get(RequestService::class);
 
-$request->assertMethod('POST');
-$body = $request->readJsonBody();
+// 공통 시작부
+$body = $requestService->readBody('POST');
 
 $refreshToken = isset($body['refresh_token']) ? trim($body['refresh_token']) : '';
 if ($refreshToken === '') {
