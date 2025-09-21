@@ -59,7 +59,7 @@ try {
     if (isset($body['accept_types'])) {
         if (!is_array($body['accept_types'])) {
             $pdo->rollBack();
-            $response->error('INVALID_ACCEPT_TYPES', 400, 'accept_types는 terms_type 문자열 배열이어야 합니다.');
+            $response->error('INVALID_ACCEPT_TYPES', 400, 'accept_types는 terms_type 문자열 배열이어야 합니다. accept_types: ' . $body['accept_types']);
         }
         $result = $termsRepo->acceptByTypes($userId, $body['accept_types']);
         $acceptedCount = isset($result['accepted_count']) ? (int)$result['accepted_count'] : 0;
