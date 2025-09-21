@@ -1,9 +1,9 @@
 <?php
 class TermsRepository {
-    private $pdo;
-    private $normalize;
+    private PDO $pdo;
+    private NormalizeService $normalize;
 
-    public function __construct($pdo, $normalize) {
+    public function __construct(PDO $pdo, NormalizeService $normalize) {
         $this->pdo = $pdo;
         $this->normalize = $normalize;
     }
@@ -72,62 +72,45 @@ class TermsRepository {
             return array('accepted_count' => 0, 'accepted_terms_ids' => array());
         }
 
-        // 플레이스홀더 구성
+        // 플레이스홀더 구성 (terms_type)
         $inPh = array();
-        $params = array();
+        $typeParams = array();
         foreach ($types as $i => $type) {
             $ph = ':t' . $i;
             $inPh[] = $ph;
-            $params[$ph] = $type;
+            $typeParams[$ph] = $type;
         }
-        $params[':uid'] = $userId;
+        // IN 절 문자열 사전 생성
+        $inList = implode(',', $inPh);
 
-        // 각 타입의 최신 게시본 terms_id 목록 조회
-        $sqlLatest = '
-            SELECT t.terms_id
-            FROM terms t
-            INNER JOIN (
-                SELECT terms_type, MAX(published_at) AS max_pub
-                FROM terms
-                WHERE terms_type IN (' . implode(',', $inPh) . ')
-                  AND published_at IS NOT NULL
-                  AND published_at <= NOW()
-                GROUP BY terms_type
-            ) latest ON latest.terms_type = t.terms_type AND latest.max_pub = t.published_at
-        ';
-        $st = $this->pdo->prepare($sqlLatest);
-        $st->execute($params);
-        $validIds = array_map('intval', array_column($st->fetchAll(PDO::FETCH_ASSOC), 'terms_id'));
-
-        if (empty($validIds)) {
-            return array('accepted_count' => 0, 'accepted_terms_ids' => array());
-        }
-
-        // terms_id IN (...) 중 미동의 건만 삽입
-        $idPh = array();
-        $params2 = array(':uid' => $userId, ':now' => (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s'));
-        foreach ($validIds as $i => $id) {
-            $ph = ':id' . $i;
-            $idPh[] = $ph;
-            $params2[$ph] = $id;
-        }
-
-        $sqlInsert = '
+        // 단일 쿼리: GROUP BY로 타입별 최신본 선택 + 미동의만 INSERT
+        $sqlUpsert = "
             INSERT INTO user_terms_acceptances (user_id, terms_id, accepted_at)
-            SELECT :uid, t.terms_id, :now
-            FROM terms t
-            WHERE t.terms_id IN (' . implode(',', $idPh) . ')
-              AND NOT EXISTS (
-                    SELECT 1
-                    FROM user_terms_acceptances uta
-                    WHERE uta.user_id = :uid
-                      AND uta.terms_id = t.terms_id
-              )
-        ';
-        $st2 = $this->pdo->prepare($sqlInsert);
-        $st2->execute($params2);
-        $inserted = (int)$st2->rowCount();
+            SELECT :uid, x.terms_id, :now
+            FROM (
+                SELECT t.terms_id
+                FROM terms t
+                JOIN (
+                    SELECT terms_type, MAX(version) AS max_ver
+                    FROM terms
+                    WHERE terms_type IN ($inList)
+                      AND published_at <= NOW()
+                    GROUP BY terms_type
+                ) m ON m.terms_type = t.terms_type AND m.max_ver = t.version
+            ) x
+            ON DUPLICATE KEY UPDATE accepted_at = VALUES(accepted_at)
+        ";
+        $params = array_merge(
+            $typeParams,
+            array(
+                ':uid' => $userId,
+                ':now' => (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s'),
+            )
+        );
+        $st = $this->pdo->prepare($sqlUpsert);
+        $st->execute($params);
+        $inserted = (int)$st->rowCount();
 
-        return array('accepted_count' => $inserted, 'accepted_terms_ids' => $validIds);
+        return array('accepted_count' => $inserted, 'accepted_terms_ids' => array());
     }
 }

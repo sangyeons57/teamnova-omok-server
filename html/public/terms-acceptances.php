@@ -54,7 +54,6 @@ try {
     /** @var UserRepository $userRepo */
     $userRepo  = $container->get(UserRepository::class);
 
-    $response->success(200, 'terms_acceptances', $userId, "test");
     // (옵션) terms_type 배열로 동의 기록
     $acceptedCount = null;
     if (isset($body['accept_types'])) {
@@ -65,6 +64,8 @@ try {
         $result = $termsRepo->acceptByTypes($userId, $body['accept_types']);
         $acceptedCount = isset($result['accepted_count']) ? (int)$result['accepted_count'] : 0;
     }
+
+    $response->success(200, 'terms_acceptances', $userId, "test");
 
     // 사용자가 동의한 약관 목록
     $accepted = $termsRepo->findAcceptedByUserId($userId);
