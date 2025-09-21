@@ -64,6 +64,7 @@ try {
         $result = $termsRepo->acceptByTypes($userId, $body['accept_types']);
         $acceptedCount = isset($result['accepted_count']) ? (int)$result['accepted_count'] : 0;
     }
+    $response->success(200, 'terms_acceptances', $userId, "test");
 
     // 사용자가 동의한 약관 목록
     $accepted = $termsRepo->findAcceptedByUserId($userId);
