@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../Repositories/TermsRepository.php';
 require_once __DIR__ . '/../Services/Util/NormalizeService.php';
 require_once __DIR__ . '/../Services/Util/UuidService.php';
+require_once __DIR__ . '/../Services/UserService.php';
 class AppProvider implements ServiceProvider
 {
     public function register(Container $c): void
@@ -36,6 +37,9 @@ class AppProvider implements ServiceProvider
                 $c->get(AuthProviderRepository::class),
                 $c->get(UuidService::class)
             );
+        });
+        $c->set(UserService::class, function (Container $c) {
+            return new UserService($c->get(UserRepository::class));
         });
     }
 }

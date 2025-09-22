@@ -5,6 +5,7 @@
  * - Authorization 헤더: Bearer <access_token>
  */
 
+require_once __DIR__ . '/../shared/Database.php';
 require_once __DIR__ . '/../shared/Container/Container.php';
 require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
 require_once __DIR__ . '/../shared/Container/AppProvider.php';
@@ -28,6 +29,12 @@ $guard = $container->get(AccessTokenGuardService::class);
 $payload = $guard->requirePayload();
 
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
+
+/** @var UserService $userService */
+$userService = $container->get(UserService::class);
+if ($userId === '' || !$userService->isActive($userId)) {
+    $responseService->error('USER_NOT_ACTIVE', 403, '사용자 상태가 활성화되어 있지 않습니다.');
+}
 
 $payloadOut = array(
     'user_id' => $userId,
