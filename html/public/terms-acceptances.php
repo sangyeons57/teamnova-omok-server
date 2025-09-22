@@ -5,7 +5,7 @@
  * - 모든 필수 약관에 동의했고 사용자 status가 PENDING이면 ACTIVE로 활성화합니다.
  *
  * 요청(JSON, POST):
- * - access_token: string (Authorization: Bearer ... 사용 가능)
+ * - Authorization 헤더: Bearer <access_token>
  */
 require_once __DIR__ . '/../shared/Database.php';
 require_once __DIR__ . '/../shared/Repositories/TermsRepository.php';
@@ -38,7 +38,7 @@ $body = $envelope['body'];
 // 인증 및 페이로드 추출
 /** @var AccessTokenGuardService $guard */
 $guard = $container->get(AccessTokenGuardService::class);
-$payload = $guard->requirePayload($body);
+$payload = $guard->requirePayload();
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
 if ($userId === '') {
     $response->error('ACCESS_TOKEN_INVALID', 401, '유효한 사용자 식별자를 확인할 수 없습니다.');
