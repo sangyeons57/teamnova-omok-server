@@ -102,6 +102,17 @@ class ResponseService
         $this->sendEnvelope($httpStatus, null, $this->makeError($code, $httpStatus, $message, $detail, $fields), $metaOverrides);
     }
 
+    public function bearerUnauthorized(
+        array $payload,
+        string $bearerError = 'invalid_token',
+        string $bearerErrorDescription = '',
+        string $realm = 'api',
+        ?string $scope = null
+    ): void {
+        $this->setBearerAuthenticateHeader($realm, $bearerError, $bearerErrorDescription, $scope);
+        $this->json(401, $payload);
+    }
+
     public function exception(int $status, string $error, string $message): void
     {
         $this->sendEnvelope($status, null, $this->makeError($error, $status, $message, null, null), []);
@@ -196,6 +207,34 @@ class ResponseService
             $err['fields'] = $fields;
         }
         return $err;
+    }
+
+    private function setBearerAuthenticateHeader(
+        string $realm,
+        ?string $error,
+        ?string $errorDescription,
+        ?string $scope
+    ): void {
+        $parts = array('Bearer realm="' . $this->escapeDoubleQuotes($realm) . '"');
+
+        if ($error !== null && $error !== '') {
+            $parts[] = 'error="' . $this->escapeDoubleQuotes($error) . '"';
+        }
+
+        if ($errorDescription !== null && $errorDescription !== '') {
+            $parts[] = 'error_description="' . $this->escapeDoubleQuotes($errorDescription) . '"';
+        }
+
+        if ($scope !== null && $scope !== '') {
+            $parts[] = 'scope="' . $this->escapeDoubleQuotes($scope) . '"';
+        }
+
+        header('WWW-Authenticate: ' . implode(', ', $parts));
+    }
+
+    private function escapeDoubleQuotes(string $value): string
+    {
+        return str_replace('"', '\"', $value);
     }
 
     private function readOrGenerateId(string $serverKey): string

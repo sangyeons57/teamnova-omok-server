@@ -11,10 +11,10 @@ require_once __DIR__ . '/../Http/ResponseService.php';
  */
 class AccessTokenGuardService
 {
-    private $tokenService;
-    private $response;
+    private TokenService $tokenService;
+    private ResponseService $response;
 
-    public function __construct($tokenService, $response)
+    public function __construct(TokenService $tokenService, ResponseService $response)
     {
         $this->tokenService = $tokenService;
         $this->response = $response;
@@ -34,20 +34,34 @@ class AccessTokenGuardService
 
         if (!$result['valid']) {
             $error = $result['error'] ?? 'ACCESS_TOKEN_INVALID';
+            $bearerDescription = '';
+            if (isset($result['message']) && is_string($result['message'])) {
+                $bearerDescription = trim($result['message']);
+            }
             if ($error === 'ACCESS_TOKEN_EXPIRED') {
-                $this->response->json(401, array(
-                    'success' => false,
-                    'error' => 'ACCESS_TOKEN_EXPIRED',
-                    'message' => '액세스 토큰이 만료되었습니다. refresh_token으로 재발급을 요청하세요.',
-                    'retry_with_refresh' => true
-                ));
+                $this->response->bearerUnauthorized(
+                    array(
+                        'success' => false,
+                        'error' => 'ACCESS_TOKEN_EXPIRED',
+                        'message' => '액세스 토큰이 만료되었습니다. refresh_token으로 재발급을 요청하세요.',
+                        'retry_with_refresh' => true
+                    ),
+                    'invalid_token',
+                    $bearerDescription !== '' ? $bearerDescription : 'Access token expired',
+                    'api'
+                );
             } else {
-                $this->response->json(401, array(
-                    'success' => false,
-                    'error' => 'ACCESS_TOKEN_INVALID',
-                    'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                    'retry_with_refresh' => true
-                ));
+                $this->response->bearerUnauthorized(
+                    array(
+                        'success' => false,
+                        'error' => 'ACCESS_TOKEN_INVALID',
+                        'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
+                        'retry_with_refresh' => true
+                    ),
+                    'invalid_token',
+                    $bearerDescription !== '' ? $bearerDescription : 'Signature verification failed',
+                    'api'
+                );
             }
         }
 
