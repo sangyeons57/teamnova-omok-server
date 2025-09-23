@@ -33,8 +33,7 @@ $response = $container->get(ResponseService::class);
 $requestService = $container->get(RequestService::class);
 
 // 공통 시작부
-$envelope = $requestService->readEnvelope('POST');
-$body = $envelope['body'];
+$body = $requestService->readBody('POST');
 // 인증 및 페이로드 추출
 /** @var AccessTokenGuardService $guard */
 $guard = $container->get(AccessTokenGuardService::class);

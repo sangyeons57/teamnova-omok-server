@@ -37,40 +37,16 @@ class RequestService
         return $body;
     }
 
-    public function readEnvelope(?string $assertMethod = null): array
+    public function readBody(?string $assertMethod = null): array
     {
         if ($assertMethod !== null) {
             $this->assertMethod($assertMethod);
         }
-
-        $envelope = $this->readJsonBody();
-        $requestId = $this->extractStringField($envelope, 'requestId');
-        $timestamp = $this->extractStringField($envelope, 'timestamp');
-        $path = $this->extractStringField($envelope, 'path');
-
-        if (!array_key_exists('body', $envelope)) {
-            $this->response->error('INVALID_REQUEST_ENVELOPE', 400, 'body 필드가 누락되었습니다.');
-        }
-
-        $body = $envelope['body'];
+        $body = $this->readJsonBody();
         if (!is_array($body)) {
-            $this->response->error('INVALID_BODY_FORMAT', 400, 'body 필드는 객체여야 합니다.');
+            $this->response->error('INVALID_BODY_FORMAT', 400, '본문은 객체여야 합니다.');
         }
-
-        $this->response->overrideRequestId($requestId);
-
-        return array(
-            'requestId' => $requestId,
-            'timestamp' => $timestamp,
-            'path' => $path,
-            'body' => $body,
-        );
-    }
-
-    public function readBody(?string $assertMethod = null): array
-    {
-        $envelope = $this->readEnvelope($assertMethod);
-        return $envelope['body'];
+        return $body;
     }
 
     private function extractStringField(array $envelope, string $key): string

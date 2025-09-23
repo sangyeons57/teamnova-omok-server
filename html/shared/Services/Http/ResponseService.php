@@ -15,60 +15,8 @@ class ResponseService
 
     public function json(int $statusCode, array $payload): void
     {
-        // 하위호환: 기존 payload를 표준 Envelope로 매핑
-        $metaOverrides = [];
-        if (isset($payload['_meta']) && is_array($payload['_meta'])) {
-            $metaOverrides = $payload['_meta'];
-            unset($payload['_meta']);
-        }
-
-        if (isset($payload['success'])) {
-            if ($payload['success'] === true) {
-                $this->sendEnvelope(
-                    $statusCode,
-                    $this->makeData(null, null, $payload),
-                    null,
-                    $metaOverrides
-                );
-                return;
-            }
-            if ($payload['success'] === false) {
-                $code    = isset($payload['error']) ? (string)$payload['error'] : 'ERROR';
-                $message = isset($payload['message']) ? (string)$payload['message'] : '';
-                $detail  = isset($payload['detail']) ? (string)$payload['detail'] : null;
-                $fields  = isset($payload['fields']) && is_array($payload['fields']) ? $payload['fields'] : null;
-
-                // 알려진 키를 제외한 나머지는 extra로 보존하여 하위호환성 강화
-                $known = array('success' => 1, 'error' => 1, 'message' => 1, 'detail' => 1, 'fields' => 1, '_meta' => 1);
-                $extra = array();
-                foreach ($payload as $k => $v) {
-                    if (!isset($known[$k])) {
-                        $extra[$k] = $v;
-                    }
-                }
-
-                $errorArr = $this->makeError($code, $statusCode, $message, $detail, $fields);
-                if (!empty($extra)) {
-                    $errorArr['extra'] = $extra;
-                }
-
-                $this->sendEnvelope(
-                    $statusCode,
-                    null,
-                    $errorArr,
-                    $metaOverrides
-                );
-                return;
-            }
-        }
-
-        // success 키가 없으면 성공으로 간주하여 data에 그대로 담는다.
-        $this->sendEnvelope(
-            $statusCode,
-            $this->makeData(null, null, $payload),
-            null,
-            $metaOverrides
-        );
+        // 이제는 Envelope 없이, 전달받은 payload를 그대로 바디로 반환합니다.
+        $this->sendBody($statusCode, $this->ensureObject($payload));
     }
 
     public function setJsonResponseHeader(): void
@@ -78,28 +26,28 @@ class ResponseService
 
     public function overrideRequestId(?string $requestId): void
     {
+        // 더 이상 본문에서 requestId를 받아 덮어쓰지 않지만, 하위호환을 위해 남겨둡니다.
         if ($requestId === null) {
             return;
         }
-
         $requestId = trim($requestId);
         if ($requestId === '') {
             return;
         }
-
         $this->requestId = $requestId;
     }
 
-    // 신규: 명시적 성공 응답
+    // 명시적 성공 응답: 이제 payload만 그대로 출력
     public function success(int $httpStatus, string $type, ?string $id, $payload = null, array $metaOverrides = []): void
     {
-        $this->sendEnvelope($httpStatus, $this->makeData($type, $id, $payload), null, $metaOverrides);
+        $body = is_array($payload) ? $payload : array();
+        $this->sendBody($httpStatus, $this->ensureObject($body));
     }
 
-    // 신규: 명시적 오류 응답
+    // 명시적 오류 응답: 오류 객체를 그대로 출력
     public function error(string $code, int $httpStatus, string $message, ?string $detail = null, ?array $fields = null, array $metaOverrides = []): void
     {
-        $this->sendEnvelope($httpStatus, null, $this->makeError($code, $httpStatus, $message, $detail, $fields), $metaOverrides);
+        $this->sendBody($httpStatus, $this->makeError($code, $httpStatus, $message, $detail, $fields));
     }
 
     public function bearerUnauthorized(
@@ -115,7 +63,7 @@ class ResponseService
 
     public function exception(int $status, string $error, string $message): void
     {
-        $this->sendEnvelope($status, null, $this->makeError($error, $status, $message, null, null), []);
+        $this->sendBody($status, $this->makeError($error, $status, $message, null, null));
     }
 
     public function badRequest(string $error, string $message): void
@@ -126,13 +74,14 @@ class ResponseService
     public function exceptionWithException(int $status, string $error, string $message, Exception $e): void
     {
         $detail = $e->getMessage();
-        $this->sendEnvelope($status, null, $this->makeError($error, $status, $message, $detail, null), []);
+        $this->sendBody($status, $this->makeError($error, $status, $message, $detail, null));
     }
 
     public function exceptionDbError(string $message = '데이터베이스 오류가 발생했습니다.', Exception $e = null): void
     {
         if ($e instanceof Exception) {
             $this->exceptionWithException(500, 'DB_ERROR', $message, $e);
+            return;
         }
         $this->exception(500, 'DB_ERROR', $message);
     }
@@ -141,11 +90,12 @@ class ResponseService
     {
         if ($e instanceof Exception) {
             $this->exceptionWithException(500, $error, $message, $e);
+            return;
         }
         $this->exception(500, $error, $message);
     }
 
-    private function sendEnvelope(int $httpStatus, ?array $data, ?array $error, array $metaOverrides): void
+    private function sendBody(int $httpStatus, array $body): void
     {
         http_response_code($httpStatus);
         header('Content-Type: application/json; charset=UTF-8');
@@ -157,40 +107,8 @@ class ResponseService
             header('X-Trace-Id: ' . $this->traceId);
         }
 
-        $meta = $this->buildMeta($metaOverrides);
-
-        $envelope = array(
-            'meta'  => $meta,
-            'data'  => $data,
-            'error' => $error
-        );
-
-        echo json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode($this->ensureObject($body), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
-    }
-
-    private function buildMeta(array $overrides): array
-    {
-        $meta = array(
-            'apiVersion' => $this->apiVersion,
-            'requestId'  => $this->requestId,
-            'traceId'    => $this->traceId,
-            'elapsedMs'  => $this->stopwatch->elapsedMs(),
-        );
-
-        foreach ($overrides as $k => $v) {
-            $meta[$k] = $v;
-        }
-        return $meta;
-    }
-
-    private function makeData(?string $type, ?string $id, $payload): array
-    {
-        return array(
-            'type'    => $type,
-            'id'      => $id,
-            'payload' => $payload
-        );
     }
 
     private function makeError(string $code, int $httpStatus, string $message, ?string $detail, ?array $fields): array
@@ -235,6 +153,13 @@ class ResponseService
     private function escapeDoubleQuotes(string $value): string
     {
         return str_replace('"', '\"', $value);
+    }
+
+    private function ensureObject(array $body): array
+    {
+        // JSON 객체(Map) 형태 보장을 위해 배열을 그대로 반환합니다.
+        // PHP에서 연관 배열은 JSON 객체로 직렬화됩니다.
+        return $body;
     }
 
     private function readOrGenerateId(string $serverKey): string

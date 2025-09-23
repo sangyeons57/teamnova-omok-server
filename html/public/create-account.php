@@ -55,8 +55,7 @@ $validator = $container->get(ValidationService::class);
 $uuidService = $container->get(UuidService::class);
 
 // 공통 시작부
-$envelope = $requestService->readEnvelope('POST');
-$body = $envelope['body'];
+$body = $requestService->readBody('POST');
 
 // 파라미터 파싱
 $provider = isset($body['provider']) ? trim($body['provider']) : '';
