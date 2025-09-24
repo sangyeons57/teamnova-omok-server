@@ -4,25 +4,9 @@
  * 입력(JSON, POST):
  * - refresh_token: string (필수)
  */
-require_once __DIR__ . '/../shared/Config.php';
-require_once __DIR__ . '/../shared/Database.php';
-require_once __DIR__ . '/../shared/Services/Auth/TokenService.php';
-require_once __DIR__ . '/../shared/Repositories/UserRepository.php';
-require_once __DIR__ . '/../shared/Repositories/RefreshTokenRepository.php';
-require_once __DIR__ . '/../shared/Container/Container.php';
-require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
-require_once __DIR__ . '/../shared/Container/AppProvider.php';
-require_once __DIR__ . '/../shared/Container/UtilProvider.php';
-require_once __DIR__ . '/../shared/Container/AuthProvider.php';
-require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
-require_once __DIR__ . '/../shared/Container/RequestProvider.php';
+require_once __DIR__ . '/../shared/Container/ContainerFactory.php';
 
-$container = new Container();
-(new AppProvider())->register($container);
-(new UtilProvider())->register($container);
-(new AuthProvider())->register($container);
-(new ResponseProvider())->register($container);
-(new RequestProvider())->register($container);
+$container = ContainerFactory::create();
 /** @var ResponseService $response */
 $response = $container->get(ResponseService::class);
 /** @var RequestService $requestService */
@@ -38,7 +22,8 @@ if ($refreshToken === '') {
 
 $pdo = null;
 try {
-    $pdo = Database::pdo();
+    /** @var PDO $pdo */
+    $pdo = $container->get(PDO::class);
 
     /** @var TokenService $tokenService */
     $tokenService = $container->get(TokenService::class);

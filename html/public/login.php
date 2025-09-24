@@ -5,22 +5,10 @@
  * - Authorization 헤더: Bearer <access_token>
  */
 
-require_once __DIR__ . '/../shared/Database.php';
-require_once __DIR__ . '/../shared/Container/Container.php';
-require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
-require_once __DIR__ . '/../shared/Container/AppProvider.php';
-require_once __DIR__ . '/../shared/Container/UtilProvider.php';
-require_once __DIR__ . '/../shared/Container/AuthProvider.php';
-require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
-require_once __DIR__ . '/../shared/Container/GuardProvider.php';
+require_once __DIR__ . '/../shared/Container/ContainerFactory.php';
 
 // 컨테이너 초기화 및 가드/응답 서비스
-$container = new Container();
-(new AppProvider())->register($container);
-(new UtilProvider())->register($container);
-(new AuthProvider())->register($container);
-(new ResponseProvider())->register($container);
-(new GuardProvider())->register($container);
+$container = ContainerFactory::create();
 /** @var ResponseService $responseService */
 $responseService = $container->get(ResponseService::class);
 // 공통 시작부

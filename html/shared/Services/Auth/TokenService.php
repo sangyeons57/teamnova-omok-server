@@ -66,6 +66,20 @@ class TokenService {
     }
 
     /**
+     * 지정한 사용자의 모든 리프레시 토큰을 비활성화합니다.
+     * 이미 비활성화된 토큰은 무시합니다(멱등).
+     * @throws Exception
+     */
+    public function revokeAllByUserId(string $userId): void
+    {
+        if (method_exists($this->refreshRepo, 'revokeAllByUserId')) {
+            $this->refreshRepo->revokeAllByUserId($userId);
+            return;
+        }
+        throw new Exception('REFRESH_REPO_REVOKE_NOT_SUPPORTED');
+    }
+
+    /**
      * 리프레시 토큰 검증 → 회전(무효화) → issue 재사용하여 새 토큰들 발급.
      *
      * @param string $refreshToken 클라이언트가 보낸 기존 리프레시 토큰(원본)

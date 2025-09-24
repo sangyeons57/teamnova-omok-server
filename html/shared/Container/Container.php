@@ -7,13 +7,13 @@
 class Container
 {
     /** @var array<string, callable(Container): mixed> */
-    private $definitions = array();
+    private array $definitions = array();
 
     /** @var array<string, mixed> */
-    private $instances = array();
+    private array $instances = array();
 
     /** @var array<string, bool> */
-    private $shared = array();
+    private array $shared = array();
 
     public function set(string $id, callable $factory, bool $shared = true): void
     {

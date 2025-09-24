@@ -1,11 +1,13 @@
 <?php
+require_once __DIR__ . '/Container.php';
+require_once __DIR__ . '/ServiceProvider.php';
 require_once __DIR__ . '/../Repositories/RefreshTokenRepository.php';
 require_once __DIR__ . '/../Repositories/UserRepository.php';
 require_once __DIR__ . '/../Services/Util/CryptoService.php';
 require_once __DIR__ . '/../Services/Util/ClockService.php';
 require_once __DIR__ . '/../Services/Auth/TokenService.php';
 
-class AuthProvider implements ServiceProvider
+class AuthServiceProvider implements ServiceProvider
 {
     public function register(Container $c): void
     {

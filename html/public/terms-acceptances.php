@@ -7,26 +7,10 @@
  * 요청(JSON, POST):
  * - Authorization 헤더: Bearer <access_token>
  */
-require_once __DIR__ . '/../shared/Database.php';
-require_once __DIR__ . '/../shared/Repositories/TermsRepository.php';
-require_once __DIR__ . '/../shared/Repositories/UserRepository.php';
 require_once __DIR__ . '/../shared/Constants/UserStatus.php';
-require_once __DIR__ . '/../shared/Container/Container.php';
-require_once __DIR__ . '/../shared/Container/ServiceProvider.php';
-require_once __DIR__ . '/../shared/Container/AppProvider.php';
-require_once __DIR__ . '/../shared/Container/UtilProvider.php';
-require_once __DIR__ . '/../shared/Container/AuthProvider.php';
-require_once __DIR__ . '/../shared/Container/ResponseProvider.php';
-require_once __DIR__ . '/../shared/Container/RequestProvider.php';
-require_once __DIR__ . '/../shared/Container/GuardProvider.php';
+require_once __DIR__ . '/../shared/Container/ContainerFactory.php';
 
-$container = new Container();
-(new AppProvider())->register($container);
-(new UtilProvider())->register($container);
-(new AuthProvider())->register($container);
-(new ResponseProvider())->register($container);
-(new RequestProvider())->register($container);
-(new GuardProvider())->register($container);
+$container = ContainerFactory::create();
 /** @var ResponseService $response */
 $response = $container->get(ResponseService::class);
 /** @var RequestService $requestService */
@@ -45,7 +29,8 @@ if ($userId === '') {
 
 $pdo = null;
 try {
-    $pdo = Database::pdo();
+    /** @var PDO $pdo */
+    $pdo = $container->get(PDO::class);
     $pdo->beginTransaction();
 
     /** @var TermsRepository $termsRepo */
