@@ -42,11 +42,7 @@ class RequestService
         if ($assertMethod !== null) {
             $this->assertMethod($assertMethod);
         }
-        $body = $this->readJsonBody();
-        if (!is_array($body)) {
-            $this->response->error('INVALID_BODY_FORMAT', 400, '본문은 객체여야 합니다.');
-        }
-        return $body;
+        return $this->readJsonBody();
     }
 
     private function extractStringField(array $envelope, string $key): string
