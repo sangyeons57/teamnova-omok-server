@@ -36,4 +36,4 @@ if (isset($payload['exp']) && is_numeric($payload['exp'])) {
     $payloadOut['expires_at'] = (int)$payload['exp'];
 }
 
-$responseService->success(200, 'login', $userId, $payloadOut);
+$responseService->success(200, $payloadOut);

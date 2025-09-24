@@ -4,11 +4,9 @@ class ResponseService
     private string $apiVersion = '1.0';
     private ?string $requestId = null;
     private ?string $traceId = null;
-    private StopwatchService $stopwatch;
 
-    public function __construct(StopwatchService $stopwatch)
+    public function __construct()
     {
-        $this->stopwatch = $stopwatch;
         $this->requestId = $this->readOrGenerateId('HTTP_X_REQUEST_ID');
         $this->traceId   = $this->readOrGenerateId('HTTP_X_TRACE_ID');
     }
@@ -38,7 +36,7 @@ class ResponseService
     }
 
     // 명시적 성공 응답: 이제 payload만 그대로 출력
-    public function success(int $httpStatus, string $type, ?string $id, $payload = null, array $metaOverrides = []): void
+    public function success(int $httpStatus, $payload = null): void
     {
         $body = is_array($payload) ? $payload : array();
         $this->sendBody($httpStatus, $this->ensureObject($body));

@@ -29,7 +29,7 @@ try {
     $tokenService = $container->get(TokenService::class);
     $tokens = $tokenService->refresh($refreshToken);
 
-    $response->success(200, 'token_refresh', null, $tokens);
+    $response->success(200, $tokens);
 
 } catch (Exception $e) {
     $code = $e->getMessage();

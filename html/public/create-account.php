@@ -80,7 +80,7 @@ try {
     );
     $payloadOut = array_merge($payloadOut, $tokens);
 
-    $responseService->success($result['created'] ? 201 : 200, 'account_create', $result['user']['user_id'], $payloadOut);
+    $responseService->success($result['created'] ? 201 : 200, $payloadOut);
 
 } catch (PDOException $e) {
     if ($pdo instanceof PDO && $pdo->inTransaction()) {

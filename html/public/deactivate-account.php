@@ -37,7 +37,7 @@ if (!$deactivated) {
 $tokenService = $container->get(TokenService::class);
 $tokenService->revokeAllByUserId($userId);
 
-$response->success(200, 'account_deactivate', $userId, array(
+$response->success(200, array(
     'deactivated' => true,
     'already_inactive' => !$wasActive,
     'refresh_tokens_revoked' => true,

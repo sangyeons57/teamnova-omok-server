@@ -10,7 +10,7 @@ class HttpServiceProvider implements ServiceProvider
     public function register(Container $c): void
     {
         $c->set(ResponseService::class, function (Container $c) {
-            return new ResponseService($c->get(StopwatchService::class));
+            return new ResponseService();
         });
 
         $c->set(RequestService::class, function (Container $c) {

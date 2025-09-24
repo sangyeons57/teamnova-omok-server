@@ -26,4 +26,4 @@ if ($userId === '' || !$userService->isActive($userId)) {
 $tokenService = $container->get(TokenService::class);
 $tokenService->revokeAllByUserId($userId);
 
-$responseService->success(200, 'logout', $userId, array('refresh_tokens_revoked' => true));
+$responseService->success(200, array('refresh_tokens_revoked' => true));

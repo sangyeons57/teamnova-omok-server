@@ -78,7 +78,7 @@ try {
         $payloadOut['accepted_count'] = $acceptedCount;
     }
 
-    $response->success(200, 'terms_acceptances', $userId, $payloadOut);
+    $response->success(200, $payloadOut);
 } catch (PDOException $e) {
     if ($pdo && $pdo->inTransaction()) {
         $pdo->rollBack();
