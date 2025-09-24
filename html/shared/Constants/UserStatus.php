@@ -8,10 +8,10 @@
  */
 final class UserStatus
 {
-    public const ACTIVE   = 'ACTIVE';
-    public const INACTIVE = 'INACTIVE';
-    public const PENDING  = 'PENDING';
-    public const BLOCKED  = 'BLOCKED';
+    public const string ACTIVE   = 'ACTIVE';
+    public const string INACTIVE = 'INACTIVE';
+    public const string PENDING  = 'PENDING';
+    public const string BLOCKED  = 'BLOCKED';
 
     public static function all(): array
     {
