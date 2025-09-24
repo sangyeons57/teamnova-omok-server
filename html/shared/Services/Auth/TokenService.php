@@ -4,10 +4,10 @@ require_once __DIR__ . '/../../Repositories/UserRepository.php';
 require_once __DIR__ . '/JwtService.php';
 
 class TokenService {
-    private $refreshRepo;
-    private $userRepo;
-    private $crypto;
-    private $clock;
+    private RefreshTokenRepository $refreshRepo;
+    private UserRepository $userRepo ;
+    private CryptoService $crypto;
+    private ClockService $clock;
 
     public function __construct($refreshRepo, $userRepo, $crypto, $clock) {
         $this->refreshRepo = $refreshRepo;

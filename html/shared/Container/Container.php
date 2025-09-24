@@ -30,10 +30,7 @@ class Container
         return array_key_exists($id, $this->instances) || array_key_exists($id, $this->definitions);
     }
 
-    /**
-     * @return mixed
-     */
-    public function get(string $id)
+    public function get(string $id): mixed
     {
         if (array_key_exists($id, $this->instances)) {
             return $this->instances[$id];

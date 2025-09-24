@@ -1,12 +1,13 @@
 <?php
 class RefreshTokenRepository {
-    private $pdo;
+    private PDO $pdo;
 
     public function __construct($pdo) {
         $this->pdo = $pdo;
     }
 
-    public function save($userId, $tokenHash, $expiresAt) {
+    public function save($userId, $tokenHash, $expiresAt): void
+    {
         $st = $this->pdo->prepare('INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES (:uid, :th, :exp)');
         $st->execute(array(
             ':uid' => $userId,
@@ -22,7 +23,8 @@ class RefreshTokenRepository {
         return $row ? $row : null;
     }
 
-    public function revokeByHash($tokenHash) {
+    public function revokeByHash($tokenHash): void
+    {
         $nowUtc = new DateTime('now', new DateTimeZone('UTC'));
         $st = $this->pdo->prepare('UPDATE refresh_tokens SET revoked_at = :now WHERE token_hash = :th AND revoked_at IS NULL');
         $st->execute(array(
@@ -31,7 +33,8 @@ class RefreshTokenRepository {
         ));
     }
 
-    public function revokeAllByUserId($userId) {
+    public function revokeAllByUserId($userId): void
+    {
         $nowUtc = new DateTime('now', new DateTimeZone('UTC'));
         $st = $this->pdo->prepare('UPDATE refresh_tokens SET revoked_at = :now WHERE user_id = :uid AND revoked_at IS NULL');
         $st->execute(array(
