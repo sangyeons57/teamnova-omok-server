@@ -28,4 +28,32 @@ class UserRepository {
             ':id' => $userId,
         ));
     }
+
+    public function findByDisplayName($displayName)
+    {
+        $st = $this->pdo->prepare('SELECT user_id, display_name FROM teamnova_omok_db.users WHERE display_name = :dn LIMIT 1');
+        $st->execute(array(':dn' => $displayName));
+        $row = $st->fetch();
+        return $row ?: null;
+    }
+
+    public function updateDisplayName($userId, $displayName): bool
+    {
+        $st = $this->pdo->prepare('UPDATE teamnova_omok_db.users SET display_name = :dn WHERE user_id = :id');
+        $st->execute(array(
+            ':dn' => $displayName,
+            ':id' => $userId,
+        ));
+        return $st->rowCount() > 0;
+    }
+
+    public function updateProfileIconCode($userId, $iconCode): bool
+    {
+        $st = $this->pdo->prepare('UPDATE teamnova_omok_db.users SET profile_icon_code = :icon WHERE user_id = :id');
+        $st->execute(array(
+            ':icon' => $iconCode,
+            ':id' => $userId,
+        ));
+        return $st->rowCount() > 0;
+    }
 }

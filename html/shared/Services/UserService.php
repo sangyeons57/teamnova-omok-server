@@ -32,6 +32,38 @@ class UserService
         return $row !== null && isset($row['status']) && (string)$row['status'] === UserStatus::ACTIVE;
     }
 
+    public function findByDisplayName(string $displayName): ?array
+    {
+        if ($displayName === '') {
+            return null;
+        }
+
+        $row = $this->users->findByDisplayName($displayName);
+        if ($row === false) {
+            return null;
+        }
+
+        return $row;
+    }
+
+    public function updateDisplayName(string $userId, string $displayName): bool
+    {
+        if ($userId === '' || $displayName === '') {
+            return false;
+        }
+
+        return $this->users->updateDisplayName($userId, $displayName);
+    }
+
+    public function updateProfileIconCode(string $userId, string $iconCode): bool
+    {
+        if ($userId === '' || $iconCode === '') {
+            return false;
+        }
+
+        return $this->users->updateProfileIconCode($userId, $iconCode);
+    }
+
     /**
      * 사용자를 비활성화(INACTIVE) 상태로 전환합니다.
      * 존재하지 않는 경우 false, 이미 비활성화된 경우 true를 반환하여 멱등성을 보장합니다.
