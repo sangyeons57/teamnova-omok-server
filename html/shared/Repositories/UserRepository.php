@@ -56,4 +56,12 @@ class UserRepository {
         ));
         return $st->rowCount() > 0;
     }
+
+    public function findTopByScore(int $limit): array
+    {
+        $st = $this->pdo->prepare('SELECT user_id, display_name, profile_icon_code, role, status, score FROM teamnova_omok_db.users ORDER BY score DESC LIMIT :limit');
+        $st->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $st->execute();
+        return $st->fetchAll();
+    }
 }

@@ -64,6 +64,15 @@ class UserService
         return $this->users->updateProfileIconCode($userId, $iconCode);
     }
 
+    public function findTopByScore(int $limit): array
+    {
+        if ($limit <= 0) {
+            return array();
+        }
+
+        return $this->users->findTopByScore($limit);
+    }
+
     /**
      * 사용자를 비활성화(INACTIVE) 상태로 전환합니다.
      * 존재하지 않는 경우 false, 이미 비활성화된 경우 true를 반환하여 멱등성을 보장합니다.
