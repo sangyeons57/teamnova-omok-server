@@ -22,8 +22,24 @@ if ($userId === '' || !$userService->isActive($userId)) {
     $responseService->error('USER_NOT_ACTIVE', 403, '사용자 상태가 활성화되어 있지 않습니다.');
 }
 
+/** @var AuthProviderRepository $authProviders */
+$authProviders = $container->get(AuthProviderRepository::class);
+$providerRow = $authProviders->findByUserId($userId);
+$isGuest = $providerRow !== null && isset($providerRow['provider']) && (string)$providerRow['provider'] === 'GUEST';
+
+$guestDeactivated = false;
+if ($isGuest) {
+    $guestDeactivated = $userService->deactivate($userId);
+    if (!$guestDeactivated) {
+        $responseService->error('USER_GUEST_DEACTIVATE_FAILED', 500, '게스트 계정을 비활성화하지 못했습니다.');
+    }
+}
+
 /** @var TokenService $tokenService */
 $tokenService = $container->get(TokenService::class);
 $tokenService->revokeAllByUserId($userId);
 
-$responseService->success(200, array('refresh_tokens_revoked' => true));
+$responseService->success(200, array(
+    'refresh_tokens_revoked' => true,
+    'guest_account_deactivated' => $guestDeactivated,
+));
