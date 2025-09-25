@@ -7,13 +7,13 @@ class UserRepository {
     }
 
     public function findById($userId) {
-        $st = $this->pdo->prepare('SELECT user_id, display_name, profile_icon_code, role, status, score FROM users WHERE user_id = :id LIMIT 1');
+        $st = $this->pdo->prepare('SELECT user_id, display_name, profile_icon_code, role, status, score FROM teamnova_omok_db.users WHERE user_id = :id LIMIT 1');
         $st->execute(array(':id' => $userId));
         return $st->fetch();
     }
 
     public function insert($userId, $displayName, $iconCode) {
-        $st = $this->pdo->prepare('INSERT INTO users (user_id, display_name, profile_icon_code) VALUES (:id, :dn, :icon)');
+        $st = $this->pdo->prepare('INSERT INTO teamnova_omok_db.users (user_id, display_name, profile_icon_code) VALUES (:id, :dn, :icon)');
         $st->execute(array(
             ':id' => $userId,
             ':dn' => $displayName,
@@ -22,7 +22,7 @@ class UserRepository {
     }
 
     public function updateStatus($userId, $status) {
-        $st = $this->pdo->prepare('UPDATE users SET status = :status WHERE user_id = :id');
+        $st = $this->pdo->prepare('UPDATE teamnova_omok_db.users SET status = :status WHERE user_id = :id');
         $st->execute(array(
             ':status' => $status,
             ':id' => $userId,
