@@ -57,10 +57,11 @@ class UserRepository {
         return $st->rowCount() > 0;
     }
 
-    public function findTopByScore(int $limit): array
+    public function findTopByScore(int $limit, string $status = UserStatus::ACTIVE): array
     {
-        $st = $this->pdo->prepare('SELECT user_id, display_name, profile_icon_code, role, status, score FROM teamnova_omok_db.users ORDER BY score DESC LIMIT :limit');
+        $st = $this->pdo->prepare('SELECT user_id, display_name, profile_icon_code, role, status, score FROM teamnova_omok_db.users WHERE status = :status ORDER BY score DESC LIMIT :limit');
         $st->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $st->bindValue(':status', $status, PDO::PARAM_STR);
         $st->execute();
         return $st->fetchAll();
     }
