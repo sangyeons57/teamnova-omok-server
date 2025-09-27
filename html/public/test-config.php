@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/../html/shared/Config.php';
-require_once __DIR__ . '/../html/shared/Database.php';
+require_once __DIR__ . '/../shared/Config.php';
+require_once __DIR__ . '/../shared/Database.php';
 
 $values = [
     'APP_ENV' => Config::appEnv(),
