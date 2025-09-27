@@ -23,9 +23,24 @@ class AccessTokenGuardService
     public function requirePayload(): array
     {
         $accessToken = '';
-        $authHeader = isset($_SERVER['HTTP_AUTHORIZATION']) ? trim($_SERVER['HTTP_AUTHORIZATION']) : '';
-        if ($authHeader !== '' && stripos($authHeader, 'Bearer ') === 0) {
-            $accessToken = trim(substr($authHeader, 7));
+        $tokenSource = 'none';
+
+        $headerInfo = $this->resolveAuthorizationHeader();
+        if ($headerInfo['value'] !== '') {
+            if (preg_match('/^Bearer\s+(.+)$/i', $headerInfo['value'], $matches) === 1) {
+                $accessToken = trim($matches[1]);
+                $tokenSource = 'authorization_header';
+            } else {
+                $tokenSource = 'authorization_header_unparsable';
+            }
+        }
+
+        if ($accessToken === '' && isset($_REQUEST['access_token']) && is_string($_REQUEST['access_token'])) {
+            $candidate = trim($_REQUEST['access_token']);
+            if ($candidate !== '') {
+                $accessToken = $candidate;
+                $tokenSource = 'request_access_token_field';
+            }
         }
 
         $result = $this->tokenService->validateAccessToken($accessToken);
@@ -57,6 +72,12 @@ class AccessTokenGuardService
                 'source' => 'TokenService::validateAccessToken'
             );
 
+            if ($tokenSource !== 'none') {
+                $payload['token_source'] = $tokenSource;
+            }
+            if ($headerInfo['source'] !== null) {
+                $payload['header_source'] = $headerInfo['source'];
+            }
             if ($detail !== '') {
                 $payload['reason'] = $detail;
             }
@@ -83,5 +104,48 @@ class AccessTokenGuardService
         }
 
         return $result['payload'];
+    }
+
+    private function resolveAuthorizationHeader(): array
+    {
+        $candidates = array();
+
+        foreach (array('HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION', 'AUTHORIZATION') as $serverKey) {
+            if (isset($_SERVER[$serverKey]) && is_string($_SERVER[$serverKey])) {
+                $candidates[] = array(
+                    'value' => $_SERVER[$serverKey],
+                    'source' => 'server:' . $serverKey
+                );
+            }
+        }
+
+        if (function_exists('getallheaders')) {
+            $headers = getallheaders();
+            if (is_array($headers)) {
+                foreach ($headers as $name => $value) {
+                    if (is_string($name) && strcasecmp($name, 'Authorization') === 0 && is_string($value)) {
+                        $candidates[] = array(
+                            'value' => $value,
+                            'source' => 'getallheaders:' . $name
+                        );
+                    }
+                }
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            $value = trim($candidate['value']);
+            if ($value !== '') {
+                return array(
+                    'value' => $value,
+                    'source' => $candidate['source']
+                );
+            }
+        }
+
+        return array(
+            'value' => '',
+            'source' => null
+        );
     }
 }
