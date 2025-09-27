@@ -140,63 +140,85 @@ class TokenService {
         return ($decoded === false) ? false : $decoded;
     }
 
+    private function makeInvalidResult(string $stage, string $message, string $error = 'ACCESS_TOKEN_INVALID', array $extra = array()): array
+    {
+        $result = array(
+            'valid' => false,
+            'error' => $error,
+            'stage' => $stage,
+            'message' => $message
+        );
+        foreach ($extra as $key => $value) {
+            if ($value !== null) {
+                $result[$key] = $value;
+            }
+        }
+        return $result;
+    }
+
     /**
      * 액세스 토큰(JWT, HS256) 유효성 검증(순수).
      * - 성공: array('valid'=>true, 'payload'=>array)
-     * - 실패: array('valid'=>false, 'error'=>'ACCESS_TOKEN_INVALID'|'ACCESS_TOKEN_EXPIRED')
+     * - 실패: array('valid'=>false, 'error'=>'ACCESS_TOKEN_INVALID'|'ACCESS_TOKEN_EXPIRED', 'message'=>string, 'stage'=>string, ...)
      */
     public function validateAccessToken(string $jwt): array
     {
         if ($jwt === '') {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
+            return $this->makeInvalidResult('missing_token', 'Authorization 헤더에서 Bearer 토큰을 찾을 수 없습니다.');
         }
 
         $parts = explode('.', $jwt);
         if (count($parts) !== 3) {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
+            return $this->makeInvalidResult('malformed_jwt', 'JWT 형식이 잘못되었습니다. 3개의 파트(header.payload.signature)가 필요합니다.');
         }
         list($h, $p, $s) = $parts;
 
-        $headerJson  = self::b64urlDecode($h);
-        $payloadJson = self::b64urlDecode($p);
-        $sigBin      = self::b64urlDecode($s);
-
-        if ($headerJson === false || $payloadJson === false || $sigBin === false) {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
+        $decoded = array();
+        foreach (array('header' => $h, 'payload' => $p, 'signature' => $s) as $partName => $encoded) {
+            $value = self::b64urlDecode($encoded);
+            if ($value === false) {
+                return $this->makeInvalidResult('b64_decode_' . $partName, 'JWT ' . $partName . ' 부분을 base64url로 디코딩할 수 없습니다.');
+            }
+            $decoded[$partName] = $value;
         }
 
-        $header = json_decode($headerJson, true);
-        $payload = json_decode($payloadJson, true);
-        if (!is_array($header) || !is_array($payload)) {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
+        $header = json_decode($decoded['header'], true);
+        if (!is_array($header)) {
+            return $this->makeInvalidResult('json_decode_header', 'JWT header JSON 파싱에 실패했습니다.');
+        }
+
+        $payload = json_decode($decoded['payload'], true);
+        if (!is_array($payload)) {
+            return $this->makeInvalidResult('json_decode_payload', 'JWT payload JSON 파싱에 실패했습니다.');
         }
 
         if (!isset($header['alg']) || $header['alg'] !== 'HS256') {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
+            return $this->makeInvalidResult('unsupported_alg', '지원하지 않는 JWT 서명 알고리즘입니다.', 'ACCESS_TOKEN_INVALID', array('alg' => $header['alg'] ?? null));
         }
 
         // 서명 검증
         $signingInput = $h . '.' . $p;
         $expectedSig = hash_hmac('sha256', $signingInput, Config::jwtSecret(), true);
-        if (!hash_equals($expectedSig, $sigBin)) {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
+        if (!hash_equals($expectedSig, $decoded['signature'])) {
+            return $this->makeInvalidResult('signature_mismatch', 'JWT 서명 검증에 실패했습니다.');
         }
 
         $now = time();
 
-        // 만료 검사
         if (!isset($payload['exp']) || !is_numeric($payload['exp'])) {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
-        }
-        if ((int)$payload['exp'] <= $now) {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_EXPIRED');
+            return $this->makeInvalidResult('missing_exp', 'JWT payload에 만료 시각(exp) 클레임이 없습니다.');
         }
 
-        // iss가 있으면 검증
+        $exp = (int) $payload['exp'];
+        if ($exp <= $now) {
+            return $this->makeInvalidResult('expired', '액세스 토큰이 만료되었습니다.', 'ACCESS_TOKEN_EXPIRED', array('expired_at' => $exp));
+        }
+
         if (isset($payload['iss']) && $payload['iss'] !== 'teamnova-omok') {
-            return array('valid' => false, 'error' => 'ACCESS_TOKEN_INVALID');
+            return $this->makeInvalidResult('invalid_iss', 'JWT 발급자(iss) 값이 예상과 다릅니다.', 'ACCESS_TOKEN_INVALID', array('iss' => $payload['iss']));
         }
 
         return array('valid' => true, 'payload' => $payload);
     }
 }
+

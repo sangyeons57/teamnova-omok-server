@@ -32,35 +32,54 @@ class AccessTokenGuardService
 
         if (!$result['valid']) {
             $error = $result['error'] ?? 'ACCESS_TOKEN_INVALID';
-            $bearerDescription = '';
+            $detail = '';
             if (isset($result['message']) && is_string($result['message'])) {
-                $bearerDescription = trim($result['message']);
+                $detail = trim($result['message']);
             }
-            if ($error === 'ACCESS_TOKEN_EXPIRED') {
-                $this->response->bearerUnauthorized(
-                    array(
-                        'success' => false,
-                        'error' => 'ACCESS_TOKEN_EXPIRED',
-                        'message' => '액세스 토큰이 만료되었습니다. refresh_token으로 재발급을 요청하세요.',
-                        'retry_with_refresh' => true
-                    ),
-                    'invalid_token',
-                    $bearerDescription !== '' ? $bearerDescription : 'Access token expired',
-                    'api'
-                );
-            } else {
-                $this->response->bearerUnauthorized(
-                    array(
-                        'success' => false,
-                        'error' => 'ACCESS_TOKEN_INVALID',
-                        'message' => '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
-                        'retry_with_refresh' => true
-                    ),
-                    'invalid_token',
-                    $bearerDescription !== '' ? $bearerDescription : 'Signature verification failed',
-                    'api'
-                );
+            $stage = null;
+            if (isset($result['stage']) && is_string($result['stage'])) {
+                $stageValue = trim($result['stage']);
+                if ($stageValue !== '') {
+                    $stage = $stageValue;
+                }
             }
+
+            $isExpired = ($error === 'ACCESS_TOKEN_EXPIRED');
+            $defaultMessage = $isExpired
+                ? '액세스 토큰이 만료되었습니다. refresh_token으로 재발급을 요청하세요.'
+                : '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.';
+
+            $payload = array(
+                'success' => false,
+                'error' => $error,
+                'message' => $defaultMessage,
+                'retry_with_refresh' => true,
+                'source' => 'TokenService::validateAccessToken'
+            );
+
+            if ($detail !== '') {
+                $payload['reason'] = $detail;
+            }
+            if ($stage !== null) {
+                $payload['stage'] = $stage;
+            }
+
+            foreach (array('expired_at', 'alg', 'iss') as $key) {
+                if (isset($result[$key])) {
+                    $payload[$key] = $result[$key];
+                }
+            }
+
+            $bearerDescription = $detail !== ''
+                ? $detail
+                : ($isExpired ? 'Access token expired' : 'Signature verification failed');
+
+            $this->response->bearerUnauthorized(
+                $payload,
+                'invalid_token',
+                $bearerDescription,
+                'api'
+            );
         }
 
         return $result['payload'];
