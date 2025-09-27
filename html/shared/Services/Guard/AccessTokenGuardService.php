@@ -22,100 +22,53 @@ class AccessTokenGuardService
 
     public function requirePayload(): array
     {
-        $accessToken = '';
-        $tokenSource = 'none';
-
-        $headerInfo = $this->resolveAuthorizationHeader();
-        if ($headerInfo['value'] !== '') {
-            if (preg_match('/^Bearer\s+(.+)$/i', $headerInfo['value'], $matches) === 1) {
-                $accessToken = trim($matches[1]);
-                $tokenSource = 'authorization_header';
-            } else {
-                $tokenSource = 'authorization_header_unparsable';
-            }
-        }
-
-        if ($accessToken === '' && isset($_REQUEST['access_token']) && is_string($_REQUEST['access_token'])) {
-            $candidate = trim($_REQUEST['access_token']);
-            if ($candidate !== '') {
-                $accessToken = $candidate;
-                $tokenSource = 'request_access_token_field';
-            }
-        }
-
+        $accessToken = $this->resolveAccessToken();
         $result = $this->tokenService->validateAccessToken($accessToken);
 
         if (!$result['valid']) {
-            $error = $result['error'] ?? 'ACCESS_TOKEN_INVALID';
-            $detail = '';
-            if (isset($result['message']) && is_string($result['message'])) {
-                $detail = trim($result['message']);
-            }
-            $stage = null;
-            if (isset($result['stage']) && is_string($result['stage'])) {
-                $stageValue = trim($result['stage']);
-                if ($stageValue !== '') {
-                    $stage = $stageValue;
-                }
-            }
-
-            $isExpired = ($error === 'ACCESS_TOKEN_EXPIRED');
-            $defaultMessage = $isExpired
-                ? '액세스 토큰이 만료되었습니다. refresh_token으로 재발급을 요청하세요.'
-                : '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.';
-
-            $payload = array(
-                'success' => false,
-                'error' => $error,
-                'message' => $defaultMessage,
-                'retry_with_refresh' => true,
-                'source' => 'TokenService::validateAccessToken'
-            );
-
-            if ($tokenSource !== 'none') {
-                $payload['token_source'] = $tokenSource;
-            }
-            if ($headerInfo['source'] !== null) {
-                $payload['header_source'] = $headerInfo['source'];
-            }
-            if ($detail !== '') {
-                $payload['reason'] = $detail;
-            }
-            if ($stage !== null) {
-                $payload['stage'] = $stage;
-            }
-
-            foreach (array('expired_at', 'alg', 'iss') as $key) {
-                if (isset($result[$key])) {
-                    $payload[$key] = $result[$key];
-                }
-            }
-
-            $bearerDescription = $detail !== ''
-                ? $detail
-                : ($isExpired ? 'Access token expired' : 'Signature verification failed');
-
-            $this->response->bearerUnauthorized(
-                $payload,
-                'invalid_token',
-                $bearerDescription,
-                'api'
-            );
+            $this->respondTokenError($result);
         }
 
         return $result['payload'];
     }
 
-    private function resolveAuthorizationHeader(): array
+    private function resolveAccessToken(): string
     {
-        $candidates = array();
+        $token = $this->extractBearerTokenFromHeader();
+        if ($token !== '') {
+            return $token;
+        }
 
-        foreach (array('HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION', 'AUTHORIZATION') as $serverKey) {
-            if (isset($_SERVER[$serverKey]) && is_string($_SERVER[$serverKey])) {
-                $candidates[] = array(
-                    'value' => $_SERVER[$serverKey],
-                    'source' => 'server:' . $serverKey
-                );
+        $token = $this->extractAccessTokenFromRequest();
+        if ($token !== '') {
+            return $token;
+        }
+
+        return '';
+    }
+
+    private function extractBearerTokenFromHeader(): string
+    {
+        $header = $this->getAuthorizationHeaderValue();
+        if ($header === '') {
+            return '';
+        }
+
+        if (preg_match('/^Bearer\s+(.+)$/i', $header, $matches) !== 1) {
+            return '';
+        }
+
+        return trim($matches[1]);
+    }
+
+    private function getAuthorizationHeaderValue(): string
+    {
+        foreach (array('HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION', 'AUTHORIZATION') as $key) {
+            if (isset($_SERVER[$key])) {
+                $value = trim((string) $_SERVER[$key]);
+                if ($value !== '') {
+                    return $value;
+                }
             }
         }
 
@@ -124,28 +77,77 @@ class AccessTokenGuardService
             if (is_array($headers)) {
                 foreach ($headers as $name => $value) {
                     if (is_string($name) && strcasecmp($name, 'Authorization') === 0 && is_string($value)) {
-                        $candidates[] = array(
-                            'value' => $value,
-                            'source' => 'getallheaders:' . $name
-                        );
+                        $value = trim($value);
+                        if ($value !== '') {
+                            return $value;
+                        }
                     }
                 }
             }
         }
 
-        foreach ($candidates as $candidate) {
-            $value = trim($candidate['value']);
-            if ($value !== '') {
-                return array(
-                    'value' => $value,
-                    'source' => $candidate['source']
-                );
+        return '';
+    }
+
+    private function extractAccessTokenFromRequest(): string
+    {
+        if (!isset($_REQUEST['access_token']) || !is_string($_REQUEST['access_token'])) {
+            return '';
+        }
+
+        return trim($_REQUEST['access_token']);
+    }
+
+    private function respondTokenError(array $result): void
+    {
+        $error = $result['error'] ?? 'ACCESS_TOKEN_INVALID';
+        $isExpired = ($error === 'ACCESS_TOKEN_EXPIRED');
+
+        $detail = '';
+        if (isset($result['message']) && is_string($result['message'])) {
+            $detail = trim($result['message']);
+        }
+
+        $stage = null;
+        if (isset($result['stage']) && is_string($result['stage'])) {
+            $stageValue = trim($result['stage']);
+            if ($stageValue !== '') {
+                $stage = $stageValue;
             }
         }
 
-        return array(
-            'value' => '',
-            'source' => null
+        $payload = array(
+            'success' => false,
+            'error' => $error,
+            'message' => $isExpired
+                ? '액세스 토큰이 만료되었습니다. refresh_token으로 재발급을 요청하세요.'
+                : '액세스 토큰이 유효하지 않습니다. 새 로그인 또는 refresh_token 재발급을 시도하세요.',
+            'retry_with_refresh' => true,
+            'source' => 'TokenService::validateAccessToken',
+        );
+
+        if ($detail !== '') {
+            $payload['reason'] = $detail;
+        }
+        if ($stage !== null) {
+            $payload['stage'] = $stage;
+        }
+
+        foreach (array('expired_at', 'alg', 'iss') as $key) {
+            if (isset($result[$key])) {
+                $payload[$key] = $result[$key];
+            }
+        }
+
+        $bearerDescription = $detail !== ''
+            ? $detail
+            : ($isExpired ? 'Access token expired' : 'Signature verification failed');
+
+        $this->response->bearerUnauthorized(
+            $payload,
+            'invalid_token',
+            $bearerDescription,
+            'api'
         );
     }
 }
