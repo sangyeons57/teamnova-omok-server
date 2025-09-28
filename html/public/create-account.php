@@ -59,8 +59,8 @@ if ($provider === 'GOOGLE') {
     try {
         /** @var GoogleClientService $googleClient */
         $googleClient = $container->get(GoogleClientService::class);
+        $responseService->success(201, array('message' => '계정 생성 성공'. Config::webClientId()) );
         $provider_user_id = $googleClient->getUserId($providerIdToken);
-        $responseService->success(201, array('message' => '계정 생성 성공' .$provider_user_id));
     } catch (RuntimeException $e) {
         $responseService->error('INVALID_GOOGLE_ID_TOKEN', 401, '유효하지 않은 Google ID 토큰입니다.');
     } catch (Exception $e) {
