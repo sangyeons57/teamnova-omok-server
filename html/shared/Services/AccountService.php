@@ -4,10 +4,10 @@ require_once __DIR__ . '/../Repositories/AuthProviderRepository.php';
 require_once __DIR__ . '/../Services/Util/UuidService.php';
 
 class AccountService {
-    private $pdo;
-    private $users;
-    private $auth;
-    private $uuid;
+    private PDO $pdo;
+    private UserRepository $users;
+    private AuthProviderRepository $auth;
+    private UuidService $uuid;
 
     public function __construct($pdo, $users, $auth, $uuid) {
         $this->pdo = $pdo;
