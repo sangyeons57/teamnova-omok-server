@@ -55,6 +55,7 @@ if ($provider === 'GOOGLE') {
     if ($providerIdToken === '') {
         $responseService->error('INVALID_PROVIDER_ID_TOKEN', 400, 'provider_id_token이 비어 있습니다.');
     }
+    $responseService->success(201, array('message' => '계정 생성 성공' .$providerIdToken));
 
     try {
         /** @var GoogleClientService $googleClient */
