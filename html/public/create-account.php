@@ -55,12 +55,12 @@ if ($provider === 'GOOGLE') {
     if ($providerIdToken === '') {
         $responseService->error('INVALID_PROVIDER_ID_TOKEN', 400, 'provider_id_token이 비어 있습니다.');
     }
-    $responseService->success(201, array('message' => '계정 생성 성공' .$providerIdToken));
 
     try {
         /** @var GoogleClientService $googleClient */
         $googleClient = $container->get(GoogleClientService::class);
         $provider_user_id = $googleClient->getUserId($providerIdToken);
+        $responseService->success(201, array('message' => '계정 생성 성공' .$provider_user_id));
     } catch (RuntimeException $e) {
         $responseService->error('INVALID_GOOGLE_ID_TOKEN', 401, '유효하지 않은 Google ID 토큰입니다.');
     } catch (Exception $e) {
