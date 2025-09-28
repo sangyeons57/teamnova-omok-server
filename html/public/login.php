@@ -21,6 +21,8 @@ $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
 
 /** @var UserService $userService */
 $userService = $container->get(UserService::class);
+/** @var AuthProviderRepository $authProviders */
+$authProviders = $container->get(AuthProviderRepository::class);
 if ($userId === '') {
     $responseService->error('ACCESS_TOKEN_INVALID', 401, '유효한 사용자 식별자를 확인할 수 없습니다.');
 }
@@ -38,6 +40,18 @@ if ($status !== UserStatus::ACTIVE) {
 $profileIcon = isset($user['profile_icon_code']) ? (string)$user['profile_icon_code'] : null;
 $score = isset($user['score']) ? (int)$user['score'] : 0;
 
+$authProvider = $authProviders->findByUserId($userId);
+$authProviderPayload = null;
+if ($authProvider !== null) {
+    $authProviderPayload = array(
+        'provider' => isset($authProvider['provider']) ? (string)$authProvider['provider'] : null,
+        'provider_user_id' => isset($authProvider['provider_user_id']) ? $authProvider['provider_user_id'] : null,
+    );
+    if (isset($authProvider['linked_at'])) {
+        $authProviderPayload['linked_at'] = $authProvider['linked_at'];
+    }
+}
+
 $payloadOut = array(
     'user' => array(
         'user_id' => (string)$user['user_id'],
@@ -47,6 +61,7 @@ $payloadOut = array(
         'status' => $status,
         'score' => $score,
     ),
+    'provider' => $authProviderPayload,
 );
 
 
