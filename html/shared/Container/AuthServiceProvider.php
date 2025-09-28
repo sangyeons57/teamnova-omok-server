@@ -6,6 +6,7 @@ require_once __DIR__ . '/../Repositories/UserRepository.php';
 require_once __DIR__ . '/../Services/Util/CryptoService.php';
 require_once __DIR__ . '/../Services/Util/ClockService.php';
 require_once __DIR__ . '/../Services/Auth/TokenService.php';
+require_once __DIR__ . '/../Services/Auth/GoogleClientService.php';
 
 class AuthServiceProvider implements ServiceProvider
 {
@@ -18,6 +19,10 @@ class AuthServiceProvider implements ServiceProvider
                 $c->get(CryptoService::class),
                 $c->get(ClockService::class)
             );
+        });
+
+        $c->set(GoogleClientService::class, function () {
+            return new GoogleClientService();
         });
     }
 }

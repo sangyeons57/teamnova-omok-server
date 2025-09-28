@@ -1,17 +1,17 @@
 <?php
 /**
- * 계정 생성 기능
- * 결과
- * - DB에 계정 생성(users + auth_providers)
+ * 신규 계정 생성
+ * 절차
+ * - DB에 사용자 생성(users + auth_providers)
  * - (옵션) Access 토큰 발급(JWT, HS256)
  * - (옵션) Refresh 토큰 발급 + 저장(refresh_tokens)
  *
- * 약관 동의는 별도 API에서 처리(terms 조회 + user_terms_acceptances 3건 기록)
- * 여기서는 계정 생성과(필요시) 즉시 로그인만 다룬다.
+ * 실제로 호출되는 외부 API에서 처리(terms 조회 + user_terms_acceptances 3건 입력)
+ * 여기서는 계정 생성만(필수) 하고 로그인을 따로 요청.
  *
- * 요구 파라미터(JSON, POST):
+ * 요청 파라미터(JSON, POST):
  * - provider: "GUEST" | "GOOGLE"
- * - provider_user_id: 문자열(디바이스ID/랜덤키 또는 Google OAuth sub)
+ * - provider_id_token: 클라이언트에서 받은 Google ID 토큰(GOOGLE일 때 필수)
  * - display_name: auto-generated (user-XXXXXXXXXXXX)
  * - profile_icon_code: default '0'
  * - tokens: always issued immediately
@@ -23,7 +23,7 @@
 
 require_once __DIR__ . '/../shared/Container/ContainerFactory.php';
 
-// 컨테이너 초기화 및 프로바이더 등록
+// 서비스 로더 초기화 및 컨테이너 준비
 $container = ContainerFactory::create();
 
 /** @var ResponseService $responseService */
@@ -35,32 +35,46 @@ $validator = $container->get(ValidationService::class);
 /** @var UuidService $uuidService */
 $uuidService = $container->get(UuidService::class);
 
-// 공통 시작부
+// 요청 본문
 $body = $requestService->readBody('POST');
 
 // 파라미터 파싱
 $provider = isset($body['provider']) ? trim($body['provider']) : '';
-$provider_user_id = isset($body['provider_user_id']) ? trim($body['provider_user_id']) : '';
+$providerIdToken = isset($body['provider_id_token']) ? trim($body['provider_id_token']) : '';
+$provider_user_id = null;
 $display_name = 'user-' . substr(str_replace('-', '', $uuidService->v4()), 0, 12);
 $profile_icon_code = '0';
 
-// 유효성 검증
+// 유효성 검사
 $allowed_providers = array('GUEST', 'GOOGLE');
 if ($provider === '' || !$validator->inArrayStrict($provider, $allowed_providers)) {
     $responseService->error('INVALID_PROVIDER', 400, 'provider는 GUEST 또는 GOOGLE 이어야 합니다.');
 }
 
 if ($provider === 'GOOGLE') {
-    // GOOGLE은 provider_user_id 필수
+    if ($providerIdToken === '') {
+        $responseService->error('INVALID_PROVIDER_ID_TOKEN', 400, 'provider_id_token이 비어 있습니다.');
+    }
+
+    try {
+        /** @var GoogleClientService $googleClient */
+        $googleClient = $container->get(GoogleClientService::class);
+        $provider_user_id = $googleClient->getUserId($providerIdToken);
+    } catch (RuntimeException $e) {
+        $responseService->error('INVALID_GOOGLE_ID_TOKEN', 401, '유효하지 않은 Google ID 토큰입니다.');
+    } catch (Exception $e) {
+        $responseService->exceptionInternal('Google ID 토큰 검증 중 오류가 발생했습니다.', $e, 'GOOGLE_ID_TOKEN_VERIFY_FAILED');
+    }
+
     if ($provider_user_id === '' || $validator->mbLength($provider_user_id) > 255) {
-        $responseService->error('INVALID_PROVIDER_USER_ID', 400, 'provider_user_id가 비어있거나 길이가 너무 깁니다(최대 255).');
+        $responseService->error('INVALID_PROVIDER_USER_ID', 400, 'Google 사용자 식별자가 유효하지 않습니다.');
     }
 } else if ($provider === 'GUEST') {
-    // GUEST는 provider_user_id 미사용: 항상 NULL로 강제
+    // GUEST는 provider_user_id 미사용: 항상 NULL 유지
     $provider_user_id = null;
 }
 
-// 비즈니스 로직
+// 트랜잭션 처리
 $pdo = null;
 try {
     /** @var PDO $pdo */
@@ -92,7 +106,7 @@ try {
         $pdo->rollBack();
     }
     if ($e->getMessage() === 'DATA_INTEGRITY_ERROR') {
-        $responseService->exceptionInternal('auth_providers는 있으나 users가 없습니다.', $e, 'DATA_INTEGRITY_ERROR');
+        $responseService->exceptionInternal('auth_providers와 users의 무결성이 맞지 않습니다.', $e, 'DATA_INTEGRITY_ERROR');
     }
-    $responseService->exceptionInternal('내부 오류가 발생했습니다.', $e);
+    $responseService->exceptionInternal('알 수 없는 오류가 발생했습니다.', $e);
 }

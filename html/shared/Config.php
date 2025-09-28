@@ -54,6 +54,7 @@ final class Config
             'DB_PASS' => $env['DB_PASS'] ?? '',
             'DB_DSN' => $env['DB_DSN'] ?? '',
             'DB_CHARSET' => $env['DB_CHARSET'] ?? 'utf8mb4',
+            'WEB_CLIENT_ID' => $env['WEB_CLIENT_ID'] ?? '',
         ];
     }
 
@@ -138,4 +139,11 @@ final class Config
             self::$cfg['DB_CHARSET']
         );
     }
+
+    public static function webClientId(): string
+    {
+        self::load();
+        return self::$cfg['WEB_CLIENT_ID'];
+    }
+
 }
