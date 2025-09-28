@@ -15,6 +15,8 @@ $response = $container->get(ResponseService::class);
 $guard = $container->get(AccessTokenGuardService::class);
 /** @var UserService $userService */
 $userService = $container->get(UserService::class);
+/** @var AuthProviderRepository $authProviders */
+$authProviders = $container->get(AuthProviderRepository::class);
 
 $payload = $guard->requirePayload();
 $userId = isset($payload['sub']) ? (string)$payload['sub'] : '';
@@ -35,6 +37,18 @@ if ($status !== UserStatus::ACTIVE) {
 $profileIcon = isset($user['profile_icon_code']) ? (string)$user['profile_icon_code'] : null;
 $score = isset($user['score']) ? (int)$user['score'] : 0;
 
+$authProvider = $authProviders->findByUserId($userId);
+$authProviderPayload = null;
+if ($authProvider !== null) {
+    $authProviderPayload = array(
+        'provider' => isset($authProvider['provider']) ? (string)$authProvider['provider'] : null,
+        'provider_user_id' => isset($authProvider['provider_user_id']) ? $authProvider['provider_user_id'] : null,
+    );
+    if (isset($authProvider['linked_at'])) {
+        $authProviderPayload['linked_at'] = $authProvider['linked_at'];
+    }
+}
+
 $response->success(200, array(
     'user' => array(
         'user_id' => (string)$user['user_id'],
@@ -44,4 +58,5 @@ $response->success(200, array(
         'status' => $status,
         'score' => $score,
     ),
+    'provider' => $authProviderPayload,
 ));

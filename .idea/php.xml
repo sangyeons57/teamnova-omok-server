@@ -10,6 +10,29 @@
     <option name="highlightLevel" value="WARNING" />
     <option name="transferred" value="true" />
   </component>
+  <component name="PhpIncludePathManager">
+    <include_path>
+      <path value="$PROJECT_DIR$/html/vendor/psr/cache" />
+      <path value="$PROJECT_DIR$/html/vendor/ralouphie/getallheaders" />
+      <path value="$PROJECT_DIR$/html/vendor/psr/http-client" />
+      <path value="$PROJECT_DIR$/html/vendor/guzzlehttp/guzzle" />
+      <path value="$PROJECT_DIR$/html/vendor/psr/http-factory" />
+      <path value="$PROJECT_DIR$/html/vendor/guzzlehttp/promises" />
+      <path value="$PROJECT_DIR$/html/vendor/psr/http-message" />
+      <path value="$PROJECT_DIR$/html/vendor/guzzlehttp/psr7" />
+      <path value="$PROJECT_DIR$/html/vendor/psr/log" />
+      <path value="$PROJECT_DIR$/html/vendor/google/apiclient" />
+      <path value="$PROJECT_DIR$/html/vendor/google/apiclient-services" />
+      <path value="$PROJECT_DIR$/html/vendor/google/auth" />
+      <path value="$PROJECT_DIR$/html/vendor/monolog/monolog" />
+      <path value="$PROJECT_DIR$/html/vendor/symfony/deprecation-contracts" />
+      <path value="$PROJECT_DIR$/html/vendor/composer" />
+      <path value="$PROJECT_DIR$/html/vendor/firebase/php-jwt" />
+      <path value="$PROJECT_DIR$/html/vendor/paragonie/constant_time_encoding" />
+      <path value="$PROJECT_DIR$/html/vendor/paragonie/random_compat" />
+      <path value="$PROJECT_DIR$/html/vendor/phpseclib/phpseclib" />
+    </include_path>
+  </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.3" />
   <component name="PhpRuntimeConfiguration">
     <extensions>

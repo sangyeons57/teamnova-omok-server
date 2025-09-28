@@ -2,7 +2,27 @@
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/composer" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/firebase/php-jwt" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/google/apiclient" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/google/apiclient-services" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/google/auth" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/guzzlehttp/guzzle" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/guzzlehttp/promises" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/guzzlehttp/psr7" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/monolog/monolog" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/paragonie/constant_time_encoding" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/paragonie/random_compat" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/phpseclib/phpseclib" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/psr/cache" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/psr/http-client" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/psr/http-factory" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/psr/http-message" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/psr/log" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/ralouphie/getallheaders" />
+      <excludeFolder url="file://$MODULE_DIR$/html/vendor/symfony/deprecation-contracts" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
