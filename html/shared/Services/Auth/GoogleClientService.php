@@ -2,9 +2,11 @@
 require_once __DIR__ . '/../../Config.php';
 
 $composerAutoload = __DIR__ . '/../../../vendor/autoload.php';
-if (file_exists($composerAutoload)) {
-    require_once $composerAutoload;
+if (!file_exists($composerAutoload)) {
+    throw new RuntimeException('COMPOSER_AUTOLOAD_NOT_FOUND');
 }
+
+require_once $composerAutoload;
 
 use Google\Client as GoogleClient;
 

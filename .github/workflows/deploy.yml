@@ -98,11 +98,20 @@ jobs:
           source: "${{ env.PHP_SRC_PATH }}/*"
           target: "${{ env.PHP_TARGET_PATH }}"
 
+      - name: Run Composer install on server
+        if: contains(github.event.head_commit.message, '[php]')
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ env.PHP_TARGET_PATH }}
+            composer install --no-dev --optimize-autoloader --no-interaction
 
       - name: Prepare Java artifact for deployment
         if: contains(github.event.head_commit.message, '[java]')
         run: |
-          run: |
           # 셸이 실행하는 모든 명령어를 그대로 출력합니다 (디버깅용)
           set -x
 
