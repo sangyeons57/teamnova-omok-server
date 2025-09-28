@@ -18,6 +18,7 @@ jobs:
       # PHP 관련 경로
       PHP_SRC_PATH: ./html
       PHP_TARGET_PATH: /var/www
+      PHP_ROOT_PATH: /var/www/html
 
       # Java 관련 경로 및 이름
       JAVA_PROJECT_DIR: ./tcp
@@ -106,7 +107,7 @@ jobs:
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ${{ env.PHP_TARGET_PATH }}
+            cd ${{ env.PHP_ROOT_PATH }}
             composer install --no-dev --optimize-autoloader --no-interaction
 
       - name: Prepare Java artifact for deployment
