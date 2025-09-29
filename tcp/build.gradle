@@ -47,7 +47,7 @@ application {
     // 소스 파일이 ./tcp/src/main/java/com/yourcompany/Main.java 라면
     // mainClass = 'com.yourcompany.Main' 으로 지정해야 합니다.
     // 패키지 없이 Main.java만 있다면 'Main'으로 지정합니다.
-    mainClass = 'Main'
+    mainClass = 'teamnova.omok.Main'
 }
 
 // 7. 최종 빌드 결과물(JAR) 이름 설정

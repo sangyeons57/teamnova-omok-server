@@ -1,4 +1,4 @@
-package teamnova.omok.tcp;
+package teamnova.omok.tcp.nio;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -9,13 +9,12 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Logger;
+import teamnova.omok.tcp.dispatcher.Dispatcher;
+import teamnova.omok.tcp.event.MessageEvent;
 
 /**
  * NIO selector/reactor server that delegates business logic to worker threads.
@@ -51,9 +50,7 @@ public class NioReactorServer implements Closeable {
                     try {
                         dispatchKey(key);
                     } catch (CancelledKeyException ignored) {
-                        // Key cancelled during processing; ignore.
                         System.err.println("Key cancelled during processing: " + ignored.getMessage());
-                        continue;
                     }
                 }
             }
@@ -115,10 +112,14 @@ public class NioReactorServer implements Closeable {
                 closeSession(session);
                 return;
             }
-            String message;
-            while ((message = session.pollInboundMessage()) != null) {
-                dispatcher.submit(new MessageEvent(session, message));
+            FramedMessage frame;
+            while ((frame = session.pollInboundFrame()) != null) {
+                dispatcher.submit(new MessageEvent(session, frame));
             }
+        } catch (ClientSession.PayloadTooLargeException e) {
+            System.err.println("Payload discarded: " + e.getMessage());
+            session.resetInboundState();
+            closeSession(session);
         } catch (IOException e) {
             System.err.println("Read failure: " + e.getMessage());
             closeSession(session);
@@ -141,13 +142,13 @@ public class NioReactorServer implements Closeable {
         }
     }
 
-    void enqueueSelectorTask(Runnable task) {
+    public void enqueueSelectorTask(Runnable task) {
         Objects.requireNonNull(task, "task");
         selectorTasks.add(task);
         selector.wakeup();
     }
 
-    void closeSession(ClientSession session) {
+    public void closeSession(ClientSession session) {
         try {
             System.out.printf("Closing connection %s%n", session.remoteAddress());
         } catch (IOException ignore) {
@@ -198,7 +199,19 @@ public class NioReactorServer implements Closeable {
         }
     }
 
-    static ByteBuffer encode(String value) {
-        return ByteBuffer.wrap(value.getBytes(StandardCharsets.UTF_8));
+    public static ByteBuffer encodeFrame(byte type, long requestId, byte[] payload) {
+        Objects.requireNonNull(payload, "payload");
+        if (payload.length > ClientSession.maxPayloadSize()) {
+            throw new IllegalArgumentException("payload length " + payload.length + " exceeds maximum " + ClientSession.maxPayloadSize());
+        }
+
+        int totalLength = ClientSession.headerLength() + payload.length;
+        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
+        buffer.putInt(totalLength);
+        buffer.put(type);
+        buffer.putInt((int) (requestId & 0xFFFF_FFFFL));
+        buffer.put(payload);
+        buffer.flip();
+        return buffer;
     }
 }
