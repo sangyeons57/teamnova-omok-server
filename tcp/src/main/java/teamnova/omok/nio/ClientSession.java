@@ -1,4 +1,4 @@
-package teamnova.omok.tcp.nio;
+package teamnova.omok.nio;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -10,18 +10,18 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import teamnova.omok.tcp.nio.util.ByteArrayReaders;
+import teamnova.omok.nio.util.ByteArrayReaders;
 
 /**
  * Represents a single client connection managed by the selector.
  */
 public final class ClientSession implements Closeable {
     private static final int BUFFER_SIZE = 4096;
-    private static final int LENGTH_FIELD_SIZE = Integer.BYTES; // length측정 은 4바이트 사용
-    private static final int TYPE_FIELD_SIZE = 1;    // type식별은 0~255 1바이트 사용
-    private static final int REQUEST_ID_FIELD_SIZE = Integer.BYTES; // request id는 4바이트  unsigned_int(long) 사용
+    private static final int LENGTH_FIELD_SIZE = Integer.BYTES;
+    private static final int TYPE_FIELD_SIZE = 1;
+    private static final int REQUEST_ID_FIELD_SIZE = Integer.BYTES;
     private static final int HEADER_LENGTH = LENGTH_FIELD_SIZE + TYPE_FIELD_SIZE + REQUEST_ID_FIELD_SIZE;
-    private static final int MAX_PAYLOAD_SIZE = 1 << 20; // 1 MiB safety cap , 1<<30 하면 1GiB 로 cap올리기 가능
+    private static final int MAX_PAYLOAD_SIZE = 1 << 20; // 1 MiB safety cap
     private static final int MAX_FRAME_SIZE = HEADER_LENGTH + MAX_PAYLOAD_SIZE;
 
     private final SocketChannel channel;

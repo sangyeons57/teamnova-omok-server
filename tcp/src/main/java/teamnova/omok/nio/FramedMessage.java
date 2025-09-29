@@ -1,4 +1,4 @@
-package teamnova.omok.tcp.nio;
+package teamnova.omok.nio;
 
 /**
  * Represents a single binary frame decoded from the wire.

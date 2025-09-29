@@ -1,4 +1,4 @@
-package teamnova.omok.tcp.nio;
+package teamnova.omok.nio;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -13,13 +13,15 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import teamnova.omok.tcp.dispatcher.Dispatcher;
-import teamnova.omok.tcp.event.MessageEvent;
+import teamnova.omok.decoder.HelloWorldDecoder;
+import teamnova.omok.dispatcher.Dispatcher;
+import teamnova.omok.handler.HandlerProvider;
+import teamnova.omok.handler.HelloWorldHandler;
 
 /**
  * NIO selector/reactor server that delegates business logic to worker threads.
  */
-public class NioReactorServer implements Closeable {
+public final class NioReactorServer implements Closeable {
     private final Selector selector;
     private final ServerSocketChannel serverChannel;
     private final Dispatcher dispatcher;
@@ -33,6 +35,11 @@ public class NioReactorServer implements Closeable {
         this.serverChannel.bind(new InetSocketAddress(port));
         this.serverChannel.register(selector, SelectionKey.OP_ACCEPT);
         this.dispatcher = new Dispatcher(workerCount, this);
+        registerDefaultHandlers();
+    }
+
+    private void registerDefaultHandlers() {
+        dispatcher.register(0, HandlerProvider.singleton(new HelloWorldHandler(new HelloWorldDecoder())));
     }
 
     public void start() {
@@ -114,7 +121,7 @@ public class NioReactorServer implements Closeable {
             }
             FramedMessage frame;
             while ((frame = session.pollInboundFrame()) != null) {
-                dispatcher.submit(new MessageEvent(session, frame));
+                dispatcher.dispatch(session, frame);
             }
         } catch (ClientSession.PayloadTooLargeException e) {
             System.err.println("Payload discarded: " + e.getMessage());

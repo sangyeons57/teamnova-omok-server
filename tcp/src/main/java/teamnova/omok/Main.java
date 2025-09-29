@@ -1,10 +1,13 @@
-package teamnova.omok.tcp;
+package teamnova.omok;
 
 import java.io.IOException;
-import teamnova.omok.tcp.nio.NioReactorServer;
+import teamnova.omok.nio.NioReactorServer;
 
-public class Main {
+public final class Main {
     private static final int DEFAULT_PORT = 15015;
+
+    private Main() {
+    }
 
     public static void main(String[] args) {
         int port = parsePort(args);

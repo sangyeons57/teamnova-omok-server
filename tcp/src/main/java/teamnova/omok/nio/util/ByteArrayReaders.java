@@ -1,4 +1,4 @@
-package teamnova.omok.tcp.nio.util;
+package teamnova.omok.nio.util;
 
 /**
  * Utility helpers for reading network-order integers from byte arrays.
