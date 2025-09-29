@@ -32,6 +32,10 @@ dependencies {
     // 이 곳에 필요한 라이브러리를 추가합니다.
     // 예: implementation 'com.google.code.gson:gson:2.10.1'
 
+    // 로깅용 의존성
+    implementation 'ch.qos.logback:logback-classic:1.4.14'
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+
     // 테스트 코드용 의존성
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
