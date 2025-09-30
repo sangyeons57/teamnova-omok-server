@@ -22,7 +22,7 @@ jobs:
 
       # Java 관련 경로 및 이름
       JAVA_PROJECT_DIR: ./tcp
-      JAVA_TARGET_PATH: /opt
+      JAVA_TARGET_PATH: /var/www/app
       JAVA_JAR_NAME: java-tcp-server-1.0.0.jar
       JAVA_SERVICE_NAME: java-tcp-server.service
 
