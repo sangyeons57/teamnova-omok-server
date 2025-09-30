@@ -1,7 +1,8 @@
-package teamnova.omok.handler;
+package teamnova.omok.handler.register;
 
 import teamnova.omok.codec.decoder.HelloWorldDecoder;
 import teamnova.omok.dispatcher.Dispatcher;
+import teamnova.omok.handler.HelloWorldHandler;
 
 /**
  * Registers built-in handlers used by the server for testing/demo purposes.

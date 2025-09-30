@@ -3,7 +3,6 @@ package teamnova.omok.nio;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -13,8 +12,9 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import teamnova.omok.codec.decoder.DecodeFrame;
 import teamnova.omok.dispatcher.Dispatcher;
-import teamnova.omok.handler.HandlerRegistry;
+import teamnova.omok.handler.register.HandlerRegistry;
 
 /**
  * NIO selector/reactor server that delegates business logic to worker threads.
@@ -121,8 +121,8 @@ public final class NioReactorServer implements Closeable {
             while ((frame = session.pollInboundFrame()) != null) {
                 dispatcher.dispatch(session, frame);
             }
-        } catch (ClientSession.PayloadTooLargeException e) {
-            System.err.println("Payload discarded: " + e.getMessage());
+        } catch (DecodeFrame.FrameDecodeException e) {
+            System.err.println("Frame discarded: " + e.getMessage());
             session.resetInboundState();
             session.close();
         } catch (IOException e) {

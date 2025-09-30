@@ -12,19 +12,13 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import teamnova.omok.codec.encoder.EncodeFrame;
-import teamnova.omok.nio.util.ByteArrayReaders;
+import teamnova.omok.codec.decoder.DecodeFrame;
 
 /**
  * Represents a single client connection managed by the selector.
  */
 public final class ClientSession implements Closeable {
     private static final int BUFFER_SIZE = 4096;
-    private static final int LENGTH_FIELD_SIZE = Integer.BYTES;
-    private static final int TYPE_FIELD_SIZE = 1;
-    private static final int REQUEST_ID_FIELD_SIZE = Integer.BYTES;
-    private static final int HEADER_LENGTH = LENGTH_FIELD_SIZE + TYPE_FIELD_SIZE + REQUEST_ID_FIELD_SIZE;
-    private static final int MAX_PAYLOAD_SIZE = 1 << 20; // 1 MiB safety cap
-    private static final int MAX_FRAME_SIZE = HEADER_LENGTH + MAX_PAYLOAD_SIZE;
 
     private final SocketChannel channel;
     private final ByteBuffer readBuffer = ByteBuffer.allocate(BUFFER_SIZE);
@@ -54,39 +48,20 @@ public final class ClientSession implements Closeable {
         return bytesRead;
     }
 
-    FramedMessage pollInboundFrame() throws PayloadTooLargeException {
-        if (inboundSize < HEADER_LENGTH) {
+    FramedMessage pollInboundFrame() throws DecodeFrame.FrameDecodeException {
+        DecodeFrame.Result result = DecodeFrame.tryDecode(inboundBuffer, inboundSize);
+        if (result == null) {
             return null;
         }
 
-        int totalLength = ByteArrayReaders.readIntBE(inboundBuffer, 0, inboundSize);
-        if (totalLength < HEADER_LENGTH) {
-            throw new PayloadTooLargeException("Frame length " + totalLength + " smaller than header");
-        }
-        if (totalLength > MAX_FRAME_SIZE) {
-            throw new PayloadTooLargeException("Frame length " + totalLength + " exceeds maximum " + MAX_FRAME_SIZE);
-        }
-
-        if (inboundSize < totalLength) {
-            return null;
-        }
-
-        byte type = inboundBuffer[LENGTH_FIELD_SIZE];
-        long requestId = ByteArrayReaders.readUnsignedIntBE(inboundBuffer, LENGTH_FIELD_SIZE + TYPE_FIELD_SIZE, inboundSize);
-
-        int payloadLength = totalLength - HEADER_LENGTH;
-        byte[] payload = new byte[payloadLength];
-        if (payloadLength > 0) {
-            System.arraycopy(inboundBuffer, HEADER_LENGTH, payload, 0, payloadLength);
-        }
-
-        int remaining = inboundSize - totalLength;
+        int consumed = result.bytesConsumed();
+        int remaining = inboundSize - consumed;
         if (remaining > 0) {
-            System.arraycopy(inboundBuffer, totalLength, inboundBuffer, 0, remaining);
+            System.arraycopy(inboundBuffer, consumed, inboundBuffer, 0, remaining);
         }
         inboundSize = remaining;
 
-        return new FramedMessage(type, requestId, payload);
+        return result.frame();
     }
 
     public void enqueueResponse(byte type, long requestId, byte[] payload) {
@@ -155,12 +130,4 @@ public final class ClientSession implements Closeable {
         inboundBuffer = Arrays.copyOf(inboundBuffer, newCapacity);
     }
 
-    static final class PayloadTooLargeException extends Exception {
-        PayloadTooLargeException(String message) {
-            super(message);
-        }
-    }
-
-    public static int maxPayloadSize() { return MAX_PAYLOAD_SIZE; }
-    public static int headerLength() { return HEADER_LENGTH; }
 }

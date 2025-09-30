@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.junit.jupiter.api.Test;
+import teamnova.omok.handler.register.FrameHandler;
+import teamnova.omok.handler.register.HandlerProvider;
 
 class HandlerProviderTest {
 

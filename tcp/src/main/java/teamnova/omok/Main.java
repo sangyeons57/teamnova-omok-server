@@ -1,7 +1,7 @@
 package teamnova.omok;
 
 import java.io.IOException;
-import teamnova.omok.handler.DefaultHandlerRegistry;
+import teamnova.omok.handler.register.DefaultHandlerRegistry;
 import teamnova.omok.nio.NioReactorServer;
 
 public final class Main {

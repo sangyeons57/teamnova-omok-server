@@ -9,8 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import teamnova.omok.handler.FrameHandler;
-import teamnova.omok.handler.HandlerProvider;
+import teamnova.omok.handler.register.FrameHandler;
+import teamnova.omok.handler.register.HandlerProvider;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.FramedMessage;
 import teamnova.omok.nio.NioReactorServer;
@@ -49,11 +49,7 @@ public final class Dispatcher implements Closeable {
         }
         executor.execute(() -> {
             FrameHandler handler = provider.acquire();
-            try {
                 handler.handle(server, session, frame);
-            } catch (Exception e) {
-                System.err.println("Handler failure for type " + type + ": " + e.getMessage());
-            }
         });
     }
 

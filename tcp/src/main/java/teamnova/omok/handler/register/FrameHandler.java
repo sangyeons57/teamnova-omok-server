@@ -1,4 +1,4 @@
-package teamnova.omok.handler;
+package teamnova.omok.handler.register;
 
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.FramedMessage;
@@ -6,5 +6,5 @@ import teamnova.omok.nio.NioReactorServer;
 
 @FunctionalInterface
 public interface FrameHandler {
-    void handle(NioReactorServer server, ClientSession session, FramedMessage frame) throws Exception;
+    void handle(NioReactorServer server, ClientSession session, FramedMessage frame);
 }

@@ -1,4 +1,4 @@
-package teamnova.omok.handler;
+package teamnova.omok.handler.register;
 
 import java.util.Objects;
 import java.util.function.Consumer;
