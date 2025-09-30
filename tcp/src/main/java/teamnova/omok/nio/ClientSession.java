@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import teamnova.omok.codec.encoder.EncodeFrame;
 import teamnova.omok.nio.util.ByteArrayReaders;
 
 /**
@@ -88,7 +90,7 @@ public final class ClientSession implements Closeable {
     }
 
     public void enqueueResponse(byte type, long requestId, byte[] payload) {
-        outbound.add(NioReactorServer.encodeFrame(type, requestId, payload));
+        outbound.add(EncodeFrame.encodeFrame(type, requestId, payload));
     }
 
     void flushOutbound() throws IOException {
@@ -128,11 +130,18 @@ public final class ClientSession implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
-        if (key != null) {
-            key.cancel();
+    public void close() {
+        try {
+            System.out.printf("Closing connection %s%n", remoteAddress());
+        } catch (IOException ignore) { /* ignore */ }
+        try {
+            if (key != null) {
+                key.cancel();
+            }
+            channel.close();
+        } catch (IOException e) {
+            System.err.println("Session close failure: " + e.getMessage());
         }
-        channel.close();
     }
 
     private void ensureCapacity(int required) {
@@ -152,11 +161,6 @@ public final class ClientSession implements Closeable {
         }
     }
 
-    static int maxPayloadSize() {
-        return MAX_PAYLOAD_SIZE;
-    }
-
-    static int headerLength() {
-        return HEADER_LENGTH;
-    }
+    public static int maxPayloadSize() { return MAX_PAYLOAD_SIZE; }
+    public static int headerLength() { return HEADER_LENGTH; }
 }

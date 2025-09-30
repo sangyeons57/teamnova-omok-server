@@ -13,10 +13,8 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import teamnova.omok.decoder.HelloWorldDecoder;
 import teamnova.omok.dispatcher.Dispatcher;
-import teamnova.omok.handler.HandlerProvider;
-import teamnova.omok.handler.HelloWorldHandler;
+import teamnova.omok.handler.HandlerRegistry;
 
 /**
  * NIO selector/reactor server that delegates business logic to worker threads.
@@ -28,18 +26,18 @@ public final class NioReactorServer implements Closeable {
     private final Queue<Runnable> selectorTasks = new ConcurrentLinkedQueue<>();
     private volatile boolean running = true;
 
-    public NioReactorServer(int port, int workerCount) throws IOException {
+    public NioReactorServer(int port, int workerCount, HandlerRegistry registry) throws IOException {
         this.selector = Selector.open();
         this.serverChannel = ServerSocketChannel.open();
         this.serverChannel.configureBlocking(false);
         this.serverChannel.bind(new InetSocketAddress(port));
         this.serverChannel.register(selector, SelectionKey.OP_ACCEPT);
         this.dispatcher = new Dispatcher(workerCount, this);
-        registerDefaultHandlers();
+        Objects.requireNonNull(registry, "registry").configure(dispatcher);
     }
 
-    private void registerDefaultHandlers() {
-        dispatcher.register(0, HandlerProvider.singleton(new HelloWorldHandler(new HelloWorldDecoder())));
+    public NioReactorServer(int port, int workerCount) throws IOException {
+        this(port, workerCount, HandlerRegistry.empty());
     }
 
     public void start() {
@@ -116,7 +114,7 @@ public final class NioReactorServer implements Closeable {
         try {
             int bytesRead = session.readFromChannel();
             if (bytesRead == -1) {
-                closeSession(session);
+                session.close();
                 return;
             }
             FramedMessage frame;
@@ -126,10 +124,10 @@ public final class NioReactorServer implements Closeable {
         } catch (ClientSession.PayloadTooLargeException e) {
             System.err.println("Payload discarded: " + e.getMessage());
             session.resetInboundState();
-            closeSession(session);
+            session.close();
         } catch (IOException e) {
             System.err.println("Read failure: " + e.getMessage());
-            closeSession(session);
+            session.close();
         }
     }
 
@@ -145,7 +143,7 @@ public final class NioReactorServer implements Closeable {
             }
         } catch (IOException e) {
             System.err.println("Write failure: " + e.getMessage());
-            closeSession(session);
+            session.close();
         }
     }
 
@@ -153,19 +151,6 @@ public final class NioReactorServer implements Closeable {
         Objects.requireNonNull(task, "task");
         selectorTasks.add(task);
         selector.wakeup();
-    }
-
-    public void closeSession(ClientSession session) {
-        try {
-            System.out.printf("Closing connection %s%n", session.remoteAddress());
-        } catch (IOException ignore) {
-            // ignore
-        }
-        try {
-            session.close();
-        } catch (IOException e) {
-            System.err.println("Session close failure: " + e.getMessage());
-        }
     }
 
     @Override
@@ -180,11 +165,7 @@ public final class NioReactorServer implements Closeable {
             for (SelectionKey key : selector.keys()) {
                 Object attachment = key.attachment();
                 if (attachment instanceof ClientSession session) {
-                    try {
-                        session.close();
-                    } catch (IOException ignore) {
-                        // Ignore on shutdown.
-                    }
+                    session.close();
                 }
                 key.cancel();
             }
@@ -206,19 +187,4 @@ public final class NioReactorServer implements Closeable {
         }
     }
 
-    public static ByteBuffer encodeFrame(byte type, long requestId, byte[] payload) {
-        Objects.requireNonNull(payload, "payload");
-        if (payload.length > ClientSession.maxPayloadSize()) {
-            throw new IllegalArgumentException("payload length " + payload.length + " exceeds maximum " + ClientSession.maxPayloadSize());
-        }
-
-        int totalLength = ClientSession.headerLength() + payload.length;
-        ByteBuffer buffer = ByteBuffer.allocate(totalLength);
-        buffer.putInt(totalLength);
-        buffer.put(type);
-        buffer.putInt((int) (requestId & 0xFFFF_FFFFL));
-        buffer.put(payload);
-        buffer.flip();
-        return buffer;
-    }
 }

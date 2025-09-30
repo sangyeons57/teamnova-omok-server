@@ -1,6 +1,7 @@
 package teamnova.omok;
 
 import java.io.IOException;
+import teamnova.omok.handler.DefaultHandlerRegistry;
 import teamnova.omok.nio.NioReactorServer;
 
 public final class Main {
@@ -11,7 +12,10 @@ public final class Main {
 
     public static void main(String[] args) {
         int port = parsePort(args);
-        try (NioReactorServer server = new NioReactorServer(port, Runtime.getRuntime().availableProcessors())) {
+        DefaultHandlerRegistry registry = new DefaultHandlerRegistry();
+        try (NioReactorServer server = new NioReactorServer(port,
+                Runtime.getRuntime().availableProcessors(),
+                registry)) {
             System.out.printf("[NIO] Reactor server listening on port %d%n", port);
             server.start();
         } catch (IOException e) {
