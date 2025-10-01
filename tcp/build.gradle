@@ -7,7 +7,8 @@
 plugins {
     // 자바 애플리케이션을 빌드하고 실행하는 데 필요한 기본 기능을 제공합니다.
     id 'application'
- }
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
 
 // 2. 프로젝트 기본 정보
 // group은 보통 회사의 도메인을 역순으로 사용합니다. (예: com.example)
@@ -72,4 +73,8 @@ test {
     useJUnitPlatform()
 }
 
-
+shadowJar {
+    archiveBaseName.set('java-tcp-server')
+    archiveVersion.set('1.0.0')
+    archiveClassifier.set('all') // 파일명 : java-tcp-server=1.0.0-all.jar
+}
