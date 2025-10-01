@@ -105,7 +105,7 @@ public final class ClientSession implements Closeable {
         inboundSize = 0;
     }
 
-    SocketAddress remoteAddress() throws IOException {
+    public SocketAddress remoteAddress() throws IOException {
         return channel.getRemoteAddress();
     }
 

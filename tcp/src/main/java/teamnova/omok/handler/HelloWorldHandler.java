@@ -1,5 +1,6 @@
 package teamnova.omok.handler;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import teamnova.omok.handler.decoder.HelloWorldDecoder;
 import teamnova.omok.handler.register.FrameHandler;
@@ -21,6 +22,11 @@ public final class HelloWorldHandler implements FrameHandler {
             return;
         }
         String response = "hello " + request;
+        try {
+            System.out.println("[HelloWorldHandler:" + session.remoteAddress() + " ] response: " + response);
+        } catch (IOException e) {
+            System.err.println("[HelloWorldHandler:] Failed to read remote address: " + e.getMessage());
+        }
         session.enqueueResponse(frame.type(), frame.requestId(), response.getBytes(StandardCharsets.UTF_8));
         server.enqueueSelectorTask(session::enableWriteInterest);
     }
