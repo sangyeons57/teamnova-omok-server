@@ -71,7 +71,7 @@ public class AuthHandler implements FrameHandler {
     private JwtPayload verify(String token) throws JwtVerificationException {
         String[] parts = token.split("\\.");
         if (parts.length != 3) {
-            throw new JwtVerificationException("token must contain header, payload, and signature");
+            throw new JwtVerificationException("token must contain header, payload, and signature: " + token);
         }
 
         JsonNode header = decodeJsonNode(parts[0], "header");
