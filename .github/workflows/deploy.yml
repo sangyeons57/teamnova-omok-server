@@ -61,7 +61,7 @@ jobs:
         working-directory: ${{ env.JAVA_PROJECT_DIR }}
         run: |
           chmod +x ./gradlew
-          ./gradlew build
+          ./gradlew clean installDist
 
       - name: (Placeholder) Run Java Tests
         if: contains(github.event.head_commit.message, '[java]')
@@ -127,7 +127,9 @@ jobs:
           # 3. 빌드된 JAR 파일을 그 폴더 안으로 복사합니다.
           #    대상 디렉터리 뒤의 슬래시(/)를 제거하여 모호함을 없앱니다.
           echo "Copying JAR to staging directory..."
-          cp ${{ env.JAVA_PROJECT_DIR }}/build/libs/${{ env.JAVA_JAR_NAME }} ${{ env.STAGING_DIR }} 
+          # cp ${{ env.JAVA_PROJECT_DIR }}/build/libs/${{ env.JAVA_JAR_NAME }} ${{ env.STAGING_DIR }}
+          cp ${{ env.JAVA_PROJECT_DIR }}/build/install/*/* ${{ env.STAGING_DIR }} 
+
 
           # 4. 최종 준비 상태를 확인합니다.
           echo "Final check of the staging directory:"

@@ -7,7 +7,7 @@
 plugins {
     // 자바 애플리케이션을 빌드하고 실행하는 데 필요한 기본 기능을 제공합니다.
     id 'application'
-}
+ }
 
 // 2. 프로젝트 기본 정보
 // group은 보통 회사의 도메인을 역순으로 사용합니다. (예: com.example)
@@ -36,6 +36,8 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.5.13'
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.17.2'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.2'
 
     // 테스트 코드용 의존성
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
