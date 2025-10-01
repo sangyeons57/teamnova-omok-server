@@ -1,7 +1,7 @@
 package teamnova.omok.handler;
 
 import java.nio.charset.StandardCharsets;
-import teamnova.omok.codec.decoder.HelloWorldDecoder;
+import teamnova.omok.handler.decoder.HelloWorldDecoder;
 import teamnova.omok.handler.register.FrameHandler;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.FramedMessage;

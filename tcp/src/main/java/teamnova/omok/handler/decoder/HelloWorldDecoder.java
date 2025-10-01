@@ -1,4 +1,4 @@
-package teamnova.omok.codec.decoder;
+package teamnova.omok.handler.decoder;
 
 import java.nio.charset.StandardCharsets;
 

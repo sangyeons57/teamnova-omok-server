@@ -12,7 +12,7 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import teamnova.omok.codec.decoder.DecodeFrame;
+import teamnova.omok.nio.codec.DecodeFrame;
 import teamnova.omok.dispatcher.Dispatcher;
 import teamnova.omok.handler.register.HandlerRegistry;
 
@@ -34,10 +34,6 @@ public final class NioReactorServer implements Closeable {
         this.serverChannel.register(selector, SelectionKey.OP_ACCEPT);
         this.dispatcher = new Dispatcher(workerCount, this);
         Objects.requireNonNull(registry, "registry").configure(dispatcher);
-    }
-
-    public NioReactorServer(int port, int workerCount) throws IOException {
-        this(port, workerCount, HandlerRegistry.empty());
     }
 
     public void start() {

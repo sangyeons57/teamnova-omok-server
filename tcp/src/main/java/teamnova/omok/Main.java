@@ -7,15 +7,11 @@ import teamnova.omok.nio.NioReactorServer;
 public final class Main {
     private static final int DEFAULT_PORT = 15015;
 
-    private Main() {
-    }
-
     public static void main(String[] args) {
         int port = parsePort(args);
-        DefaultHandlerRegistry registry = new DefaultHandlerRegistry();
         try (NioReactorServer server = new NioReactorServer(port,
                 Runtime.getRuntime().availableProcessors(),
-                registry)) {
+                new DefaultHandlerRegistry())) {
             System.out.printf("[NIO] Reactor server listening on port %d%n", port);
             server.start();
         } catch (IOException e) {

@@ -1,6 +1,5 @@
-package teamnova.omok.codec.decoder;
+package teamnova.omok.nio.codec;
 
-import teamnova.omok.codec.FrameFormat;
 import teamnova.omok.nio.FramedMessage;
 import teamnova.omok.nio.util.ByteArrayReaders;
 

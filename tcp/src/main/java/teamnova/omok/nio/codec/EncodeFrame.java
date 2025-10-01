@@ -1,6 +1,4 @@
-package teamnova.omok.codec.encoder;
-
-import teamnova.omok.codec.FrameFormat;
+package teamnova.omok.nio.codec;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;

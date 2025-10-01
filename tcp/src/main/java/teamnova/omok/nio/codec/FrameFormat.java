@@ -1,4 +1,4 @@
-package teamnova.omok.codec;
+package teamnova.omok.nio.codec;
 
 /**
  * Defines the binary frame layout shared by the encoder and decoder.

@@ -11,8 +11,8 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import teamnova.omok.codec.encoder.EncodeFrame;
-import teamnova.omok.codec.decoder.DecodeFrame;
+import teamnova.omok.nio.codec.EncodeFrame;
+import teamnova.omok.nio.codec.DecodeFrame;
 
 /**
  * Represents a single client connection managed by the selector.
@@ -26,6 +26,11 @@ public final class ClientSession implements Closeable {
     private byte[] inboundBuffer = new byte[BUFFER_SIZE];
     private int inboundSize = 0;
     private SelectionKey key;
+
+    private volatile boolean authenticated;
+    private volatile String authenticatedUserId;
+    private volatile String authenticatedRole;
+    private volatile String authenticatedScope;
 
     public ClientSession(SocketChannel channel) {
         this.channel = Objects.requireNonNull(channel, "channel");
@@ -117,6 +122,36 @@ public final class ClientSession implements Closeable {
         } catch (IOException e) {
             System.err.println("Session close failure: " + e.getMessage());
         }
+    }
+
+    public void markAuthenticated(String userId, String role, String scope) {
+        this.authenticated = true;
+        this.authenticatedUserId = userId;
+        this.authenticatedRole = role;
+        this.authenticatedScope = scope;
+    }
+
+    public void clearAuthentication() {
+        this.authenticated = false;
+        this.authenticatedUserId = null;
+        this.authenticatedRole = null;
+        this.authenticatedScope = null;
+    }
+
+    public boolean isAuthenticated() {
+        return authenticated;
+    }
+
+    public String authenticatedUserId() {
+        return authenticatedUserId;
+    }
+
+    public String authenticatedRole() {
+        return authenticatedRole;
+    }
+
+    public String authenticatedScope() {
+        return authenticatedScope;
     }
 
     private void ensureCapacity(int required) {
