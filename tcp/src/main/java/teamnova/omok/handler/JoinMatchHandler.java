@@ -1,5 +1,6 @@
 package teamnova.omok.handler;
 
+import teamnova.omok.handler.decoder.StringDecoder;
 import teamnova.omok.handler.register.FrameHandler;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.nio.ClientSession;
@@ -16,6 +17,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class JoinMatchHandler implements FrameHandler {
+    private final StringDecoder stringDecoder;
+
+    public JoinMatchHandler(StringDecoder stringDecoder) {
+        this.stringDecoder = stringDecoder;
+    }
+
     @Override
     public void handle(NioReactorServer server, ClientSession session, FramedMessage frame) {
         if (!session.isAuthenticated()) {
@@ -34,20 +41,17 @@ public class JoinMatchHandler implements FrameHandler {
 
         // Payload now only contains mode: one of "1","2","3","4"
         Set<Integer> matchSet = new HashSet<>();
-        String s = null;
-        if (frame.payload() != null && frame.payload().length > 0) {
-            s = new String(frame.payload(), StandardCharsets.UTF_8).trim();
-        }
-        System.out.println("[" + userId+ "] " + "JOIN_MATCH:" + s + " " + rating + " payload: " + Arrays.toString(frame.payload()));
-        if (s == null || s.isBlank()) {
+        String payload = stringDecoder.decode(frame.payload());
+        System.out.println("[" + userId+ "] " + "JOIN_MATCH:" + payload + " " + rating + " payload: " + Arrays.toString(frame.payload()));
+        if (payload.isBlank()) {
             matchSet.add(2); // default 2 players
-        } else if ("1".equals(s)) {
+        } else if ("1".equals(payload)) {
             // Free mode: allow 2,3,4
             matchSet.add(2);
             matchSet.add(3);
             matchSet.add(4);
-        } else if ("2".equals(s) || "3".equals(s) || "4".equals(s)) {
-            matchSet.add(Integer.parseInt(s));
+        } else if ("2".equals(payload) || "3".equals(payload) || "4".equals(payload)) {
+            matchSet.add(Integer.parseInt(payload));
         } else {
             // Fallback
             matchSet.add(2);
