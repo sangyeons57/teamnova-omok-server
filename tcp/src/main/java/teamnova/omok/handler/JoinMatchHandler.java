@@ -42,8 +42,6 @@ public class JoinMatchHandler implements FrameHandler {
         // Payload now only contains mode: one of "1","2","3","4"
         Set<Integer> matchSet = new HashSet<>();
         String payload = stringDecoder.decode(frame.payload());
-        System.out.println("[" + userId+ "] " + "JOIN_MATCH:" + payload + " " + rating);
-        System.out.println("[" + userId+ "] " + "JOIN_MATCH:" + Arrays.toString(frame.payload()) + " " + rating);
         if (payload.isBlank()) {
             matchSet.add(2); // default 2 players
         } else if ("1".equals(payload)) {
@@ -57,6 +55,8 @@ public class JoinMatchHandler implements FrameHandler {
             // Fallback
             matchSet.add(2);
         }
+        // concise log for join match
+        System.out.println("[MATCH][JOIN] user=" + userId + " mode=" + payload + " matchSet=" + matchSet + " rating=" + rating);
 
         MatchingService matching = ServiceContainer.getInstance().getMatchingService();
         // Ensure previous ticket is removed to avoid duplicates

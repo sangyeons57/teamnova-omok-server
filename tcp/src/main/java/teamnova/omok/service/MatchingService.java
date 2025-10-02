@@ -32,6 +32,7 @@ public class MatchingService {
 
         if (isSuccess){
             for (int number : ticket.matchSet) ticketGroups.get(number).add(ticket);
+            System.out.println("[MATCH][ENQ] user=" + ticket.id + " rating=" + ticket.rating + " modes=" + ticket.matchSet + " q=" + globalQueue.size());
         }
 
         return isSuccess;
@@ -65,6 +66,7 @@ public class MatchingService {
     public Result tryMatch() {
         Ticket ticket = globalQueue.poll();
         if (ticket == null) return Result.fail("No ticket available");
+        System.out.println("[MATCH][TRY] user=" + ticket.id + " rating=" + ticket.rating + " modes=" + ticket.matchSet + " qRemain=" + globalQueue.size());
 
         Group bestGroup = null;
         for (int match : ticket.matchSet) {
@@ -80,9 +82,17 @@ public class MatchingService {
             // 매칭된 모든 티켓을 큐/그룹에서 제거
             for (Ticket t : bestGroup.getTickets()) useTicket(t, !t.equals(ticket));
 
+            // build concise user list for log
+            StringBuilder ids = new StringBuilder();
+            for (int i = 0; i < bestGroup.getTickets().size(); i++) {
+                if (i > 0) ids.append(',');
+                ids.append(bestGroup.getTickets().get(i).id);
+            }
+            System.out.println("[MATCH][SUCCESS] size=" + bestGroup.getTickets().size() + " users=[" + ids + "] score=" + bestGroup.getScore());
             return Result.success(bestGroup);
         } else {
             ticket.addCredit();
+            System.out.println("[MATCH][REQUEUE] user=" + ticket.id + " credit=" + ticket.getCredit() + " reason=No group available");
             globalQueue.offer(ticket);
             return Result.fail("No group available");
         }
@@ -105,7 +115,10 @@ public class MatchingService {
             }
         }
 
-        if (candidates.size() < match -1) return null;
+        if (candidates.size() < match -1) {
+            System.out.println("[MATCH][WINDOW] user=" + selectedTicket.id + " match=" + match + " mu=" + windowMu + " candidates=" + candidates.size() + " -> insufficient");
+            return null;
+        }
 
         // Sort by: rating proximity ASC, credit DESC, timestamp ASC
         candidates.sort(new Comparator<Ticket>() {
@@ -123,6 +136,7 @@ public class MatchingService {
         List<Ticket> result = new ArrayList<>(match);
         result.add(selectedTicket);
         for (int i = 0; i < candidates.size() && result.size() < match; i++) result.add(candidates.get(i));
+        System.out.println("[MATCH][WINDOW] user=" + selectedTicket.id + " match=" + match + " mu=" + windowMu + " candidates=" + candidates.size() + " selectedSize=" + result.size());
         return result;
     }
 
