@@ -3,7 +3,7 @@ package teamnova.omok.handler.register;
 import teamnova.omok.handler.AuthHandler;
 import teamnova.omok.handler.PingPongHandler;
 import teamnova.omok.handler.decoder.HelloWorldDecoder;
-import teamnova.omok.dispatcher.Dispatcher;
+import teamnova.omok.handler.dispatcher.Dispatcher;
 import teamnova.omok.handler.HelloWorldHandler;
 import teamnova.omok.handler.decoder.StringDecoder;
 import teamnova.omok.handler.service.DotenvService;

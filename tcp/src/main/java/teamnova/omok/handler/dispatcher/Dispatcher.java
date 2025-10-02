@@ -1,4 +1,4 @@
-package teamnova.omok.dispatcher;
+package teamnova.omok.handler.dispatcher;
 
 import java.io.Closeable;
 import java.util.Map;

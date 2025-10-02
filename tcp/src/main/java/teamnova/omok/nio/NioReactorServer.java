@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import teamnova.omok.nio.codec.DecodeFrame;
-import teamnova.omok.dispatcher.Dispatcher;
+import teamnova.omok.handler.dispatcher.Dispatcher;
 import teamnova.omok.handler.register.HandlerRegistry;
 
 /**

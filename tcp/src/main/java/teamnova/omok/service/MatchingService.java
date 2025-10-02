@@ -5,8 +5,22 @@ import java.util.*;
 public class MatchingService {
     private final Queue<Ticket> globalQueue;
     private final HashMap<Integer, List<Ticket>> ticketGroups;
+
+    public static int BASE_MATCHING_GAP = 100;
+    public static float TIME_MATCHING_WEIGHT_PER_SEC = 5.0f;
+    public static int TIME_MATCHING_WEIGHT = 50;
+    public static int CREDIT_MATCHING_WEIGHT = 50;
+
+    public static final int GROUP_BASE_SCORE = 10_000;
+    public static final int GROUP_STANDARD_DEVIATION_NEGATIVE_WEIGHT = -100;
+    public static final int GROUP_MAX_DELTA_NEGATIVE_WEIGHT = -2;
+    public static final int GROUP_CREDIT_POSITIVE_WEIGHT = 25;
+    public static final int GROUP_HEADCOUNT_POSITIVE_WEIGHT = 50;
+
+    public static final int LIMIT_GROUP_SCORE = 10_000;
+
     public MatchingService() {
-        this.globalQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        this.globalQueue = new java.util.concurrent.ConcurrentLinkedDeque<>();
         this.ticketGroups = new HashMap<>();
         this.ticketGroups.put(2, new ArrayList<>());
         this.ticketGroups.put(3, new ArrayList<>());
@@ -44,7 +58,7 @@ public class MatchingService {
             List<Ticket> neighborTickets = getNeighborTickets(match, ticket);
             Group group = buildGroup(neighborTickets, ticket);
 
-            if (group != null && (bestGroup == null || group.getScore() > bestGroup.getScore())) {
+            if (group != null && qualityCheck(group, bestGroup)) {
                 bestGroup = group;
             }
         }
@@ -62,11 +76,73 @@ public class MatchingService {
     }
 
     public List<Ticket> getNeighborTickets(int match, Ticket selectedTicket) {
-        List<Ticket> ticketGroup = ticketGroups.get(match);
+        List<Ticket> pool = ticketGroups.get(match);
+        if (pool == null || pool.size() < match) return null;
+
+        long waitSec = (System.currentTimeMillis() - selectedTicket.timestamp) / 1000;
+        int windowMu = BASE_MATCHING_GAP
+                + (int)(TIME_MATCHING_WEIGHT * (waitSec/TIME_MATCHING_WEIGHT_PER_SEC))
+                + CREDIT_MATCHING_WEIGHT * selectedTicket.getCredit();
+
+        // Build candidate list excluding the selected ticket
+        List<Ticket> candidates = new ArrayList<>(pool.size());
+        for (Ticket t : pool) {
+            if (!t.id.equals(selectedTicket.id) && Math.abs(t.rating - selectedTicket.rating) <= windowMu) {
+                candidates.add(t);
+            }
+        }
+
+        if (candidates.size() < match -1) return null;
+
+        // Sort by: rating proximity ASC, credit DESC, timestamp ASC
+        candidates.sort(new Comparator<Ticket>() {
+            @Override
+            public int compare(Ticket a, Ticket b) {
+                int da = Math.abs(a.rating - selectedTicket.rating);
+                int db = Math.abs(b.rating - selectedTicket.rating);
+                if (da != db) return Integer.compare(da, db);
+                long wa = a.timestamp, wb = b.timestamp;
+                if(wa!=wb) return Long.compare(wa, wb);
+                return Integer.compare(b.getCredit(), a.getCredit());
+            }
+        });
+
+        List<Ticket> result = new ArrayList<>(match);
+        result.add(selectedTicket);
+        for (int i = 0; i < candidates.size() && result.size() < match; i++) result.add(candidates.get(i));
+        return result;
     }
 
-    public Group buildGroup(List<Ticket> neighborTickets, Ticket selectedTicket) {
+    public Group buildGroup(List<Ticket> group, Ticket selectedTicket) {
+        if (group == null || group.size() < 2) return null;
 
+        // If we couldn't collect enough neighbors to satisfy the intended match size, skip
+        int matchSize = group.size();
+
+        int[] mus = group.stream().mapToInt(t -> t.rating).toArray();
+        double mean = Arrays.stream(mus).average().orElse(0.0);
+        double std = Math.sqrt(Arrays.stream(mus).mapToDouble(m -> Math.pow(m - mean, 2)).average().orElse(0.0));
+        int maxDelta = Arrays.stream(mus).map(x->(int)Math.abs(x - mean)).max().orElse(0);
+        double meanCredit = group.stream().mapToInt(Ticket::getCredit).average().orElse(0.0);
+
+
+        int score = (int)Math.round(GROUP_BASE_SCORE
+                + GROUP_STANDARD_DEVIATION_NEGATIVE_WEIGHT * std
+                + GROUP_MAX_DELTA_NEGATIVE_WEIGHT * maxDelta
+                + GROUP_CREDIT_POSITIVE_WEIGHT * meanCredit
+                + GROUP_HEADCOUNT_POSITIVE_WEIGHT * matchSize);
+
+        return new Group(group, score);
+    }
+
+    public boolean qualityCheck(Group currentGroup, Group bestGroup) {
+        if (LIMIT_GROUP_SCORE > currentGroup.getScore())
+            return false;
+
+        if (bestGroup == null)
+            return true;
+        else
+            return (currentGroup.getScore() > bestGroup.getScore());
     }
 
     public static class Ticket {
@@ -104,8 +180,7 @@ public class MatchingService {
         private final List<Ticket> tickets;
         private final int score;
         public Group(List<Ticket> tickets, int score) {
-            Collections.copy(tickets, tickets);
-            this.tickets = tickets;
+            this.tickets = Collections.unmodifiableList(new ArrayList<>(tickets));
             this.score = score;
         }
 

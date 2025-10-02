@@ -2,7 +2,7 @@ package teamnova.omok.handler.register;
 
 import java.util.Objects;
 import java.util.function.Consumer;
-import teamnova.omok.dispatcher.Dispatcher;
+import teamnova.omok.handler.dispatcher.Dispatcher;
 
 public interface HandlerRegistry {
     void configure(Dispatcher dispatcher);
