@@ -32,7 +32,7 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
         register(Type.HELLO, new HelloWorldHandler(helloWorldDecoder));
         register(Type.AUTH, new AuthHandler(stringDecoder, ServiceContainer.getInstance().getDotenvService()));
         register(Type.PINGPONG, new PingPongHandler());
-        register(Type.JOIN_MATCH, new JoinMatchHandler());
+        register(Type.JOIN_MATCH, new JoinMatchHandler(stringDecoder));
         register(Type.LEAVE_IN_GAME_SESSION, new LeaveInGameSessionHandler());
     }
 
