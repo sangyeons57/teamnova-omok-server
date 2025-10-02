@@ -18,6 +18,7 @@ public class DotenvService {
 
     public DotenvService(String basePath) {
         this.path = Paths.get(basePath, ENV_FILE);
+        System.out.println("Loading environment variables from " + this.path);
         Map<String, String> envMap;
         try {
             envMap = Files.lines(this.path)
