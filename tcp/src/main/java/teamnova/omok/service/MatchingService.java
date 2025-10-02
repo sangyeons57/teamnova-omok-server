@@ -1,27 +1,38 @@
 package teamnova.omok.service;
 
-import java.time.Instant;
 import java.util.*;
 
 public class MatchingService {
     private final Queue<Ticket> globalQueue;
-    private final HashMap<Integer, List<Ticket>> ticketGroup ;
+    private final HashMap<Integer, List<Ticket>> ticketGroups;
     public MatchingService() {
         this.globalQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
-        this.ticketGroup = new HashMap<>();
-        this.ticketGroup.put(2, new ArrayList<>());
-        this.ticketGroup.put(3, new ArrayList<>());
-        this.ticketGroup.put(4, new ArrayList<>());
+        this.ticketGroups = new HashMap<>();
+        this.ticketGroups.put(2, new ArrayList<>());
+        this.ticketGroups.put(3, new ArrayList<>());
+        this.ticketGroups.put(4, new ArrayList<>());
     }
 
     public boolean enqueue(Ticket ticket) {
         boolean isSuccess = globalQueue.offer(ticket);
 
         if (isSuccess){
-            for (int number : ticket.matchSet) ticketGroup.get(number).add(ticket);
+            for (int number : ticket.matchSet) ticketGroups.get(number).add(ticket);
         }
 
         return isSuccess;
+    }
+
+    private void useTicket(Ticket ticket, boolean deleteFromGlobalQueue) {
+
+        // remove from all match buckets this ticket belongs to
+        for (int m : ticket.matchSet) {
+            List<Ticket> list = ticketGroups.get(m);
+            if (list != null) list.remove(ticket);
+        }
+        // selected ticket already polled; others need removal from global queue
+        // remove safely (ConcurrentLinkedQueue supports remove)
+        if(deleteFromGlobalQueue) globalQueue.remove(ticket);
     }
 
     public Result tryMatch() {
@@ -30,23 +41,28 @@ public class MatchingService {
 
         Group bestGroup = null;
         for (int match : ticket.matchSet) {
-            List<Ticket> neighborTickets = getNeighborTickets(ticketGroup.get(match), ticket);
+            List<Ticket> neighborTickets = getNeighborTickets(match, ticket);
             Group group = buildGroup(neighborTickets, ticket);
 
-            if (bestGroup == null || group.getScore() > bestGroup.getScore()) {
+            if (group != null && (bestGroup == null || group.getScore() > bestGroup.getScore())) {
                 bestGroup = group;
             }
         }
 
         if (bestGroup != null){
-            // 티켓 선택완료
+            // 매칭된 모든 티켓을 큐/그룹에서 제거
+            for (Ticket t : bestGroup.getTickets()) useTicket(t, !t.equals(ticket));
+
             return Result.success(bestGroup);
+        } else {
+            ticket.addCredit();
+            globalQueue.offer(ticket);
+            return Result.fail("No group available");
         }
-        return Result.fail("No group available");
     }
 
-    public List<Ticket> getNeighborTickets(List<Ticket> selectedGroup, Ticket selectedTicket) {
-
+    public List<Ticket> getNeighborTickets(int match, Ticket selectedTicket) {
+        List<Ticket> ticketGroup = ticketGroups.get(match);
     }
 
     public Group buildGroup(List<Ticket> neighborTickets, Ticket selectedTicket) {
@@ -60,7 +76,7 @@ public class MatchingService {
             this.userId = userId;
             this.rating = rating;
             this.matchSet = matchSet;
-            this.credit = 10;
+            this.credit = 0;
             this.state = MatchingTicketState.CREATED;
         }
 
@@ -70,10 +86,17 @@ public class MatchingService {
         public final int rating;
         public final Set<Integer> matchSet;
         public MatchingTicketState state;
-        public int credit;
+        private int credit;
 
         public static enum MatchingTicketState {
             CREATED,
+        }
+
+        public int getCredit() {
+            return credit;
+        }
+        public void addCredit() {
+            this.credit++;
         }
     }
 
