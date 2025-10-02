@@ -11,6 +11,7 @@ import teamnova.omok.service.InGameSessionService;
 import teamnova.omok.service.MysqlService;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,7 +38,7 @@ public class JoinMatchHandler implements FrameHandler {
         if (frame.payload() != null && frame.payload().length > 0) {
             s = new String(frame.payload(), StandardCharsets.UTF_8).trim();
         }
-        System.out.println("[" + userId+ "] " + "JOIN_MATCH:" + s);
+        System.out.println("[" + userId+ "] " + "JOIN_MATCH:" + s + " " + rating + " payload: " + Arrays.toString(frame.payload()));
         if (s == null || s.isBlank()) {
             matchSet.add(2); // default 2 players
         } else if ("1".equals(s)) {
