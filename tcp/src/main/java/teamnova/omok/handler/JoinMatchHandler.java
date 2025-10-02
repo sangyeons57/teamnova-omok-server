@@ -52,6 +52,8 @@ public class JoinMatchHandler implements FrameHandler {
         }
 
         MatchingService matching = ServiceContainer.getInstance().getMatchingService();
+        // Ensure previous ticket is removed to avoid duplicates
+        matching.cancel(userId);
         matching.enqueue(new MatchingService.Ticket(userId, rating, matchSet));
 
         // optional ack

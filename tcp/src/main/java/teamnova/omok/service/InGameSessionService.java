@@ -36,6 +36,10 @@ public class InGameSessionService {
         return store.findByUserId(userId);
     }
 
+    public ClientSession getClient(String userId) {
+        return clients.get(userId);
+    }
+
     public void leaveByUser(String userId) {
         store.removeByUserId(userId);
     }

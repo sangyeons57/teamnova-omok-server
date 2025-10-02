@@ -37,6 +37,7 @@ public final class ClientSession implements Closeable {
     private volatile String authenticatedRole;
     private volatile String authenticatedScope;
 
+
     public ClientSession(SocketChannel channel) {
         this.channel = Objects.requireNonNull(channel, "channel");
         // Initialize last contact time at session creation
@@ -114,6 +115,8 @@ public final class ClientSession implements Closeable {
     // Close the session if the idle timeout has been exceeded
     void closeIfTimedOut(long nowMillis) {
         if (isTimedOut(nowMillis)) {
+            // ensure matching ticket is canceled on idle timeout using helper
+            ClientSessions.cancelMatchingIfAuthenticated(this);
             close();
         }
     }
@@ -140,6 +143,8 @@ public final class ClientSession implements Closeable {
 
     @Override
     public void close() {
+        // cancel any outstanding matching ticket upon close
+        ClientSessions.cancelMatchingIfAuthenticated(this);
         try {
             System.out.printf("Closing connection %s%n", remoteAddress());
         } catch (IOException ignore) { /* ignore */ }
@@ -182,6 +187,7 @@ public final class ClientSession implements Closeable {
     public String authenticatedScope() {
         return authenticatedScope;
     }
+
 
     private void ensureCapacity(int required) {
         if (required <= inboundBuffer.length) {

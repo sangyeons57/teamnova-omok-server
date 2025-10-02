@@ -37,6 +37,19 @@ public class MatchingService {
         return isSuccess;
     }
 
+    /**
+     * Cancel and remove a ticket from all queues/buckets by its id.
+     */
+    public void cancel(String ticketId) {
+        if (ticketId == null) return;
+        // Remove from global queue
+        globalQueue.removeIf(t -> ticketId.equals(t.id));
+        // Remove from group buckets
+        for (Map.Entry<Integer, List<Ticket>> e : ticketGroups.entrySet()) {
+            e.getValue().removeIf(t -> ticketId.equals(t.id));
+        }
+    }
+
     private void useTicket(Ticket ticket, boolean deleteFromGlobalQueue) {
 
         // remove from all match buckets this ticket belongs to

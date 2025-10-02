@@ -18,6 +18,20 @@ public class LeaveInGameSessionHandler implements FrameHandler {
         }
         String userId = session.authenticatedUserId();
         InGameSessionService igs = ServiceContainer.getInstance().getInGameSessionService();
+
+        // Notify other users in the same session, if any
+        igs.findByUser(userId).ifPresent(gs -> {
+            for (String uid : gs.getUserIds()) {
+                if (!uid.equals(userId)) {
+                    ClientSession peer = igs.getClient(uid);
+                    if (peer != null) {
+                        peer.enqueueResponse(Type.LEAVE_IN_GAME_SESSION, 0L, ("PEER_LEFT:" + userId).getBytes(StandardCharsets.UTF_8));
+                        server.enqueueSelectorTask(peer::enableWriteInterest);
+                    }
+                }
+            }
+        });
+
         igs.leaveByUser(userId);
         igs.unregisterClient(userId);
         session.enqueueResponse(Type.LEAVE_IN_GAME_SESSION, frame.requestId(), "LEFT".getBytes(StandardCharsets.UTF_8));
