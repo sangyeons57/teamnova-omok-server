@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import teamnova.omok.handler.decoder.StringDecoder;
 import teamnova.omok.handler.register.FrameHandler;
+import teamnova.omok.handler.register.Type;
 import teamnova.omok.handler.service.DotenvService;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.FramedMessage;
@@ -64,7 +65,7 @@ public class AuthHandler implements FrameHandler {
 
     private void sendResult(NioReactorServer server, ClientSession session, FramedMessage frame, boolean success) {
         String message = success ? "1" : "0";
-        session.enqueueResponse(frame.type(), frame.requestId(), message.getBytes(StandardCharsets.UTF_8));
+        session.enqueueResponse(Type.lookup(frame.type()), frame.requestId(), message.getBytes(StandardCharsets.UTF_8));
         server.enqueueSelectorTask(session::enableWriteInterest);
     }
 

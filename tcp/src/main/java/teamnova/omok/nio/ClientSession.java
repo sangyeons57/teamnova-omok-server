@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import teamnova.omok.handler.register.Type;
 import teamnova.omok.nio.codec.EncodeFrame;
 import teamnova.omok.nio.codec.DecodeFrame;
 
@@ -77,8 +78,8 @@ public final class ClientSession implements Closeable {
         return result.frame();
     }
 
-    public void enqueueResponse(byte type, long requestId, byte[] payload) {
-        outbound.add(EncodeFrame.encodeFrame(type, requestId, payload));
+    public void enqueueResponse(Type type, long requestId, byte[] payload) {
+        outbound.add(EncodeFrame.encodeFrame(type.value, requestId, payload));
         // Update last contact time as we have outgoing data scheduled
         updateLastContactTime();
     }
