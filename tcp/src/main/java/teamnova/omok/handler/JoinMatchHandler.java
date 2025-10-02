@@ -8,6 +8,7 @@ import teamnova.omok.nio.NioReactorServer;
 import teamnova.omok.service.MatchingService;
 import teamnova.omok.service.ServiceContainer;
 import teamnova.omok.service.InGameSessionService;
+import teamnova.omok.service.MysqlService;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
@@ -26,40 +27,35 @@ public class JoinMatchHandler implements FrameHandler {
         InGameSessionService igs = ServiceContainer.getInstance().getInGameSessionService();
         igs.registerClient(userId, session);
 
-        // Parse payload for rating and match size (very simple string format)
-        int rating = 1000;
-        int matchSize = 2;
-        if (frame.payload() != null && frame.payload().length > 0) {
-            String s = new String(frame.payload(), StandardCharsets.UTF_8);
-            // accepted formats: "1234,2" or "rating=1234;match=2"
-            try {
-                if (s.contains(";")) {
-                    String[] parts = s.split(";");
-                    for (String p : parts) {
-                        String[] kv = p.split("=");
-                        if (kv.length == 2) {
-                            if (kv[0].equalsIgnoreCase("rating")) rating = Integer.parseInt(kv[1]);
-                            if (kv[0].equalsIgnoreCase("match")) matchSize = Integer.parseInt(kv[1]);
-                        }
-                    }
-                } else if (s.contains(",")) {
-                    String[] arr = s.split(",");
-                    if (arr.length > 0) rating = Integer.parseInt(arr[0].trim());
-                    if (arr.length > 1) matchSize = Integer.parseInt(arr[1].trim());
-                } else if (!s.isBlank()) {
-                    rating = Integer.parseInt(s.trim());
-                }
-            } catch (Exception ignore) { /* use defaults */ }
-        }
-        matchSize = Math.min(Math.max(matchSize, 2), 4); // clamp 2..4
+        // Resolve rating from DB (users.score) using MysqlService, default to 1000
+        MysqlService mysql = ServiceContainer.getInstance().getMysqlService();
+        int rating = (mysql != null) ? mysql.getUserScore(userId, 1000) : 1000;
+
+        // Payload now only contains mode: one of "1","2","3","4"
         Set<Integer> matchSet = new HashSet<>();
-        matchSet.add(matchSize);
+        String s = null;
+        if (frame.payload() != null && frame.payload().length > 0) {
+            s = new String(frame.payload(), StandardCharsets.UTF_8).trim();
+        }
+        if (s == null || s.isBlank()) {
+            matchSet.add(2); // default 2 players
+        } else if ("1".equals(s)) {
+            // Free mode: allow 2,3,4
+            matchSet.add(2);
+            matchSet.add(3);
+            matchSet.add(4);
+        } else if ("2".equals(s) || "3".equals(s) || "4".equals(s)) {
+            matchSet.add(Integer.parseInt(s));
+        } else {
+            // Fallback
+            matchSet.add(2);
+        }
 
         MatchingService matching = ServiceContainer.getInstance().getMatchingService();
         matching.enqueue(new MatchingService.Ticket(userId, rating, matchSet));
 
         // optional ack
-        session.enqueueResponse(Type.JOIN_MATCH, frame.requestId(), ("ENQUEUED:" + matchSize).getBytes(StandardCharsets.UTF_8));
+        session.enqueueResponse(Type.JOIN_MATCH, frame.requestId(), ("ENQUEUED:" + matchSet.toString()).getBytes(StandardCharsets.UTF_8));
         server.enqueueSelectorTask(session::enableWriteInterest);
     }
 }

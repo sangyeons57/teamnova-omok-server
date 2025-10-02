@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -43,7 +42,7 @@ public class InGameSessionService {
 
     public GameSession createFromGroup(NioReactorServer server, MatchingService.Group group) {
         List<String> userIds = new ArrayList<>();
-        group.getTickets().forEach(t -> userIds.add(t.userId));
+        group.getTickets().forEach(t -> userIds.add(t.id));
         GameSession session = new GameSession(userIds);
         store.save(session);
         broadcastJoin(server, session);
@@ -51,8 +50,29 @@ public class InGameSessionService {
     }
 
     private void broadcastJoin(NioReactorServer server, GameSession session) {
-        String message = "JOIN:" + session.getId();
-        byte[] payload = message.getBytes(StandardCharsets.UTF_8);
+        // Build JSON object string with session and users info
+        StringBuilder sb = new StringBuilder(256);
+        sb.append('{')
+          .append("\"sessionId\":\"").append(session.getId()).append('\"')
+          .append(',')
+          .append("\"createdAt\":" ).append(session.getCreatedAt())
+          .append(',')
+          .append("\"users\":[");
+        List<String> uids = session.getUserIds();
+        for (int i = 0; i < uids.size(); i++) {
+            String uid = uids.get(i);
+            // Placeholder user info; in future, fetch from MySQL 'users' table
+            sb.append('{')
+              .append("\"userId\":\"").append(escape(uid)).append('\"')
+              .append(',')
+              .append("\"displayName\":\"").append(escape(uid)).append('\"')
+              .append(',')
+              .append("\"profileIconCode\":").append(0)
+              .append('}');
+            if (i < uids.size() - 1) sb.append(',');
+        }
+        sb.append(']').append('}');
+        byte[] payload = sb.toString().getBytes(StandardCharsets.UTF_8);
         for (String uid : session.getUserIds()) {
             ClientSession cs = clients.get(uid);
             if (cs != null) {
@@ -60,5 +80,10 @@ public class InGameSessionService {
                 server.enqueueSelectorTask(cs::enableWriteInterest);
             }
         }
+    }
+
+    private static String escape(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

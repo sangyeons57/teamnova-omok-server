@@ -147,17 +147,15 @@ public class MatchingService {
 
     public static class Ticket {
         public Ticket(String userId, int rating, Set<Integer> matchSet) {
-            this.id = UUID.randomUUID();
+            this.id = userId;
             this.timestamp = System.currentTimeMillis();
-            this.userId = userId;
             this.rating = rating;
             this.matchSet = matchSet;
             this.credit = 0;
             this.state = MatchingTicketState.CREATED;
         }
 
-        public final UUID id;
-        public final String userId;
+        public final String id;
         public final long timestamp;
         public final int rating;
         public final Set<Integer> matchSet;

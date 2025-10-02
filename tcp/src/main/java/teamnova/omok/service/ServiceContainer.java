@@ -14,6 +14,8 @@ import java.util.concurrent.TimeUnit;
 public class ServiceContainer {
     private static final ServiceContainer INSTANCE = new ServiceContainer();
 
+    private final DotenvService dotenvService;
+    private final MysqlService mysqlService;
     private final MatchingService matchingService;
     private final InGameSessionStore inGameSessionStore;
     private final InGameSessionService inGameSessionService;
@@ -22,6 +24,10 @@ public class ServiceContainer {
     private volatile boolean started;
 
     private ServiceContainer() {
+        // .env is located at project root's parent (same as previous usage in DefaultHandlerRegistry)
+        String basePath = System.getProperty("user.dir") + "\\..\\";
+        this.dotenvService = new DotenvService(basePath);
+        this.mysqlService = new MysqlService(dotenvService);
         this.matchingService = new MatchingService();
         this.inGameSessionStore = new InGameSessionStore();
         this.inGameSessionService = new InGameSessionService(inGameSessionStore);
@@ -54,6 +60,9 @@ public class ServiceContainer {
         }, 500, 500, TimeUnit.MILLISECONDS);
         started = true;
     }
+
+    public DotenvService getDotenvService() { return dotenvService; }
+    public MysqlService getMysqlService() { return mysqlService; }
 
     public MatchingService getMatchingService() {
         return matchingService;

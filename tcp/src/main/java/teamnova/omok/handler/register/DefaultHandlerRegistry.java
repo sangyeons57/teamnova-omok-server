@@ -6,8 +6,9 @@ import teamnova.omok.handler.decoder.HelloWorldDecoder;
 import teamnova.omok.handler.dispatcher.Dispatcher;
 import teamnova.omok.handler.HelloWorldHandler;
 import teamnova.omok.handler.decoder.StringDecoder;
-import teamnova.omok.handler.service.DotenvService;
 import teamnova.omok.handler.JoinMatchHandler;
+import teamnova.omok.handler.LeaveInGameSessionHandler;
+import teamnova.omok.service.ServiceContainer;
 
 import java.util.function.Supplier;
 
@@ -18,25 +19,21 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
     private final HelloWorldDecoder helloWorldDecoder;
     private final StringDecoder stringDecoder;
 
-    private final DotenvService dotenvService;
-
     private Dispatcher dispatcher;;
 
     public DefaultHandlerRegistry() {
         this.helloWorldDecoder = new HelloWorldDecoder();
         this.stringDecoder = new StringDecoder();
-
-        this.dotenvService = new DotenvService(System.getProperty("user.dir") + "/../" );
     }
 
     @Override
     public void configure(Dispatcher dispatcher) {
         this.dispatcher = dispatcher;
         register(Type.HELLO, new HelloWorldHandler(helloWorldDecoder));
-        register(Type.AUTH, new AuthHandler(stringDecoder, dotenvService));
+        register(Type.AUTH, new AuthHandler(stringDecoder, ServiceContainer.getInstance().getDotenvService()));
         register(Type.PINGPONG, new PingPongHandler());
         register(Type.JOIN_MATCH, new JoinMatchHandler());
-        register(Type.LEAVE_IN_GAME_SESSION, new JoinMatchHandler());
+        register(Type.LEAVE_IN_GAME_SESSION, new LeaveInGameSessionHandler());
     }
 
     public void register(Type type, FrameHandler frameHandler ) {

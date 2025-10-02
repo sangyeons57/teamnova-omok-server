@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import teamnova.omok.handler.decoder.StringDecoder;
 import teamnova.omok.handler.register.FrameHandler;
 import teamnova.omok.handler.register.Type;
-import teamnova.omok.handler.service.DotenvService;
+import teamnova.omok.service.DotenvService;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.FramedMessage;
 import teamnova.omok.nio.NioReactorServer;

@@ -1,0 +1,70 @@
+package teamnova.omok.service;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+/**
+ * Simple MySQL service that reads configuration from DotenvService
+ * and exposes connection properties/JDBC URL. Also provides minimal
+ * helper queries used by the server.
+ */
+public class MysqlService {
+    private final String host;
+    private final int port;
+    private final String database;
+    private final String user;
+    private final String password;
+
+    public MysqlService(DotenvService dotenv) {
+        this.host = orDefault(dotenv.get("DB_HOST"), "127.0.0.1");
+        this.port = parseInt(orDefault(dotenv.get("DB_PORT"), "3306"), 3306);
+        this.database = orDefault(dotenv.get("DB_NAME"), "");
+        this.user = orDefault(dotenv.get("DB_USER"), "");
+        this.password = orDefault(dotenv.get("DB_PASS"), "");
+    }
+
+    public String getHost() { return host; }
+    public int getPort() { return port; }
+    public String getDatabase() { return database; }
+    public String getUser() { return user; }
+    public String getPassword() { return password; }
+
+    public String jdbcUrl() {
+        String db = (database == null || database.isBlank()) ? "" : "/" + database;
+        return "jdbc:mysql://" + host + ":" + port + db + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    }
+
+    /**
+     * Fetches a user's score from the users table using their user_id.
+     * Returns defaultScore if not found or if any error occurs.
+     */
+    public int getUserScore(String userId, int defaultScore) {
+        if (userId == null || userId.isBlank()) return defaultScore;
+        // If configuration is incomplete, bail out quickly
+        if (user == null || user.isBlank()) return defaultScore;
+        String url = jdbcUrl();
+        String sql = "SELECT score FROM users WHERE user_id = ? LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(url, user, password);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int score = rs.getInt(1);
+                    return rs.wasNull() ? defaultScore : score;
+                }
+            }
+        } catch (SQLException e) {
+            // Log quietly to stderr; return default on failure
+            System.err.println("[MysqlService] getUserScore failed: " + e.getMessage());
+        }
+        return defaultScore;
+    }
+
+    private static String orDefault(String v, String d) { return (v == null || v.isBlank()) ? d : v; }
+    private static int parseInt(String v, int d) {
+        try { return Integer.parseInt(v.trim()); } catch (Exception e) { return d; }
+    }
+}
