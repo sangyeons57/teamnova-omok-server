@@ -19,6 +19,8 @@ import teamnova.omok.nio.codec.DecodeFrame;
  */
 public final class ClientSession implements Closeable {
     private static final int BUFFER_SIZE = 4096;
+    // Idle timeout in milliseconds. Can be made configurable if needed.
+    private static final long IDLE_TIMEOUT_MILLIS = 60_000L;
 
     private final SocketChannel channel;
     private final ByteBuffer readBuffer = ByteBuffer.allocate(BUFFER_SIZE);
@@ -27,6 +29,8 @@ public final class ClientSession implements Closeable {
     private int inboundSize = 0;
     private SelectionKey key;
 
+    private long lastContactTime;
+
     private volatile boolean authenticated;
     private volatile String authenticatedUserId;
     private volatile String authenticatedRole;
@@ -34,6 +38,8 @@ public final class ClientSession implements Closeable {
 
     public ClientSession(SocketChannel channel) {
         this.channel = Objects.requireNonNull(channel, "channel");
+        // Initialize last contact time at session creation
+        this.lastContactTime = System.currentTimeMillis();
     }
 
     void attachKey(SelectionKey key) {
@@ -49,6 +55,8 @@ public final class ClientSession implements Closeable {
             readBuffer.get(inboundBuffer, inboundSize, remaining);
             inboundSize += remaining;
             readBuffer.clear();
+            // Update last contact time on read activity
+            updateLastContactTime();
         }
         return bytesRead;
     }
@@ -71,6 +79,8 @@ public final class ClientSession implements Closeable {
 
     public void enqueueResponse(byte type, long requestId, byte[] payload) {
         outbound.add(EncodeFrame.encodeFrame(type, requestId, payload));
+        // Update last contact time as we have outgoing data scheduled
+        updateLastContactTime();
     }
 
     void flushOutbound() throws IOException {
@@ -83,10 +93,28 @@ public final class ClientSession implements Closeable {
             outbound.poll();
             buffer = outbound.peek();
         }
+        // Update last contact time when all outbound data has been flushed
+        updateLastContactTime();
     }
 
     boolean hasPendingWrites() {
         return !outbound.isEmpty();
+    }
+
+    void updateLastContactTime() {
+        lastContactTime = System.currentTimeMillis();
+    }
+
+    // Check if this session has been idle for too long
+    boolean isTimedOut(long nowMillis) {
+        return (nowMillis - lastContactTime) >= IDLE_TIMEOUT_MILLIS;
+    }
+
+    // Close the session if the idle timeout has been exceeded
+    void closeIfTimedOut(long nowMillis) {
+        if (isTimedOut(nowMillis)) {
+            close();
+        }
     }
 
     public void enableWriteInterest() {

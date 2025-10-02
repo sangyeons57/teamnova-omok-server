@@ -1,6 +1,7 @@
 package teamnova.omok.handler.register;
 
 import teamnova.omok.handler.AuthHandler;
+import teamnova.omok.handler.PingPongHandler;
 import teamnova.omok.handler.decoder.HelloWorldDecoder;
 import teamnova.omok.dispatcher.Dispatcher;
 import teamnova.omok.handler.HelloWorldHandler;
@@ -27,5 +28,6 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
     public void configure(Dispatcher dispatcher) {
         dispatcher.register(0, HandlerProvider.singleton(new HelloWorldHandler(helloWorldDecoder)));
         dispatcher.register(1, HandlerProvider.singleton(new AuthHandler(stringDecoder, dotenvService)));
+        dispatcher.register(2, HandlerProvider.singleton(new PingPongHandler()));
     }
 }

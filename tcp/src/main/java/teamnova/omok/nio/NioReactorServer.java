@@ -39,8 +39,19 @@ public final class NioReactorServer implements Closeable {
     public void start() {
         try {
             while (running) {
-                selector.select();
+                // Use a timeout to periodically wake up and perform housekeeping (e.g., idle session checks)
+                selector.select(1000);
                 runSelectorTasks();
+
+                // Sweep for idle sessions and close them
+                long now = System.currentTimeMillis();
+                for (SelectionKey k : selector.keys()) {
+                    Object att = k.attachment();
+                    if (att instanceof ClientSession s) {
+                        s.closeIfTimedOut(now);
+                    }
+                }
+
                 Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
                 while (iterator.hasNext()) {
                     SelectionKey key = iterator.next();
