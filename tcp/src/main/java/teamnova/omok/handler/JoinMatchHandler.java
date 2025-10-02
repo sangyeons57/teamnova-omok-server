@@ -21,7 +21,6 @@ public class JoinMatchHandler implements FrameHandler {
             // ignore if not authenticated
             return;
         }
-        System.out.println("[" + session.authenticatedUserId() + "] " + "JOIN_MATCH:" + new String(frame.payload(), StandardCharsets.UTF_8));
 
         String userId = session.authenticatedUserId();
         // Register client for later broadcasting
@@ -38,6 +37,7 @@ public class JoinMatchHandler implements FrameHandler {
         if (frame.payload() != null && frame.payload().length > 0) {
             s = new String(frame.payload(), StandardCharsets.UTF_8).trim();
         }
+        System.out.println("[" + userId+ "] " + "JOIN_MATCH:" + s);
         if (s == null || s.isBlank()) {
             matchSet.add(2); // default 2 players
         } else if ("1".equals(s)) {
@@ -58,7 +58,7 @@ public class JoinMatchHandler implements FrameHandler {
         matching.enqueue(new MatchingService.Ticket(userId, rating, matchSet));
 
         // optional ack
-        session.enqueueResponse(Type.JOIN_MATCH, frame.requestId(), ("ENQUEUED:" + matchSet.toString()).getBytes(StandardCharsets.UTF_8));
+        session.enqueueResponse(Type.JOIN_MATCH, frame.requestId(), ("ENQUEUED:" + matchSet).getBytes(StandardCharsets.UTF_8));
         server.enqueueSelectorTask(session::enableWriteInterest);
     }
 }
