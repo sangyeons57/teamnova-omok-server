@@ -25,7 +25,7 @@ public class ServiceContainer {
 
     private ServiceContainer() {
         // .env is located at project root's parent (same as previous usage in DefaultHandlerRegistry)
-        String basePath = System.getProperty("user.dir") + "\\..\\";
+        String basePath = System.getProperty("user.dir") + "/..";
         this.dotenvService = new DotenvService(basePath);
         this.mysqlService = new MysqlService(dotenvService);
         this.matchingService = new MatchingService();
