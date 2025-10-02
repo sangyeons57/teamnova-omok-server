@@ -21,6 +21,7 @@ public class JoinMatchHandler implements FrameHandler {
             // ignore if not authenticated
             return;
         }
+        System.out.println("[" + session.authenticatedUserId() + "] " + "JOIN_MATCH:" + new String(frame.payload(), StandardCharsets.UTF_8));
 
         String userId = session.authenticatedUserId();
         // Register client for later broadcasting
