@@ -55,6 +55,8 @@ public class AuthHandler implements FrameHandler {
         try {
             JwtPayload payload = verify(jwt.trim());
             session.markAuthenticated(payload.userId(), payload.role(), payload.scope());
+            // Enforce single active session per user
+            teamnova.omok.nio.ClientSessions.onAuthenticated(server, session);
             sendResult(server, session, frame, true);
         } catch (JwtVerificationException e) {
             session.clearAuthentication();

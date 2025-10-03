@@ -117,6 +117,8 @@ public final class ClientSession implements Closeable {
         if (isTimedOut(nowMillis)) {
             // ensure matching ticket is canceled on idle timeout using helper
             ClientSessions.cancelMatchingIfAuthenticated(this);
+            // remove from user session index if mapped to this session
+            ClientSessions.onSessionClosed(this);
             close();
         }
     }
@@ -145,6 +147,8 @@ public final class ClientSession implements Closeable {
     public void close() {
         // cancel any outstanding matching ticket upon close
         ClientSessions.cancelMatchingIfAuthenticated(this);
+        // remove from user session index if mapped to this session
+        ClientSessions.onSessionClosed(this);
         try {
             System.out.printf("Closing connection %s%n", remoteAddress());
         } catch (IOException ignore) { /* ignore */ }
