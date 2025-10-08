@@ -1,4 +1,4 @@
-package teamnova.omok.service;
+package teamnova.omok.store;
 
 import java.util.Collections;
 import java.util.List;

@@ -3,6 +3,7 @@ package teamnova.omok.service;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.NioReactorServer;
+import teamnova.omok.store.GameSession;
 import teamnova.omok.store.InGameSessionStore;
 
 import java.nio.charset.StandardCharsets;

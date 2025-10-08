@@ -1,7 +1,5 @@
 package teamnova.omok.store;
 
-import teamnova.omok.service.GameSession;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 

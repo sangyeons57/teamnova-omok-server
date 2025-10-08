@@ -71,7 +71,7 @@ public class MatchingService {
         Group bestGroup = null;
         for (int match : ticket.matchSet) {
             List<Ticket> neighborTickets = getNeighborTickets(match, ticket);
-            Group group = buildGroup(neighborTickets, ticket);
+            Group group = buildGroup(neighborTickets);
 
             if (group != null && qualityCheck(group, bestGroup)) {
                 bestGroup = group;
@@ -140,7 +140,7 @@ public class MatchingService {
         return result;
     }
 
-    public Group buildGroup(List<Ticket> group, Ticket selectedTicket) {
+    public Group buildGroup(List<Ticket> group) {
         if (group == null || group.size() < 2) return null;
 
         // If we couldn't collect enough neighbors to satisfy the intended match size, skip
