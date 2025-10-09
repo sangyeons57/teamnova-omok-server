@@ -2,12 +2,14 @@ package teamnova.omok.handler.register;
 
 import teamnova.omok.handler.AuthHandler;
 import teamnova.omok.handler.PingPongHandler;
-import teamnova.omok.handler.decoder.HelloWorldDecoder;
+import teamnova.omok.message.decoder.HelloWorldDecoder;
 import teamnova.omok.handler.dispatcher.Dispatcher;
 import teamnova.omok.handler.HelloWorldHandler;
-import teamnova.omok.handler.decoder.StringDecoder;
+import teamnova.omok.message.decoder.StringDecoder;
 import teamnova.omok.handler.JoinMatchHandler;
 import teamnova.omok.handler.LeaveInGameSessionHandler;
+import teamnova.omok.handler.PlaceStoneHandler;
+import teamnova.omok.handler.ReadyInGameSessionHandler;
 import teamnova.omok.service.ServiceContainer;
 
 import java.util.function.Supplier;
@@ -34,6 +36,8 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
         register(Type.PINGPONG, new PingPongHandler());
         register(Type.JOIN_MATCH, new JoinMatchHandler(stringDecoder));
         register(Type.LEAVE_IN_GAME_SESSION, new LeaveInGameSessionHandler());
+        register(Type.READY_IN_GAME_SESSION, new ReadyInGameSessionHandler());
+        register(Type.PLACE_STONE, new PlaceStoneHandler(stringDecoder));
     }
 
     public void register(Type type, FrameHandler frameHandler ) {

@@ -1,6 +1,7 @@
 package teamnova.omok.service;
 
 import teamnova.omok.nio.NioReactorServer;
+import teamnova.omok.store.GameSession;
 import teamnova.omok.store.InGameSessionStore;
 
 import java.util.Objects;
@@ -18,6 +19,8 @@ public class ServiceContainer {
     private final MysqlService mysqlService;
     private final MatchingService matchingService;
     private final InGameSessionStore inGameSessionStore;
+    private final BoardService boardService;
+    private final TurnService turnService;
     private final InGameSessionService inGameSessionService;
 
     private final ScheduledExecutorService scheduler;
@@ -30,7 +33,9 @@ public class ServiceContainer {
         this.mysqlService = new MysqlService(dotenvService);
         this.matchingService = new MatchingService();
         this.inGameSessionStore = new InGameSessionStore();
-        this.inGameSessionService = new InGameSessionService(inGameSessionStore);
+        this.boardService = new BoardService();
+        this.turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
+        this.inGameSessionService = new InGameSessionService(inGameSessionStore, boardService, turnService);
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
             t.setName("match-scheduler");
@@ -47,6 +52,7 @@ public class ServiceContainer {
     public synchronized void start(NioReactorServer server) {
         if (started) return;
         Objects.requireNonNull(server, "server");
+        inGameSessionService.attachServer(server);
         // Schedule tryMatch every 500 ms
         scheduler.scheduleAtFixedRate(() -> {
             try {
@@ -66,6 +72,14 @@ public class ServiceContainer {
 
     public MatchingService getMatchingService() {
         return matchingService;
+    }
+
+    public BoardService getBoardService() {
+        return boardService;
+    }
+
+    public TurnService getTurnService() {
+        return turnService;
     }
 
     public InGameSessionService getInGameSessionService() {

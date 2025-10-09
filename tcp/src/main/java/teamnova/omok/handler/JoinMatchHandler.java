@@ -1,6 +1,6 @@
 package teamnova.omok.handler;
 
-import teamnova.omok.handler.decoder.StringDecoder;
+import teamnova.omok.message.decoder.StringDecoder;
 import teamnova.omok.handler.register.FrameHandler;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.nio.ClientSession;

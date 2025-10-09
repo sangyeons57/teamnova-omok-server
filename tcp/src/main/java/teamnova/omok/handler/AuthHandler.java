@@ -15,7 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import teamnova.omok.handler.decoder.StringDecoder;
+import teamnova.omok.message.decoder.StringDecoder;
 import teamnova.omok.handler.register.FrameHandler;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.service.DotenvService;

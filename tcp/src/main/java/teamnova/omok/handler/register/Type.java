@@ -9,6 +9,12 @@ public enum Type {
     JOIN_MATCH(3),
     JOIN_IN_GAME_SESSION(4),
     LEAVE_IN_GAME_SESSION(5),
+    READY_IN_GAME_SESSION(6),
+    GAME_SESSION_STARTED(7),
+    PLACE_STONE(8),
+    STONE_PLACED(9),
+    TURN_TIMEOUT(10),
+
     ERROR(255),
     ;
     public final byte value;
