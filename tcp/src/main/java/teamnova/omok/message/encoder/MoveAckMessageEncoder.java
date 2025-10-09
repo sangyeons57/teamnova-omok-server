@@ -26,6 +26,7 @@ public final class MoveAckMessageEncoder {
           .append("\"turn\":");
         MessageEncodingUtil.appendTurn(sb, result.turnSnapshot());
         sb.append('}');
+        System.out.println(sb.toString());
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 }
