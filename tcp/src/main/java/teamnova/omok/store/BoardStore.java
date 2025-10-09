@@ -20,6 +20,7 @@ public class BoardStore {
         this.width = width;
         this.height = height;
         this.cells = new byte[width * height];
+        Arrays.fill(cells, Stone.EMPTY.code());
     }
 
     public int width() {
