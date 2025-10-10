@@ -6,5 +6,7 @@ package teamnova.omok.state.game.event;
 public enum GameSessionEventType {
     READY,
     MOVE,
-    TIMEOUT
+    TIMEOUT,
+    POST_GAME_DECISION,
+    DECISION_TIMEOUT
 }

@@ -6,6 +6,7 @@ import teamnova.omok.state.game.contract.GameSessionState;
 import teamnova.omok.state.game.event.GameSessionEventRegistry;
 import teamnova.omok.state.game.event.GameSessionEventType;
 import teamnova.omok.state.game.event.MoveEvent;
+import teamnova.omok.state.game.event.PostGameDecisionEvent;
 import teamnova.omok.state.game.event.ReadyEvent;
 import teamnova.omok.state.game.event.TimeoutEvent;
 import teamnova.omok.state.game.manage.GameSessionStateContext;
@@ -27,6 +28,7 @@ public class CompletedGameSessionState implements GameSessionState {
         registry.register(GameSessionEventType.READY, ReadyEvent.class, this::handleReady);
         registry.register(GameSessionEventType.MOVE, MoveEvent.class, this::handleMove);
         registry.register(GameSessionEventType.TIMEOUT, TimeoutEvent.class, this::handleTimeout);
+        registry.register(GameSessionEventType.POST_GAME_DECISION, PostGameDecisionEvent.class, this::handlePostGameDecision);
     }
 
     private GameSessionStateStep handleReady(GameSessionStateContext context,
@@ -88,6 +90,19 @@ public class CompletedGameSessionState implements GameSessionState {
             context.turnService().snapshot(session.getTurnStore(), session.getUserIds());
         context.pendingTimeoutResult(
             InGameSessionService.TurnTimeoutResult.noop(session, snapshot)
+        );
+        return GameSessionStateStep.stay();
+    }
+
+    private GameSessionStateStep handlePostGameDecision(GameSessionStateContext context,
+                                                        PostGameDecisionEvent event) {
+        GameSession session = context.session();
+        context.pendingDecisionResult(
+            InGameSessionService.PostGameDecisionResult.rejected(
+                session,
+                event.userId(),
+                InGameSessionService.PostGameDecisionStatus.SESSION_CLOSED
+            )
         );
         return GameSessionStateStep.stay();
     }

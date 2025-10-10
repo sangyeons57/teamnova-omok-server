@@ -8,6 +8,7 @@ import teamnova.omok.handler.HelloWorldHandler;
 import teamnova.omok.message.decoder.StringDecoder;
 import teamnova.omok.handler.JoinMatchHandler;
 import teamnova.omok.handler.LeaveInGameSessionHandler;
+import teamnova.omok.handler.PostGameDecisionHandler;
 import teamnova.omok.handler.PlaceStoneHandler;
 import teamnova.omok.handler.ReadyInGameSessionHandler;
 import teamnova.omok.service.ServiceContainer;
@@ -38,6 +39,7 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
         register(Type.LEAVE_IN_GAME_SESSION, new LeaveInGameSessionHandler());
         register(Type.READY_IN_GAME_SESSION, new ReadyInGameSessionHandler());
         register(Type.PLACE_STONE, new PlaceStoneHandler(stringDecoder));
+        register(Type.POST_GAME_DECISION, new PostGameDecisionHandler(stringDecoder));
     }
 
     public void register(Type type, FrameHandler frameHandler ) {

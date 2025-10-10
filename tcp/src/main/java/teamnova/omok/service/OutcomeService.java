@@ -35,6 +35,11 @@ public class OutcomeService {
             return false;
         }
 
+        for (String disconnectedId : session.disconnectedUsersView()) {
+            if (!disconnectedId.equals(userId)) {
+                session.updateOutcome(disconnectedId, PlayerResult.LOSS);
+            }
+        }
         session.updateOutcome(userId, PlayerResult.WIN);
         List<String> userIds = session.getUserIds();
         for (String uid : userIds) {
@@ -42,6 +47,14 @@ public class OutcomeService {
                 session.updateOutcome(uid, PlayerResult.LOSS);
             }
         }
+        System.out.printf(
+            "[OutcomeService] Game %s finished: winner=%s stone=%s position=(%d,%d)%n",
+            session.getId(),
+            userId,
+            stone,
+            x,
+            y
+        );
         return true;
     }
 }

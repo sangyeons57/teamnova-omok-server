@@ -21,6 +21,12 @@ public final class GameSessionStateContext {
     private InGameSessionService.MoveResult pendingMoveResult;
     private InGameSessionService.ReadyResult pendingReadyResult;
     private InGameSessionService.TurnTimeoutResult pendingTimeoutResult;
+    private InGameSessionService.PostGameDecisionResult pendingDecisionResult;
+    private InGameSessionService.PostGameDecisionUpdate pendingDecisionUpdate;
+    private InGameSessionService.PostGameDecisionPrompt pendingDecisionPrompt;
+    private InGameSessionService.PostGameResolution pendingPostGameResolution;
+    private long postGameDecisionDeadline;
+    private InGameSessionService.GameCompletionNotice pendingGameCompletion;
 
     public GameSessionStateContext(GameSession session,
                                    BoardService boardService,
@@ -92,5 +98,67 @@ public final class GameSessionStateContext {
         InGameSessionService.TurnTimeoutResult result = this.pendingTimeoutResult;
         this.pendingTimeoutResult = null;
         return result;
+    }
+
+    public void pendingDecisionResult(InGameSessionService.PostGameDecisionResult result) {
+        this.pendingDecisionResult = result;
+    }
+
+    public InGameSessionService.PostGameDecisionResult consumePendingDecisionResult() {
+        InGameSessionService.PostGameDecisionResult result = this.pendingDecisionResult;
+        this.pendingDecisionResult = null;
+        return result;
+    }
+
+    public void pendingDecisionUpdate(InGameSessionService.PostGameDecisionUpdate update) {
+        this.pendingDecisionUpdate = update;
+    }
+
+    public InGameSessionService.PostGameDecisionUpdate consumePendingDecisionUpdate() {
+        InGameSessionService.PostGameDecisionUpdate update = this.pendingDecisionUpdate;
+        this.pendingDecisionUpdate = null;
+        return update;
+    }
+
+    public void pendingDecisionPrompt(InGameSessionService.PostGameDecisionPrompt prompt) {
+        this.pendingDecisionPrompt = prompt;
+    }
+
+    public InGameSessionService.PostGameDecisionPrompt consumePendingDecisionPrompt() {
+        InGameSessionService.PostGameDecisionPrompt prompt = this.pendingDecisionPrompt;
+        this.pendingDecisionPrompt = null;
+        return prompt;
+    }
+
+    public void pendingPostGameResolution(InGameSessionService.PostGameResolution resolution) {
+        this.pendingPostGameResolution = resolution;
+    }
+
+    public InGameSessionService.PostGameResolution consumePendingPostGameResolution() {
+        InGameSessionService.PostGameResolution resolution = this.pendingPostGameResolution;
+        this.pendingPostGameResolution = null;
+        return resolution;
+    }
+
+    public void postGameDecisionDeadline(long deadline) {
+        this.postGameDecisionDeadline = deadline;
+    }
+
+    public long postGameDecisionDeadline() {
+        return postGameDecisionDeadline;
+    }
+
+    public void clearPostGameDecisionDeadline() {
+        this.postGameDecisionDeadline = 0L;
+    }
+
+    public void pendingGameCompletion(InGameSessionService.GameCompletionNotice notice) {
+        this.pendingGameCompletion = notice;
+    }
+
+    public InGameSessionService.GameCompletionNotice consumePendingGameCompletion() {
+        InGameSessionService.GameCompletionNotice notice = this.pendingGameCompletion;
+        this.pendingGameCompletion = null;
+        return notice;
     }
 }

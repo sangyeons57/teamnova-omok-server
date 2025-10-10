@@ -20,6 +20,10 @@ import teamnova.omok.state.game.state.LobbyGameSessionState;
 import teamnova.omok.state.game.state.MoveApplyingState;
 import teamnova.omok.state.game.state.MoveValidatingState;
 import teamnova.omok.state.game.state.OutcomeEvaluatingState;
+import teamnova.omok.state.game.state.PostGameDecisionResolvingState;
+import teamnova.omok.state.game.state.PostGameDecisionWaitingState;
+import teamnova.omok.state.game.state.SessionRematchPreparingState;
+import teamnova.omok.state.game.state.SessionTerminatingState;
 import teamnova.omok.state.game.state.TurnFinalizingState;
 import teamnova.omok.state.game.state.TurnWaitingState;
 import teamnova.omok.store.GameSession;
@@ -46,6 +50,10 @@ public class GameSessionStateManager {
         registerState(GameSessionStateType.MOVE_APPLYING, new MoveApplyingState());
         registerState(GameSessionStateType.OUTCOME_EVALUATING, new OutcomeEvaluatingState());
         registerState(GameSessionStateType.TURN_FINALIZING, new TurnFinalizingState());
+        registerState(GameSessionStateType.POST_GAME_DECISION_WAITING, new PostGameDecisionWaitingState());
+        registerState(GameSessionStateType.POST_GAME_DECISION_RESOLVING, new PostGameDecisionResolvingState());
+        registerState(GameSessionStateType.SESSION_REMATCH_PREPARING, new SessionRematchPreparingState());
+        registerState(GameSessionStateType.SESSION_TERMINATING, new SessionTerminatingState());
         registerState(GameSessionStateType.COMPLETED, new CompletedGameSessionState());
         this.currentRegistration = registrations.get(GameSessionStateType.LOBBY);
         if (currentRegistration == null) {

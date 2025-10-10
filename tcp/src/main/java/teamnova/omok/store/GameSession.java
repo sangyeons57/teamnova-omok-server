@@ -4,11 +4,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import teamnova.omok.game.PlayerResult;
+import teamnova.omok.game.PostGameDecision;
 
 /**
  * Represents an in-game session with participants and mutable runtime state.
@@ -17,6 +19,7 @@ public class GameSession {
     public static final int BOARD_WIDTH = BoardStore.DEFAULT_WIDTH;
     public static final int BOARD_HEIGHT = BoardStore.DEFAULT_HEIGHT;
     public static final long TURN_DURATION_MILLIS = 15_000L;
+    public static final long POST_GAME_DECISION_DURATION_MILLIS = 30_000L;
 
     private final UUID id;
     private final List<String> userIds;
@@ -24,9 +27,14 @@ public class GameSession {
 
     private final ReentrantLock lock = new ReentrantLock();
     private final Map<String, Boolean> readyStates = new ConcurrentHashMap<>();
+    // Users who dropped before the game finished or chose to leave during post-game decisions.
+    private final Set<String> disconnectedUserIds = ConcurrentHashMap.newKeySet();
+    // Tracks players who opted into a rematch during the post-game window.
     private final BoardStore boardStore;
     private final TurnStore turnStore;
     private final OutcomeStore outcomeStore;
+    private final Map<String, PostGameDecision> postGameDecisions = new ConcurrentHashMap<>();
+    private final Set<String> rematchRequestUserIds = ConcurrentHashMap.newKeySet();
 
     private volatile boolean gameStarted;
     private volatile long gameStartedAt;
@@ -100,6 +108,60 @@ public class GameSession {
 
     public Map<String, Boolean> readyStatesView() {
         return Collections.unmodifiableMap(readyStates);
+    }
+
+    public boolean markDisconnected(String userId) {
+        return disconnectedUserIds.add(userId);
+    }
+
+    public boolean clearDisconnected(String userId) {
+        return disconnectedUserIds.remove(userId);
+    }
+
+    public Set<String> disconnectedUsersView() {
+        return Collections.unmodifiableSet(disconnectedUserIds);
+    }
+
+    public void resetDisconnectedUsers() {
+        disconnectedUserIds.clear();
+    }
+
+    public boolean recordPostGameDecision(String userId, PostGameDecision decision) {
+        if (userId == null || decision == null || !containsUser(userId)) {
+            return false;
+        }
+        PostGameDecision previous = postGameDecisions.putIfAbsent(userId, decision);
+        if (previous != null) {
+            return false;
+        }
+        if (decision == PostGameDecision.REMATCH) {
+            rematchRequestUserIds.add(userId);
+        } else {
+            rematchRequestUserIds.remove(userId);
+            markDisconnected(userId);
+        }
+        return true;
+    }
+
+    public boolean hasPostGameDecision(String userId) {
+        return postGameDecisions.containsKey(userId);
+    }
+
+    public PostGameDecision decisionFor(String userId) {
+        return postGameDecisions.get(userId);
+    }
+
+    public Map<String, PostGameDecision> postGameDecisionsView() {
+        return Collections.unmodifiableMap(postGameDecisions);
+    }
+
+    public Set<String> rematchRequestsView() {
+        return Collections.unmodifiableSet(rematchRequestUserIds);
+    }
+
+    public void resetPostGameDecisions() {
+        postGameDecisions.clear();
+        rematchRequestUserIds.clear();
     }
 
     public int playerIndexOf(String userId) {

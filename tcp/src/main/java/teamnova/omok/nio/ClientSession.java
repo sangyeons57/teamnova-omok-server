@@ -12,9 +12,12 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import teamnova.omok.handler.register.Type;
-import teamnova.omok.nio.codec.EncodeFrame;
 import teamnova.omok.nio.codec.DecodeFrame;
+import teamnova.omok.nio.codec.EncodeFrame;
 import teamnova.omok.state.client.manage.ClientStateManager;
+import teamnova.omok.state.client.manage.ClientStateType;
+import teamnova.omok.state.game.manage.GameSessionStateManager;
+import teamnova.omok.store.GameSession;
 
 /**
  * Represents a single client connection managed by the selector.
@@ -149,6 +152,7 @@ public final class ClientSession implements Closeable {
 
     @Override
     public void close() {
+        recordGameDisconnectIfNeeded();
         // cancel any outstanding matching ticket upon close
         ClientSessions.cancelMatchingIfAuthenticated(this);
         // remove from user session index if mapped to this session
@@ -214,6 +218,24 @@ public final class ClientSession implements Closeable {
             newCapacity <<= 1;
         }
         inboundBuffer = Arrays.copyOf(inboundBuffer, newCapacity);
+    }
+
+    private void recordGameDisconnectIfNeeded() {
+        if (stateManager.currentType() != ClientStateType.IN_GAME) {
+            return;
+        }
+        GameSessionStateManager gameManager = stateManager.context().gameStateManager();
+        if (gameManager == null) {
+            return;
+        }
+        GameSession session = gameManager.session();
+        if (session == null) {
+            return;
+        }
+        String userId = authenticatedUserId;
+        if (userId != null) {
+            session.markDisconnected(userId);
+        }
     }
 
 }

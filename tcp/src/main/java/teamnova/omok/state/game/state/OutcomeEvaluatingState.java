@@ -33,8 +33,9 @@ public final class OutcomeEvaluatingState implements GameSessionState {
                 cycle.x(),
                 cycle.y()
             ));
+            context.pendingGameCompletion(new InGameSessionService.GameCompletionNotice(cycle.session()));
             context.clearTurnCycle();
-            return GameSessionStateStep.transition(GameSessionStateType.COMPLETED);
+            return GameSessionStateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING);
         }
         return GameSessionStateStep.transition(GameSessionStateType.TURN_FINALIZING);
     }
