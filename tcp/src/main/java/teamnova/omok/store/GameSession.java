@@ -8,6 +8,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import teamnova.omok.game.PlayerResult;
+
 /**
  * Represents an in-game session with participants and mutable runtime state.
  */
@@ -24,6 +26,7 @@ public class GameSession {
     private final Map<String, Boolean> readyStates = new ConcurrentHashMap<>();
     private final BoardStore boardStore;
     private final TurnStore turnStore;
+    private final OutcomeStore outcomeStore;
 
     private volatile boolean gameStarted;
     private volatile long gameStartedAt;
@@ -38,6 +41,7 @@ public class GameSession {
         this.createdAt = System.currentTimeMillis();
         this.boardStore = new BoardStore(BOARD_WIDTH, BOARD_HEIGHT);
         this.turnStore = new TurnStore();
+        this.outcomeStore = new OutcomeStore(this.userIds);
 
         for (String userId : this.userIds) {
             readyStates.put(userId, Boolean.FALSE);
@@ -104,5 +108,25 @@ public class GameSession {
 
     public boolean containsUser(String userId) {
         return readyStates.containsKey(userId);
+    }
+
+    public void resetOutcomes() {
+        outcomeStore.reset(userIds);
+    }
+
+    public OutcomeStore getOutcomeStore() {
+        return outcomeStore;
+    }
+
+    public PlayerResult outcomeFor(String userId) {
+        return outcomeStore.resultFor(userId);
+    }
+
+    public boolean updateOutcome(String userId, PlayerResult result) {
+        return outcomeStore.updateResult(userId, result);
+    }
+
+    public boolean isGameFinished() {
+        return outcomeStore.isResolved();
     }
 }

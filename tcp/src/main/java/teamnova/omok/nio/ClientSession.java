@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.nio.codec.EncodeFrame;
 import teamnova.omok.nio.codec.DecodeFrame;
+import teamnova.omok.state.client.manage.ClientStateManager;
 
 /**
  * Represents a single client connection managed by the selector.
@@ -37,11 +38,14 @@ public final class ClientSession implements Closeable {
     private volatile String authenticatedRole;
     private volatile String authenticatedScope;
 
+    private final ClientStateManager stateManager;
+
 
     public ClientSession(SocketChannel channel) {
         this.channel = Objects.requireNonNull(channel, "channel");
         // Initialize last contact time at session creation
         this.lastContactTime = System.currentTimeMillis();
+        this.stateManager = new ClientStateManager(this);
     }
 
     void attachKey(SelectionKey key) {
@@ -149,6 +153,7 @@ public final class ClientSession implements Closeable {
         ClientSessions.cancelMatchingIfAuthenticated(this);
         // remove from user session index if mapped to this session
         ClientSessions.onSessionClosed(this);
+        stateManager.disconnect();
         try {
             System.out.printf("Closing connection %s%n", remoteAddress());
         } catch (IOException ignore) { /* ignore */ }
@@ -167,6 +172,7 @@ public final class ClientSession implements Closeable {
         this.authenticatedUserId = userId;
         this.authenticatedRole = role;
         this.authenticatedScope = scope;
+        stateManager.markAuthenticated();
     }
 
     public void clearAuthentication() {
@@ -174,6 +180,8 @@ public final class ClientSession implements Closeable {
         this.authenticatedUserId = null;
         this.authenticatedRole = null;
         this.authenticatedScope = null;
+        // revert to the connected state when authentication is cleared
+        stateManager.resetToConnected();
     }
 
     public boolean isAuthenticated() {
@@ -190,6 +198,10 @@ public final class ClientSession implements Closeable {
 
     public String authenticatedScope() {
         return authenticatedScope;
+    }
+
+    public ClientStateManager stateManager() {
+        return stateManager;
     }
 
 

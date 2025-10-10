@@ -1,17 +1,25 @@
 package teamnova.omok.service;
 
 import teamnova.omok.handler.register.Type;
+import teamnova.omok.game.PlayerResult;
+import teamnova.omok.message.encoder.ErrorMessageEncoder;
 import teamnova.omok.message.encoder.GameSessionStartedMessageEncoder;
 import teamnova.omok.message.encoder.JoinSessionMessageEncoder;
+import teamnova.omok.message.encoder.MoveAckMessageEncoder;
 import teamnova.omok.message.encoder.ReadyStateMessageEncoder;
 import teamnova.omok.message.encoder.StonePlacedMessageEncoder;
 import teamnova.omok.message.encoder.TurnTimeoutMessageEncoder;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.NioReactorServer;
+import teamnova.omok.state.game.event.MoveEvent;
+import teamnova.omok.state.game.event.ReadyEvent;
+import teamnova.omok.state.game.event.TimeoutEvent;
+import teamnova.omok.state.game.manage.GameSessionStateContext;
+import teamnova.omok.state.game.manage.GameSessionStateManager;
+import teamnova.omok.state.game.manage.GameSessionStateType;
 import teamnova.omok.store.GameSession;
 import teamnova.omok.store.InGameSessionStore;
 import teamnova.omok.store.Stone;
-import teamnova.omok.store.TurnStore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,31 +29,25 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 public class InGameSessionService {
     private final InGameSessionStore store;
     private final BoardService boardService;
     private final TurnService turnService;
     private final ConcurrentMap<String, ClientSession> clients = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService turnScheduler;
-    private final ConcurrentMap<UUID, TimeoutRef> timeoutTasks = new ConcurrentHashMap<>();
+    private final TurnTimeoutCoordinator timeoutCoordinator;
 
     private volatile NioReactorServer server;
 
-    public InGameSessionService(InGameSessionStore store, BoardService boardService, TurnService turnService) {
+    public InGameSessionService(InGameSessionStore store,
+                                BoardService boardService,
+                                TurnService turnService,
+                                OutcomeService outcomeService) {
+        Objects.requireNonNull(outcomeService, "outcomeService");
         this.store = Objects.requireNonNull(store, "store");
         this.boardService = Objects.requireNonNull(boardService, "boardService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
-        this.turnScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r);
-            t.setName("turn-timeout");
-            t.setDaemon(true);
-            return t;
-        });
+        this.timeoutCoordinator = new TurnTimeoutCoordinator();
     }
 
     public void attachServer(NioReactorServer server) {
@@ -71,105 +73,44 @@ public class InGameSessionService {
     }
 
     public void leaveByUser(String userId) {
-        store.findByUserId(userId).ifPresent(session -> cancelTimeout(session.getId()));
+        store.findByUserId(userId).ifPresent(session -> {
+            timeoutCoordinator.cancel(session.getId());
+            session.lock().lock();
+            try {
+                session.updateOutcome(userId, PlayerResult.LOSS);
+            } finally {
+                session.lock().unlock();
+            }
+        });
         store.removeByUserId(userId);
     }
 
-    public Optional<ReadyResult> markReady(String userId) {
+    public boolean submitReady(String userId, long requestId) {
         Objects.requireNonNull(userId, "userId");
         Optional<GameSession> optionalSession = store.findByUserId(userId);
         if (optionalSession.isEmpty()) {
-            return Optional.empty();
+            return false;
         }
         GameSession session = optionalSession.get();
-        ReadyResult result;
-        TurnService.TurnSnapshot snapshot = null;
+        GameSessionStateManager manager = store.ensureManager(session);
         long now = System.currentTimeMillis();
-
-        session.lock().lock();
-        try {
-            int playerIndex = session.playerIndexOf(userId);
-            if (playerIndex < 0) {
-                result = ReadyResult.invalid(session, userId);
-            } else {
-                boolean changed = session.markReady(userId);
-                boolean allReady = session.allReady();
-                boolean startedNow = false;
-                if (allReady && !session.isGameStarted()) {
-                    startedNow = true;
-                    session.markGameStarted(now);
-                    boardService.reset(session.getBoardStore());
-                    snapshot = turnService.start(session.getTurnStore(), session.getUserIds(), now);
-                } else if (session.isGameStarted()) {
-                    snapshot = turnService.snapshot(session.getTurnStore(), session.getUserIds());
-                }
-                result = new ReadyResult(session, true, changed, allReady, startedNow, snapshot, userId);
-            }
-        } finally {
-            session.lock().unlock();
-        }
-
-        if (!result.validUser()) {
-            return Optional.of(result);
-        }
-
-        if (result.stateChanged()) {
-            broadcastReady(result);
-        }
-        if (result.gameStartedNow() && result.firstTurn() != null) {
-            broadcastGameStart(result.session(), result.firstTurn());
-            scheduleTurnTimeout(result.session(), result.firstTurn());
-        }
-        return Optional.of(result);
+        ReadyEvent event = new ReadyEvent(userId, now, requestId);
+        manager.submit(event, ctx -> handleReadyCompletion(manager, ctx, event));
+        return true;
     }
 
-    public Optional<MoveResult> placeStone(String userId, int x, int y) {
+    public boolean submitMove(String userId, long requestId, int x, int y) {
         Objects.requireNonNull(userId, "userId");
         Optional<GameSession> optionalSession = store.findByUserId(userId);
         if (optionalSession.isEmpty()) {
-            return Optional.empty();
+            return false;
         }
         GameSession session = optionalSession.get();
-        MoveResult result;
+        GameSessionStateManager manager = store.ensureManager(session);
         long now = System.currentTimeMillis();
-
-        session.lock().lock();
-        try {
-            int playerIndex = session.playerIndexOf(userId);
-            if (playerIndex < 0) {
-                result = MoveResult.invalid(session, MoveStatus.INVALID_PLAYER, null, userId, x, y);
-            } else if (!session.isGameStarted()) {
-                result = MoveResult.invalid(session, MoveStatus.GAME_NOT_STARTED, null, userId, x, y);
-            } else {
-                TurnStore turnStore = session.getTurnStore();
-                TurnService.TurnSnapshot currentSnapshot = turnService.snapshot(turnStore, session.getUserIds());
-                if (!boardService.isWithinBounds(session.getBoardStore(), x, y)) {
-                    result = MoveResult.invalid(session, MoveStatus.OUT_OF_BOUNDS, currentSnapshot, userId, x, y);
-                } else {
-                    Integer currentIndex = turnService.currentPlayerIndex(turnStore);
-                    if (currentIndex == null || currentIndex != playerIndex) {
-                        result = MoveResult.invalid(session, MoveStatus.OUT_OF_TURN, currentSnapshot, userId, x, y);
-                    } else if (!boardService.isEmpty(session.getBoardStore(), x, y)) {
-                        result = MoveResult.invalid(session, MoveStatus.CELL_OCCUPIED, currentSnapshot, userId, x, y);
-                    } else {
-                        Stone stone = Stone.fromPlayerOrder(playerIndex);
-                        boardService.setStone(session.getBoardStore(), x, y, stone);
-                        TurnService.TurnSnapshot nextTurn = turnService.advance(turnStore, session.getUserIds(), now);
-                        result = MoveResult.success(session, stone, nextTurn, userId, x, y);
-                    }
-                }
-            }
-        } finally {
-            session.lock().unlock();
-        }
-
-        if (result.status() == MoveStatus.SUCCESS) {
-            broadcastStonePlaced(result);
-            if (result.turnSnapshot() != null) {
-                scheduleTurnTimeout(result.session(), result.turnSnapshot());
-            }
-        }
-        return Optional.of(result);
+        MoveEvent event = new MoveEvent(userId, x, y, now, requestId);
+        manager.submit(event, ctx -> handleMoveCompletion(manager, ctx, event));
+        return true;
     }
 
     public GameSession createFromGroup(NioReactorServer server, MatchingService.Group group) {
@@ -215,6 +156,23 @@ public class InGameSessionService {
         broadcastToSession(srv, session, Type.TURN_TIMEOUT, payload);
     }
 
+    private void respondToUser(String userId, Type type, long requestId, byte[] payload) {
+        NioReactorServer srv = server;
+        if (srv == null) {
+            return;
+        }
+        ClientSession cs = clients.get(userId);
+        if (cs == null) {
+            return;
+        }
+        cs.enqueueResponse(type, requestId, payload);
+        srv.enqueueSelectorTask(cs::enableWriteInterest);
+    }
+
+    private void respondError(String userId, Type type, long requestId, String message) {
+        respondToUser(userId, type, requestId, ErrorMessageEncoder.encode(message));
+    }
+
     private void broadcastToSession(NioReactorServer srv, GameSession session, Type type, byte[] payload) {
         for (String uid : session.getUserIds()) {
             ClientSession cs = clients.get(uid);
@@ -226,32 +184,119 @@ public class InGameSessionService {
     }
 
     private void scheduleTurnTimeout(GameSession session, TurnService.TurnSnapshot turnSnapshot) {
-        if (turnSnapshot == null || turnSnapshot.turnEndAt() <= 0) {
-            cancelTimeout(session.getId());
-            return;
-        }
-        long now = System.currentTimeMillis();
-        long delay = Math.max(0L, turnSnapshot.turnEndAt() - now);
-        UUID sessionId = session.getId();
-        timeoutTasks.compute(sessionId, (id, previous) -> {
-            if (previous != null) {
-                previous.future.cancel(false);
-            }
-            ScheduledFuture<?> future = turnScheduler.schedule(
-                () -> onTurnTimeout(sessionId, turnSnapshot.turnNumber()),
-                delay,
-                TimeUnit.MILLISECONDS
-            );
-            return new TimeoutRef(future, turnSnapshot.turnNumber());
-        });
+        timeoutCoordinator.schedule(session, turnSnapshot, this::handleScheduledTimeout);
     }
 
-    private void onTurnTimeout(UUID sessionId, int expectedTurnNumber) {
-        TimeoutRef ref = timeoutTasks.get(sessionId);
-        if (ref == null || ref.turnNumber != expectedTurnNumber) {
+    private void handleReadyCompletion(GameSessionStateManager manager,
+                                       GameSessionStateContext ctx,
+                                       ReadyEvent event) {
+        ReadyResult result = ctx.consumePendingReadyResult();
+        if (result == null) {
+            String message;
+            GameSession session = manager.session();
+            if (!session.containsUser(event.userId())) {
+                message = "INVALID_PLAYER";
+            } else if (manager.currentType() == GameSessionStateType.COMPLETED) {
+                message = "GAME_FINISHED";
+            } else if (!session.isGameStarted()) {
+                message = "GAME_NOT_STARTED";
+            } else {
+                message = "INVALID_STATE";
+            }
+            respondError(event.userId(), Type.READY_IN_GAME_SESSION, event.requestId(), message);
             return;
         }
-        if (!timeoutTasks.remove(sessionId, ref)) {
+        if (!result.validUser()) {
+            respondError(event.userId(), Type.READY_IN_GAME_SESSION, event.requestId(), "INVALID_PLAYER");
+            return;
+        }
+        respondToUser(
+            event.userId(),
+            Type.READY_IN_GAME_SESSION,
+            event.requestId(),
+            ReadyStateMessageEncoder.encode(result)
+        );
+        if (result.stateChanged()) {
+            broadcastReady(result);
+        }
+        if (result.gameStartedNow() && result.firstTurn() != null) {
+            broadcastGameStart(result.session(), result.firstTurn());
+            scheduleTurnTimeout(result.session(), result.firstTurn());
+        }
+        if (manager.currentType() == GameSessionStateType.COMPLETED) {
+            timeoutCoordinator.cancel(result.session().getId());
+        }
+    }
+
+    private void handleMoveCompletion(GameSessionStateManager manager,
+                                      GameSessionStateContext ctx,
+                                      MoveEvent event) {
+        MoveResult result = ctx.consumePendingMoveResult();
+        if (result == null) {
+            GameSession session = manager.session();
+            String message;
+            if (!session.containsUser(event.userId())) {
+                message = "INVALID_PLAYER";
+            } else if (!session.isGameStarted()) {
+                message = "GAME_NOT_STARTED";
+            } else if (session.isGameFinished()) {
+                message = "GAME_FINISHED";
+            } else {
+                message = "TURN_IN_PROGRESS";
+            }
+            respondError(event.userId(), Type.PLACE_STONE, event.requestId(), message);
+            return;
+        }
+        respondToUser(
+            event.userId(),
+            Type.PLACE_STONE,
+            event.requestId(),
+            MoveAckMessageEncoder.encode(result)
+        );
+        if (result.status() == MoveStatus.SUCCESS) {
+            broadcastStonePlaced(result);
+            if (result.turnSnapshot() != null && manager.currentType() == GameSessionStateType.TURN_WAITING) {
+                scheduleTurnTimeout(result.session(), result.turnSnapshot());
+            } else if (result.turnSnapshot() == null) {
+                timeoutCoordinator.cancel(result.session().getId());
+            }
+        }
+        if (manager.currentType() == GameSessionStateType.COMPLETED) {
+            timeoutCoordinator.cancel(result.session().getId());
+        }
+    }
+
+    private void handleTimeoutCompletion(GameSession session,
+                                         GameSessionStateManager manager,
+                                         GameSessionStateContext ctx,
+                                         TimeoutEvent event) {
+        TurnTimeoutResult result = ctx.consumePendingTimeoutResult();
+        if (result == null) {
+            if (!session.isGameFinished()) {
+                TurnService.TurnSnapshot snapshot =
+                    turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                if (snapshot != null) {
+                    scheduleTurnTimeout(session, snapshot);
+                }
+            }
+            return;
+        }
+        boolean waiting = manager.currentType() == GameSessionStateType.TURN_WAITING;
+        if (result.timedOut()) {
+            broadcastTurnTimeout(session, result);
+            if (result.nextTurn() != null && waiting) {
+                scheduleTurnTimeout(session, result.nextTurn());
+            }
+        } else if (result.currentTurn() != null && waiting) {
+            scheduleTurnTimeout(session, result.currentTurn());
+        }
+        if (manager.currentType() == GameSessionStateType.COMPLETED) {
+            timeoutCoordinator.cancel(session.getId());
+        }
+    }
+
+    private void handleScheduledTimeout(UUID sessionId, int expectedTurnNumber) {
+        if (!timeoutCoordinator.validate(sessionId, expectedTurnNumber)) {
             return;
         }
         Optional<GameSession> optionalSession = store.findById(sessionId);
@@ -259,44 +304,11 @@ public class InGameSessionService {
             return;
         }
         GameSession session = optionalSession.get();
+        GameSessionStateManager manager = store.ensureManager(session);
+        timeoutCoordinator.clearIfMatches(sessionId, expectedTurnNumber);
         long now = System.currentTimeMillis();
-        TurnTimeoutResult result = handleTurnTimeout(session, expectedTurnNumber, now);
-        if (result.timedOut()) {
-            broadcastTurnTimeout(session, result);
-            if (result.nextTurn() != null) {
-                scheduleTurnTimeout(session, result.nextTurn());
-            }
-        } else if (result.currentTurn() != null) {
-            scheduleTurnTimeout(session, result.currentTurn());
-        }
-    }
-
-    private TurnTimeoutResult handleTurnTimeout(GameSession session, int expectedTurnNumber, long now) {
-        session.lock().lock();
-        try {
-            if (!session.isGameStarted()) {
-                return TurnTimeoutResult.noop(session, null);
-            }
-            TurnService.TurnSnapshot current = turnService.snapshot(session.getTurnStore(), session.getUserIds());
-            if (current.turnNumber() != expectedTurnNumber) {
-                return TurnTimeoutResult.noop(session, current);
-            }
-            if (!turnService.isExpired(session.getTurnStore(), now)) {
-                return TurnTimeoutResult.noop(session, current);
-            }
-            String previousPlayerId = current.currentPlayerId();
-            TurnService.TurnSnapshot next = turnService.advance(session.getTurnStore(), session.getUserIds(), now);
-            return TurnTimeoutResult.timedOut(session, current, next, previousPlayerId);
-        } finally {
-            session.lock().unlock();
-        }
-    }
-
-    private void cancelTimeout(UUID sessionId) {
-        TimeoutRef ref = timeoutTasks.remove(sessionId);
-        if (ref != null) {
-            ref.future.cancel(false);
-        }
+        TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
+        manager.submit(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
     }
 
     public byte[] boardSnapshot(GameSession session) {
@@ -315,33 +327,32 @@ public class InGameSessionService {
         return session.readyStatesView();
     }
 
-    private record TimeoutRef(ScheduledFuture<?> future, int turnNumber) { }
-
     public enum MoveStatus {
         SUCCESS,
         INVALID_PLAYER,
         GAME_NOT_STARTED,
         OUT_OF_TURN,
         OUT_OF_BOUNDS,
-        CELL_OCCUPIED
+        CELL_OCCUPIED,
+        GAME_FINISHED
     }
 
     public record ReadyResult(GameSession session, boolean validUser, boolean stateChanged,
                               boolean allReady, boolean gameStartedNow,
                               TurnService.TurnSnapshot firstTurn, String userId) {
-        static ReadyResult invalid(GameSession session, String userId) {
+        public static ReadyResult invalid(GameSession session, String userId) {
             return new ReadyResult(session, false, false, false, false, null, userId);
         }
     }
 
     public record MoveResult(GameSession session, MoveStatus status, Stone placedAs,
                              TurnService.TurnSnapshot turnSnapshot, String userId, int x, int y) {
-        static MoveResult success(GameSession session, Stone stone, TurnService.TurnSnapshot nextTurn,
+        public static MoveResult success(GameSession session, Stone stone, TurnService.TurnSnapshot nextTurn,
                                   String userId, int x, int y) {
             return new MoveResult(session, MoveStatus.SUCCESS, stone, nextTurn, userId, x, y);
         }
 
-        static MoveResult invalid(GameSession session, MoveStatus status, TurnService.TurnSnapshot snapshot,
+        public static MoveResult invalid(GameSession session, MoveStatus status, TurnService.TurnSnapshot snapshot,
                                   String userId, int x, int y) {
             return new MoveResult(session, status, null, snapshot, userId, x, y);
         }
@@ -351,11 +362,11 @@ public class InGameSessionService {
                                     TurnService.TurnSnapshot currentTurn,
                                     TurnService.TurnSnapshot nextTurn,
                                     String previousPlayerId) {
-        static TurnTimeoutResult noop(GameSession session, TurnService.TurnSnapshot current) {
+        public static TurnTimeoutResult noop(GameSession session, TurnService.TurnSnapshot current) {
             return new TurnTimeoutResult(session, false, current, current, null);
         }
 
-        static TurnTimeoutResult timedOut(GameSession session, TurnService.TurnSnapshot current,
+        public static TurnTimeoutResult timedOut(GameSession session, TurnService.TurnSnapshot current,
                                           TurnService.TurnSnapshot next, String previousPlayerId) {
             return new TurnTimeoutResult(session, true, current, next, previousPlayerId);
         }

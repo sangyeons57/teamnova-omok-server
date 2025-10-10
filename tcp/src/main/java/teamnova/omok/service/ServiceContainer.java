@@ -17,13 +17,15 @@ public class ServiceContainer {
 
     private final DotenvService dotenvService;
     private final MysqlService mysqlService;
-    private final MatchingService matchingService;
-    private final InGameSessionStore inGameSessionStore;
     private final BoardService boardService;
     private final TurnService turnService;
+    private final OutcomeService outcomeService;
+    private final MatchingService matchingService;
+    private final InGameSessionStore inGameSessionStore;
     private final InGameSessionService inGameSessionService;
 
-    private final ScheduledExecutorService scheduler;
+    private final ScheduledExecutorService matchScheduler;
+    private final ScheduledExecutorService sessionScheduler;
     private volatile boolean started;
 
     private ServiceContainer() {
@@ -31,14 +33,21 @@ public class ServiceContainer {
         String basePath = System.getProperty("user.dir") + "/..";
         this.dotenvService = new DotenvService(basePath);
         this.mysqlService = new MysqlService(dotenvService);
-        this.matchingService = new MatchingService();
-        this.inGameSessionStore = new InGameSessionStore();
         this.boardService = new BoardService();
         this.turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
-        this.inGameSessionService = new InGameSessionService(inGameSessionStore, boardService, turnService);
-        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+        this.outcomeService = new OutcomeService(boardService);
+        this.matchingService = new MatchingService();
+        this.inGameSessionStore = new InGameSessionStore(boardService, turnService, outcomeService);
+        this.inGameSessionService = new InGameSessionService(inGameSessionStore, boardService, turnService, outcomeService);
+        this.matchScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
             t.setName("match-scheduler");
+            t.setDaemon(true);
+            return t;
+        });
+        this.sessionScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r);
+            t.setName("session-scheduler");
             t.setDaemon(true);
             return t;
         });
@@ -53,8 +62,16 @@ public class ServiceContainer {
         if (started) return;
         Objects.requireNonNull(server, "server");
         inGameSessionService.attachServer(server);
+        sessionScheduler.scheduleAtFixedRate(() -> {
+            try {
+                long now = System.currentTimeMillis();
+                inGameSessionStore.updateSessions(now);
+            } catch (Exception ignored) {
+                // keep loop running even if one tick fails
+            }
+        }, 0, 20, TimeUnit.MILLISECONDS);
         // Schedule tryMatch every 500 ms
-        scheduler.scheduleAtFixedRate(() -> {
+        matchScheduler.scheduleAtFixedRate(() -> {
             try {
                 MatchingService.Result result = matchingService.tryMatch();
                 if (result instanceof MatchingService.Result.Success s) {
@@ -80,6 +97,10 @@ public class ServiceContainer {
 
     public TurnService getTurnService() {
         return turnService;
+    }
+
+    public OutcomeService getOutcomeService() {
+        return outcomeService;
     }
 
     public InGameSessionService getInGameSessionService() {
