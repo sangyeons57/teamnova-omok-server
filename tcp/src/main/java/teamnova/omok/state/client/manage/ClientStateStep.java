@@ -3,19 +3,17 @@ package teamnova.omok.state.client.manage;
 import java.util.Objects;
 
 /**
- * Represents the result of executing client state logic, optionally requesting
- * a transition to another state.
- *
- * @param <T> payload emitted by the state operation
+ * Represents the outcome of executing client state logic,
+ * indicating whether a transition should occur.
  */
-public record ClientStateStep<T>(T payload, ClientStateType nextState) {
-    public static <T> ClientStateStep<T> stay(T payload) {
-        return new ClientStateStep<>(payload, null);
+public record ClientStateStep(ClientStateType nextState) {
+    public static ClientStateStep stay() {
+        return new ClientStateStep(null);
     }
 
-    public static <T> ClientStateStep<T> transition(T payload, ClientStateType nextState) {
+    public static ClientStateStep transition(ClientStateType nextState) {
         Objects.requireNonNull(nextState, "nextState");
-        return new ClientStateStep<>(payload, nextState);
+        return new ClientStateStep(nextState);
     }
 
     public boolean hasTransition() {

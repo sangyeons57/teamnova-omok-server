@@ -3,88 +3,144 @@ package teamnova.omok.state.client.manage;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import teamnova.omok.nio.ClientSession;
-import teamnova.omok.state.client.*;
+import teamnova.omok.state.client.contract.ClientState;
+import teamnova.omok.state.client.event.AuthenticatedClientEvent;
+import teamnova.omok.state.client.event.CancelMatchingClientEvent;
+import teamnova.omok.state.client.event.ClientEvent;
+import teamnova.omok.state.client.event.ClientEventRegistry;
+import teamnova.omok.state.client.event.ClientEventRegistry.HandlerEntry;
+import teamnova.omok.state.client.event.ClientEventType;
+import teamnova.omok.state.client.event.DisconnectClientEvent;
+import teamnova.omok.state.client.event.EnterGameClientEvent;
+import teamnova.omok.state.client.event.LeaveGameClientEvent;
+import teamnova.omok.state.client.event.StartMatchingClientEvent;
+import teamnova.omok.state.client.state.AuthenticatedClientState;
+import teamnova.omok.state.client.state.ConnectedClientState;
+import teamnova.omok.state.client.state.DisconnectedClientState;
+import teamnova.omok.state.client.state.InGameClientState;
+import teamnova.omok.state.client.state.MatchingClientState;
 import teamnova.omok.state.game.manage.GameSessionStateManager;
 
 /**
- * Coordinates connection-level state transitions and optionally nests a game state manager
- * when the client participates in a running game.
+ * Coordinates client-level state transitions and routes incoming client events.
  */
-public class ClientStateManager {
+public final class ClientStateManager {
     private final ClientStateContext context;
-    private final Map<ClientStateType, ClientState> states = new EnumMap<>(ClientStateType.class);
-    private ClientState currentState;
+    private final Map<ClientStateType, StateRegistration> registrations =
+        new EnumMap<>(ClientStateType.class);
+    private final Queue<ClientEvent> eventQueue = new ConcurrentLinkedQueue<>();
+    private StateRegistration currentRegistration;
 
     public ClientStateManager(ClientSession session) {
         Objects.requireNonNull(session, "session");
         this.context = new ClientStateContext(session);
-        states.put(ClientStateType.CONNECTED, new ConnectedClientState());
-        states.put(ClientStateType.AUTHENTICATED, new AuthenticatedClientState());
-        states.put(ClientStateType.MATCHING, new MatchingClientState());
-        states.put(ClientStateType.IN_GAME, new InGameClientState());
-        states.put(ClientStateType.DISCONNECTED, new DisconnectedClientState());
-        this.currentState = states.get(ClientStateType.CONNECTED);
-        this.currentState.onEnter(context);
+        registerState(ClientStateType.CONNECTED, new ConnectedClientState());
+        registerState(ClientStateType.AUTHENTICATED, new AuthenticatedClientState());
+        registerState(ClientStateType.MATCHING, new MatchingClientState());
+        registerState(ClientStateType.IN_GAME, new InGameClientState());
+        registerState(ClientStateType.DISCONNECTED, new DisconnectedClientState());
+        this.currentRegistration = registrations.get(ClientStateType.CONNECTED);
+        if (currentRegistration == null) {
+            throw new IllegalStateException("Connected state not registered");
+        }
+        applyTransition(currentRegistration.state.onEnter(context));
+    }
+
+    private void registerState(ClientStateType type, ClientState state) {
+        if (state.type() != type) {
+            throw new IllegalArgumentException("State type mismatch: expected " + type + " but was " + state.type());
+        }
+        ClientEventRegistry registry = new ClientEventRegistry();
+        state.registerHandlers(registry);
+        registrations.put(type, new StateRegistration(state, registry.handlers()));
     }
 
     public ClientStateType currentType() {
-        return currentState.type();
+        return currentRegistration.state.type();
     }
 
-    public GameSessionStateManager currentGame() {
-        return context.gameStateManager();
+    public ClientStateContext context() {
+        return context;
     }
 
     public void markAuthenticated() {
-        applyTransition(currentState.handleAuthenticated(context));
+        submit(new AuthenticatedClientEvent());
     }
 
     public void startMatching() {
-        applyTransition(currentState.handleStartMatching(context));
+        submit(new StartMatchingClientEvent());
     }
 
     public void cancelMatching() {
-        applyTransition(currentState.handleCancelMatching(context));
+        submit(new CancelMatchingClientEvent());
     }
 
     public void enterGame(GameSessionStateManager manager) {
-        applyTransition(currentState.handleEnterGame(context, manager));
+        submit(new EnterGameClientEvent(manager));
     }
 
     public void leaveGame() {
-        applyTransition(currentState.handleLeaveGame(context));
+        submit(new LeaveGameClientEvent());
     }
 
     public void disconnect() {
-        applyTransition(currentState.handleDisconnect(context));
+        submit(new DisconnectClientEvent());
+    }
+
+    public void submit(ClientEvent event) {
+        Objects.requireNonNull(event, "event");
+        eventQueue.add(event);
+        drainEvents();
+    }
+
+    public void update(long now) {
+        ClientStateStep step = currentRegistration.state.onUpdate(context, now);
+        applyTransition(step);
     }
 
     public void resetToConnected() {
-        transitionTo(ClientStateType.CONNECTED);
+        transitionDirect(ClientStateType.CONNECTED);
     }
 
-    private void applyTransition(ClientStateStep<?> step) {
-        if (step == null || !step.hasTransition()) {
-            return;
+    private void drainEvents() {
+        ClientEvent event;
+        while ((event = eventQueue.poll()) != null) {
+            handleEvent(event);
         }
-        transitionTo(step.nextState());
     }
 
-    private void transitionTo(ClientStateType targetType) {
-        if (targetType == null) {
-            return;
-        }
-        ClientState nextState = states.get(targetType);
-        if (nextState == null) {
-            throw new IllegalStateException("No client state registered for " + targetType);
-        }
-        if (currentState == nextState) {
-            return;
-        }
-        currentState.onExit(context);
-        currentState = nextState;
-        currentState.onEnter(context);
+    private void handleEvent(ClientEvent event) {
+        HandlerEntry entry = currentRegistration.handlers.get(event.type());
+        ClientStateStep step = (entry != null)
+            ? entry.invoke(context, event)
+            : ClientStateStep.stay();
+        applyTransition(step);
     }
+
+    private void applyTransition(ClientStateStep step) {
+        if (step != null && step.hasTransition()) {
+            transitionDirect(step.nextState());
+        }
+    }
+
+    private void transitionDirect(ClientStateType targetType) {
+        StateRegistration next = registrations.get(targetType);
+        if (next == null) {
+            throw new IllegalStateException("No client state registered for type " + targetType);
+        }
+        if (next == currentRegistration) {
+            return;
+        }
+        currentRegistration.state.onExit(context);
+        currentRegistration = next;
+        ClientStateStep entryStep = currentRegistration.state.onEnter(context);
+        applyTransition(entryStep);
+    }
+
+    private record StateRegistration(ClientState state,
+                                     Map<ClientEventType, HandlerEntry> handlers) { }
 }
