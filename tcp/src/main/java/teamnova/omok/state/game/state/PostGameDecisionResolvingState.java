@@ -3,7 +3,7 @@ package teamnova.omok.state.game.state;
 import java.util.ArrayList;
 import java.util.List;
 
-import teamnova.omok.service.InGameSessionService;
+import teamnova.omok.service.dto.PostGameResolution;
 import teamnova.omok.state.game.contract.GameSessionState;
 import teamnova.omok.state.game.event.GameSessionEventRegistry;
 import teamnova.omok.state.game.manage.GameSessionStateContext;
@@ -32,12 +32,12 @@ public final class PostGameDecisionResolvingState implements GameSessionState {
         List<String> disconnected = new ArrayList<>(session.disconnectedUsersView());
         if (rematch.size() >= 2) {
             context.pendingPostGameResolution(
-                InGameSessionService.PostGameResolution.rematch(session, rematch, disconnected)
+                PostGameResolution.rematch(session, rematch, disconnected)
             );
             return GameSessionStateStep.transition(GameSessionStateType.SESSION_REMATCH_PREPARING);
         }
         context.pendingPostGameResolution(
-            InGameSessionService.PostGameResolution.terminate(session, disconnected)
+            PostGameResolution.terminate(session, disconnected)
         );
         return GameSessionStateStep.transition(GameSessionStateType.SESSION_TERMINATING);
     }

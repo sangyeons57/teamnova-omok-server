@@ -9,8 +9,8 @@ import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.FramedMessage;
 import teamnova.omok.nio.NioReactorServer;
 import teamnova.omok.service.InGameSessionService;
-import teamnova.omok.service.InGameSessionService.PostGameDecisionResult;
-import teamnova.omok.service.InGameSessionService.PostGameDecisionStatus;
+import teamnova.omok.service.dto.PostGameDecisionResult;
+import teamnova.omok.service.dto.PostGameDecisionStatus;
 import teamnova.omok.service.ServiceContainer;
 
 public class PostGameDecisionHandler implements FrameHandler {

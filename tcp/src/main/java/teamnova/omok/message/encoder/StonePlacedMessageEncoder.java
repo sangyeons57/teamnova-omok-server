@@ -1,12 +1,13 @@
 package teamnova.omok.message.encoder;
 
 import java.nio.charset.StandardCharsets;
-import teamnova.omok.service.InGameSessionService;
+
+import teamnova.omok.service.dto.MoveResult;
 
 public final class StonePlacedMessageEncoder {
     private StonePlacedMessageEncoder() {}
 
-    public static byte[] encode(InGameSessionService.MoveResult result) {
+    public static byte[] encode(MoveResult result) {
         StringBuilder sb = new StringBuilder(224);
         sb.append('{')
           .append("\"sessionId\":\"").append(result.session().getId()).append('\"')

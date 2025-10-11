@@ -1,6 +1,7 @@
 package teamnova.omok.state.game.state;
 
-import teamnova.omok.service.InGameSessionService;
+import teamnova.omok.service.dto.GameCompletionNotice;
+import teamnova.omok.service.dto.MoveResult;
 import teamnova.omok.state.game.contract.GameSessionState;
 import teamnova.omok.state.game.manage.GameSessionStateContext;
 import teamnova.omok.state.game.manage.GameSessionStateStep;
@@ -25,7 +26,7 @@ public final class OutcomeEvaluatingState implements GameSessionState {
         boolean finished = context.outcomeService()
             .handleStonePlaced(cycle.session(), cycle.userId(), cycle.x(), cycle.y(), cycle.stone());
         if (finished) {
-            context.pendingMoveResult(InGameSessionService.MoveResult.success(
+            context.pendingMoveResult(MoveResult.success(
                 cycle.session(),
                 cycle.stone(),
                 null,
@@ -33,7 +34,7 @@ public final class OutcomeEvaluatingState implements GameSessionState {
                 cycle.x(),
                 cycle.y()
             ));
-            context.pendingGameCompletion(new InGameSessionService.GameCompletionNotice(cycle.session()));
+            context.pendingGameCompletion(new GameCompletionNotice(cycle.session()));
             context.clearTurnCycle();
             return GameSessionStateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING);
         }

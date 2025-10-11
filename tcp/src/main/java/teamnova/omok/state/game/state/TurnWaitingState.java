@@ -1,7 +1,7 @@
 package teamnova.omok.state.game.state;
 
-import teamnova.omok.service.InGameSessionService;
 import teamnova.omok.service.TurnService;
+import teamnova.omok.service.dto.TurnTimeoutResult;
 import teamnova.omok.state.game.contract.GameSessionState;
 import teamnova.omok.state.game.event.GameSessionEventRegistry;
 import teamnova.omok.state.game.event.GameSessionEventType;
@@ -54,26 +54,26 @@ public class TurnWaitingState implements GameSessionState {
         GameSessionStateContext context,
         TimeoutEvent event) {
         GameSession session = context.session();
-        InGameSessionService.TurnTimeoutResult result;
+        TurnTimeoutResult result;
 
         session.lock().lock();
         try {
             if (!session.isGameStarted()) {
-                result = InGameSessionService.TurnTimeoutResult.noop(session, null);
+                result = TurnTimeoutResult.noop(session, null);
             } else {
                 TurnService.TurnSnapshot current =
                     context.turnService().snapshot(session.getTurnStore(), session.getUserIds());
                 if (session.isGameFinished()) {
-                    result = InGameSessionService.TurnTimeoutResult.noop(session, current);
+                    result = TurnTimeoutResult.noop(session, current);
                 } else if (current.turnNumber() != event.expectedTurnNumber()) {
-                    result = InGameSessionService.TurnTimeoutResult.noop(session, current);
+                    result = TurnTimeoutResult.noop(session, current);
                 } else if (!context.turnService().isExpired(session.getTurnStore(), event.timestamp())) {
-                    result = InGameSessionService.TurnTimeoutResult.noop(session, current);
+                    result = TurnTimeoutResult.noop(session, current);
                 } else {
                     String previousPlayerId = current.currentPlayerId();
                     TurnService.TurnSnapshot next = context.turnService()
                         .advance(session.getTurnStore(), session.getUserIds(), event.timestamp());
-                    result = InGameSessionService.TurnTimeoutResult.timedOut(
+                    result = TurnTimeoutResult.timedOut(
                         session,
                         current,
                         next,

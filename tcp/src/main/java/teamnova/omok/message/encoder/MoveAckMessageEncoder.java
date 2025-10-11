@@ -1,12 +1,14 @@
 package teamnova.omok.message.encoder;
 
 import java.nio.charset.StandardCharsets;
-import teamnova.omok.service.InGameSessionService;
+
+import teamnova.omok.service.dto.MoveResult;
+import teamnova.omok.service.dto.MoveStatus;
 
 public final class MoveAckMessageEncoder {
     private MoveAckMessageEncoder() {}
 
-    public static byte[] encode(InGameSessionService.MoveResult result) {
+    public static byte[] encode(MoveResult result) {
         StringBuilder sb = new StringBuilder(224);
         sb.append('{')
           .append("\"sessionId\":\"").append(result.session().getId()).append('\"')
@@ -16,7 +18,7 @@ public final class MoveAckMessageEncoder {
           .append("\"x\":").append(result.x())
           .append(',')
           .append("\"y\":").append(result.y());
-        if (result.status() == InGameSessionService.MoveStatus.SUCCESS) {
+        if (result.status() == MoveStatus.SUCCESS) {
             sb.append(',')
               .append("\"placedBy\":\"").append(MessageEncodingUtil.escape(result.userId())).append('\"')
               .append(',')

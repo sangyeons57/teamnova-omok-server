@@ -1,7 +1,7 @@
 package teamnova.omok.state.game.state;
 
-import teamnova.omok.service.InGameSessionService;
 import teamnova.omok.service.TurnService;
+import teamnova.omok.service.dto.MoveResult;
 import teamnova.omok.state.game.contract.GameSessionState;
 import teamnova.omok.state.game.manage.GameSessionStateContext;
 import teamnova.omok.state.game.manage.GameSessionStateStep;
@@ -26,7 +26,7 @@ public final class TurnFinalizingState implements GameSessionState {
         TurnService.TurnSnapshot nextSnapshot = context.turnService()
             .advance(context.session().getTurnStore(), context.session().getUserIds(), cycle.now());
         cycle.snapshots().next(nextSnapshot);
-        context.pendingMoveResult(InGameSessionService.MoveResult.success(
+        context.pendingMoveResult(MoveResult.success(
             cycle.session(),
             cycle.stone(),
             nextSnapshot,

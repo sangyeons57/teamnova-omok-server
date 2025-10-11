@@ -1,12 +1,13 @@
 package teamnova.omok.message.encoder;
 
 import java.nio.charset.StandardCharsets;
-import teamnova.omok.service.InGameSessionService;
+
+import teamnova.omok.service.dto.ReadyResult;
 
 public final class ReadyStateMessageEncoder {
     private ReadyStateMessageEncoder() {}
 
-    public static byte[] encode(InGameSessionService.ReadyResult result) {
+    public static byte[] encode(ReadyResult result) {
         StringBuilder sb = new StringBuilder(192);
         sb.append('{')
           .append("\"sessionId\":\"").append(result.session().getId()).append('\"')

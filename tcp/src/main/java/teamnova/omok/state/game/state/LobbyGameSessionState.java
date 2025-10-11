@@ -1,7 +1,7 @@
 package teamnova.omok.state.game.state;
 
-import teamnova.omok.service.InGameSessionService;
 import teamnova.omok.service.TurnService;
+import teamnova.omok.service.dto.ReadyResult;
 import teamnova.omok.state.game.contract.GameSessionState;
 import teamnova.omok.state.game.event.GameSessionEventRegistry;
 import teamnova.omok.state.game.event.GameSessionEventType;
@@ -28,12 +28,12 @@ public class LobbyGameSessionState implements GameSessionState {
     private GameSessionStateStep handleReady(GameSessionStateContext context,
                                              ReadyEvent event) {
         GameSession session = context.session();
-        InGameSessionService.ReadyResult result;
+        ReadyResult result;
         session.lock().lock();
         try {
             int playerIndex = session.playerIndexOf(event.userId());
             if (playerIndex < 0) {
-                result = InGameSessionService.ReadyResult.invalid(session, event.userId());
+                result = ReadyResult.invalid(session, event.userId());
             } else {
                 boolean changed = session.markReady(event.userId());
                 boolean allReady = session.allReady();
@@ -50,7 +50,7 @@ public class LobbyGameSessionState implements GameSessionState {
                     snapshot = context.turnService()
                         .snapshot(session.getTurnStore(), session.getUserIds());
                 }
-                result = new InGameSessionService.ReadyResult(
+                result = new ReadyResult(
                     session,
                     true,
                     changed,

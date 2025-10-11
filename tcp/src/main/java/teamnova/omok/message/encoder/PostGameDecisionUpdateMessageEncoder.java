@@ -5,12 +5,12 @@ import java.util.List;
 import java.util.Map;
 
 import teamnova.omok.game.PostGameDecision;
-import teamnova.omok.service.InGameSessionService;
+import teamnova.omok.service.dto.PostGameDecisionUpdate;
 
 public final class PostGameDecisionUpdateMessageEncoder {
     private PostGameDecisionUpdateMessageEncoder() {}
 
-    public static byte[] encode(InGameSessionService.PostGameDecisionUpdate update) {
+    public static byte[] encode(PostGameDecisionUpdate update) {
         StringBuilder sb = new StringBuilder(256);
         sb.append('{')
           .append("\"sessionId\":\"").append(update.session().getId()).append('\"')

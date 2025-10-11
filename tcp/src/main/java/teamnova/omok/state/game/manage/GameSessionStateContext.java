@@ -8,6 +8,15 @@ import teamnova.omok.service.OutcomeService;
 import teamnova.omok.service.TurnService;
 import teamnova.omok.store.GameSession;
 
+import teamnova.omok.service.dto.GameCompletionNotice;
+import teamnova.omok.service.dto.MoveResult;
+import teamnova.omok.service.dto.PostGameDecisionPrompt;
+import teamnova.omok.service.dto.PostGameDecisionResult;
+import teamnova.omok.service.dto.PostGameDecisionUpdate;
+import teamnova.omok.service.dto.PostGameResolution;
+import teamnova.omok.service.dto.ReadyResult;
+import teamnova.omok.service.dto.TurnTimeoutResult;
+
 /**
  * Shared context passed to game session state implementations.
  */
@@ -18,15 +27,15 @@ public final class GameSessionStateContext {
     private final OutcomeService outcomeService;
 
     private TurnCycleContext activeTurnCycle;
-    private InGameSessionService.MoveResult pendingMoveResult;
-    private InGameSessionService.ReadyResult pendingReadyResult;
-    private InGameSessionService.TurnTimeoutResult pendingTimeoutResult;
-    private InGameSessionService.PostGameDecisionResult pendingDecisionResult;
-    private InGameSessionService.PostGameDecisionUpdate pendingDecisionUpdate;
-    private InGameSessionService.PostGameDecisionPrompt pendingDecisionPrompt;
-    private InGameSessionService.PostGameResolution pendingPostGameResolution;
+    private MoveResult pendingMoveResult;
+    private ReadyResult pendingReadyResult;
+    private TurnTimeoutResult pendingTimeoutResult;
+    private PostGameDecisionResult pendingDecisionResult;
+    private PostGameDecisionUpdate pendingDecisionUpdate;
+    private PostGameDecisionPrompt pendingDecisionPrompt;
+    private PostGameResolution pendingPostGameResolution;
     private long postGameDecisionDeadline;
-    private InGameSessionService.GameCompletionNotice pendingGameCompletion;
+    private GameCompletionNotice pendingGameCompletion;
 
     public GameSessionStateContext(GameSession session,
                                    BoardService boardService,
@@ -70,72 +79,72 @@ public final class GameSessionStateContext {
         this.activeTurnCycle = null;
     }
 
-    public void pendingMoveResult(InGameSessionService.MoveResult result) {
+    public void pendingMoveResult(MoveResult result) {
         this.pendingMoveResult = result;
     }
 
-    public InGameSessionService.MoveResult consumePendingMoveResult() {
-        InGameSessionService.MoveResult result = this.pendingMoveResult;
+    public MoveResult consumePendingMoveResult() {
+        MoveResult result = this.pendingMoveResult;
         this.pendingMoveResult = null;
         return result;
     }
 
-    public void pendingReadyResult(InGameSessionService.ReadyResult result) {
+    public void pendingReadyResult(ReadyResult result) {
         this.pendingReadyResult = result;
     }
 
-    public InGameSessionService.ReadyResult consumePendingReadyResult() {
-        InGameSessionService.ReadyResult result = this.pendingReadyResult;
+    public ReadyResult consumePendingReadyResult() {
+        ReadyResult result = this.pendingReadyResult;
         this.pendingReadyResult = null;
         return result;
     }
 
-    public void pendingTimeoutResult(InGameSessionService.TurnTimeoutResult result) {
+    public void pendingTimeoutResult(TurnTimeoutResult result) {
         this.pendingTimeoutResult = result;
     }
 
-    public InGameSessionService.TurnTimeoutResult consumePendingTimeoutResult() {
-        InGameSessionService.TurnTimeoutResult result = this.pendingTimeoutResult;
+    public TurnTimeoutResult consumePendingTimeoutResult() {
+        TurnTimeoutResult result = this.pendingTimeoutResult;
         this.pendingTimeoutResult = null;
         return result;
     }
 
-    public void pendingDecisionResult(InGameSessionService.PostGameDecisionResult result) {
+    public void pendingDecisionResult(PostGameDecisionResult result) {
         this.pendingDecisionResult = result;
     }
 
-    public InGameSessionService.PostGameDecisionResult consumePendingDecisionResult() {
-        InGameSessionService.PostGameDecisionResult result = this.pendingDecisionResult;
+    public PostGameDecisionResult consumePendingDecisionResult() {
+        PostGameDecisionResult result = this.pendingDecisionResult;
         this.pendingDecisionResult = null;
         return result;
     }
 
-    public void pendingDecisionUpdate(InGameSessionService.PostGameDecisionUpdate update) {
+    public void pendingDecisionUpdate(PostGameDecisionUpdate update) {
         this.pendingDecisionUpdate = update;
     }
 
-    public InGameSessionService.PostGameDecisionUpdate consumePendingDecisionUpdate() {
-        InGameSessionService.PostGameDecisionUpdate update = this.pendingDecisionUpdate;
+    public PostGameDecisionUpdate consumePendingDecisionUpdate() {
+        PostGameDecisionUpdate update = this.pendingDecisionUpdate;
         this.pendingDecisionUpdate = null;
         return update;
     }
 
-    public void pendingDecisionPrompt(InGameSessionService.PostGameDecisionPrompt prompt) {
+    public void pendingDecisionPrompt(PostGameDecisionPrompt prompt) {
         this.pendingDecisionPrompt = prompt;
     }
 
-    public InGameSessionService.PostGameDecisionPrompt consumePendingDecisionPrompt() {
-        InGameSessionService.PostGameDecisionPrompt prompt = this.pendingDecisionPrompt;
+    public PostGameDecisionPrompt consumePendingDecisionPrompt() {
+        PostGameDecisionPrompt prompt = this.pendingDecisionPrompt;
         this.pendingDecisionPrompt = null;
         return prompt;
     }
 
-    public void pendingPostGameResolution(InGameSessionService.PostGameResolution resolution) {
+    public void pendingPostGameResolution(PostGameResolution resolution) {
         this.pendingPostGameResolution = resolution;
     }
 
-    public InGameSessionService.PostGameResolution consumePendingPostGameResolution() {
-        InGameSessionService.PostGameResolution resolution = this.pendingPostGameResolution;
+    public PostGameResolution consumePendingPostGameResolution() {
+        PostGameResolution resolution = this.pendingPostGameResolution;
         this.pendingPostGameResolution = null;
         return resolution;
     }
@@ -152,12 +161,12 @@ public final class GameSessionStateContext {
         this.postGameDecisionDeadline = 0L;
     }
 
-    public void pendingGameCompletion(InGameSessionService.GameCompletionNotice notice) {
+    public void pendingGameCompletion(GameCompletionNotice notice) {
         this.pendingGameCompletion = notice;
     }
 
-    public InGameSessionService.GameCompletionNotice consumePendingGameCompletion() {
-        InGameSessionService.GameCompletionNotice notice = this.pendingGameCompletion;
+    public GameCompletionNotice consumePendingGameCompletion() {
+        GameCompletionNotice notice = this.pendingGameCompletion;
         this.pendingGameCompletion = null;
         return notice;
     }

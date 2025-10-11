@@ -1,12 +1,13 @@
 package teamnova.omok.message.encoder;
 
 import java.nio.charset.StandardCharsets;
-import teamnova.omok.service.InGameSessionService;
+
+import teamnova.omok.service.dto.TurnTimeoutResult;
 
 public final class TurnTimeoutMessageEncoder {
     private TurnTimeoutMessageEncoder() {}
 
-    public static byte[] encode(InGameSessionService.TurnTimeoutResult result) {
+    public static byte[] encode(TurnTimeoutResult result) {
         StringBuilder sb = new StringBuilder(192);
         sb.append('{')
           .append("\"sessionId\":\"").append(result.session().getId()).append('\"')

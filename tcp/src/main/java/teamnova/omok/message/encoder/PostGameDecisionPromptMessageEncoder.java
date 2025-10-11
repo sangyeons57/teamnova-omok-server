@@ -2,12 +2,12 @@ package teamnova.omok.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
-import teamnova.omok.service.InGameSessionService;
+import teamnova.omok.service.dto.PostGameDecisionPrompt;
 
 public final class PostGameDecisionPromptMessageEncoder {
     private PostGameDecisionPromptMessageEncoder() {}
 
-    public static byte[] encode(InGameSessionService.PostGameDecisionPrompt prompt) {
+    public static byte[] encode(PostGameDecisionPrompt prompt) {
         StringBuilder sb = new StringBuilder(160);
         sb.append('{')
           .append("\"sessionId\":\"").append(prompt.session().getId()).append('\"')

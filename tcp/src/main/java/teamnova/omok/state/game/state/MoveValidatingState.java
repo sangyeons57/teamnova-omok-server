@@ -1,7 +1,8 @@
 package teamnova.omok.state.game.state;
 
-import teamnova.omok.service.InGameSessionService;
 import teamnova.omok.service.TurnService;
+import teamnova.omok.service.dto.MoveResult;
+import teamnova.omok.service.dto.MoveStatus;
 import teamnova.omok.state.game.contract.GameSessionState;
 import teamnova.omok.state.game.manage.GameSessionStateContext;
 import teamnova.omok.state.game.manage.GameSessionStateStep;
@@ -32,9 +33,9 @@ public final class MoveValidatingState implements GameSessionState {
 
         int playerIndex = session.playerIndexOf(userId);
         if (playerIndex < 0) {
-            invalidate(context, InGameSessionService.MoveResult.invalid(
+            invalidate(context, MoveResult.invalid(
                 session,
-                InGameSessionService.MoveStatus.INVALID_PLAYER,
+                MoveStatus.INVALID_PLAYER,
                 null,
                 userId,
                 x,
@@ -45,9 +46,9 @@ public final class MoveValidatingState implements GameSessionState {
         cycle.playerIndex(playerIndex);
 
         if (!session.isGameStarted()) {
-            invalidate(context, InGameSessionService.MoveResult.invalid(
+            invalidate(context, MoveResult.invalid(
                 session,
-                InGameSessionService.MoveStatus.GAME_NOT_STARTED,
+                MoveStatus.GAME_NOT_STARTED,
                 null,
                 userId,
                 x,
@@ -61,9 +62,9 @@ public final class MoveValidatingState implements GameSessionState {
         cycle.snapshots().current(currentSnapshot);
 
         if (session.isGameFinished()) {
-            invalidate(context, InGameSessionService.MoveResult.invalid(
+            invalidate(context, MoveResult.invalid(
                 session,
-                InGameSessionService.MoveStatus.GAME_FINISHED,
+                MoveStatus.GAME_FINISHED,
                 currentSnapshot,
                 userId,
                 x,
@@ -73,9 +74,9 @@ public final class MoveValidatingState implements GameSessionState {
         }
 
         if (!context.boardService().isWithinBounds(session.getBoardStore(), x, y)) {
-            invalidate(context, InGameSessionService.MoveResult.invalid(
+            invalidate(context, MoveResult.invalid(
                 session,
-                InGameSessionService.MoveStatus.OUT_OF_BOUNDS,
+                MoveStatus.OUT_OF_BOUNDS,
                 currentSnapshot,
                 userId,
                 x,
@@ -86,9 +87,9 @@ public final class MoveValidatingState implements GameSessionState {
 
         Integer currentIndex = context.turnService().currentPlayerIndex(session.getTurnStore());
         if (currentIndex == null || currentIndex != playerIndex) {
-            invalidate(context, InGameSessionService.MoveResult.invalid(
+            invalidate(context, MoveResult.invalid(
                 session,
-                InGameSessionService.MoveStatus.OUT_OF_TURN,
+                MoveStatus.OUT_OF_TURN,
                 currentSnapshot,
                 userId,
                 x,
@@ -98,9 +99,9 @@ public final class MoveValidatingState implements GameSessionState {
         }
 
         if (!context.boardService().isEmpty(session.getBoardStore(), x, y)) {
-            invalidate(context, InGameSessionService.MoveResult.invalid(
+            invalidate(context, MoveResult.invalid(
                 session,
-                InGameSessionService.MoveStatus.CELL_OCCUPIED,
+                MoveStatus.CELL_OCCUPIED,
                 currentSnapshot,
                 userId,
                 x,
@@ -114,7 +115,7 @@ public final class MoveValidatingState implements GameSessionState {
         return GameSessionStateStep.transition(GameSessionStateType.MOVE_APPLYING);
     }
 
-    private void invalidate(GameSessionStateContext context, InGameSessionService.MoveResult result) {
+    private void invalidate(GameSessionStateContext context, MoveResult result) {
         context.pendingMoveResult(result);
         context.clearTurnCycle();
     }

@@ -2,16 +2,17 @@ package teamnova.omok.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
-import teamnova.omok.service.InGameSessionService;
+import teamnova.omok.service.dto.PostGameDecisionResult;
+import teamnova.omok.service.dto.PostGameDecisionStatus;
 
 public final class PostGameDecisionAckMessageEncoder {
     private PostGameDecisionAckMessageEncoder() {}
 
-    public static byte[] encode(InGameSessionService.PostGameDecisionResult result) {
+    public static byte[] encode(PostGameDecisionResult result) {
         StringBuilder sb = new StringBuilder(128);
         sb.append('{')
           .append("\"status\":\"");
-        if (result.status() == InGameSessionService.PostGameDecisionStatus.ACCEPTED) {
+        if (result.status() == PostGameDecisionStatus.ACCEPTED) {
             sb.append("OK\"");
             if (result.decision() != null) {
                 sb.append(",\"decision\":\"").append(result.decision().name()).append('\"');
