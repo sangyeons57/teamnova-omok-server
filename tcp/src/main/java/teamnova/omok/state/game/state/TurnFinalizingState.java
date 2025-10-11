@@ -24,7 +24,12 @@ public final class TurnFinalizingState implements GameSessionState {
             return GameSessionStateStep.transition(GameSessionStateType.TURN_WAITING);
         }
         TurnService.TurnSnapshot nextSnapshot = context.turnService()
-            .advance(context.session().getTurnStore(), context.session().getUserIds(), cycle.now());
+            .advanceSkippingDisconnected(
+                context.session().getTurnStore(),
+                context.session().getUserIds(),
+                context.session().disconnectedUsersView(),
+                cycle.now()
+            );
         cycle.snapshots().next(nextSnapshot);
         context.pendingMoveResult(MoveResult.success(
             cycle.session(),

@@ -14,10 +14,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.nio.codec.DecodeFrame;
 import teamnova.omok.nio.codec.EncodeFrame;
+import teamnova.omok.service.ServiceContainer;
 import teamnova.omok.state.client.manage.ClientStateManager;
-import teamnova.omok.state.client.manage.ClientStateType;
-import teamnova.omok.state.game.manage.GameSessionStateManager;
-import teamnova.omok.store.GameSession;
 
 /**
  * Represents a single client connection managed by the selector.
@@ -196,19 +194,6 @@ public final class ClientSession implements Closeable {
         return authenticatedUserId;
     }
 
-    public String authenticatedRole() {
-        return authenticatedRole;
-    }
-
-    public String authenticatedScope() {
-        return authenticatedScope;
-    }
-
-    public ClientStateManager stateManager() {
-        return stateManager;
-    }
-
-
     private void ensureCapacity(int required) {
         if (required <= inboundBuffer.length) {
             return;
@@ -221,21 +206,16 @@ public final class ClientSession implements Closeable {
     }
 
     private void recordGameDisconnectIfNeeded() {
-        if (stateManager.currentType() != ClientStateType.IN_GAME) {
-            return;
-        }
-        GameSessionStateManager gameManager = stateManager.context().gameStateManager();
-        if (gameManager == null) {
-            return;
-        }
-        GameSession session = gameManager.session();
-        if (session == null) {
+        if (!authenticated) {
             return;
         }
         String userId = authenticatedUserId;
-        if (userId != null) {
-            session.markDisconnected(userId);
+        if (userId == null || userId.isBlank()) {
+            return;
         }
+        ServiceContainer.getInstance()
+            .getInGameSessionService()
+            .handleClientDisconnected(userId);
     }
 
 }

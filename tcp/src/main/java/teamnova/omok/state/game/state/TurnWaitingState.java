@@ -72,7 +72,12 @@ public class TurnWaitingState implements GameSessionState {
                 } else {
                     String previousPlayerId = current.currentPlayerId();
                     TurnService.TurnSnapshot next = context.turnService()
-                        .advance(session.getTurnStore(), session.getUserIds(), event.timestamp());
+                        .advanceSkippingDisconnected(
+                            session.getTurnStore(),
+                            session.getUserIds(),
+                            session.disconnectedUsersView(),
+                            event.timestamp()
+                        );
                     result = TurnTimeoutResult.timedOut(
                         session,
                         current,

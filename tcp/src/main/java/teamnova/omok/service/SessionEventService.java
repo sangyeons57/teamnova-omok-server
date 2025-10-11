@@ -38,17 +38,20 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
     private final SessionMessagePublisher publisher;
     private final TurnTimeoutCoordinator timeoutCoordinator;
     private final DecisionTimeoutCoordinator decisionTimeoutCoordinator;
+    private final ScoreService scoreService;
 
     SessionEventService(InGameSessionStore store,
                         TurnService turnService,
                         SessionMessagePublisher publisher,
                         TurnTimeoutCoordinator timeoutCoordinator,
-                        DecisionTimeoutCoordinator decisionTimeoutCoordinator) {
+                        DecisionTimeoutCoordinator decisionTimeoutCoordinator,
+                        ScoreService scoreService) {
         this.store = Objects.requireNonNull(store, "store");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
         this.timeoutCoordinator = Objects.requireNonNull(timeoutCoordinator, "timeoutCoordinator");
         this.decisionTimeoutCoordinator = Objects.requireNonNull(decisionTimeoutCoordinator, "decisionTimeoutCoordinator");
+        this.scoreService = Objects.requireNonNull(scoreService, "scoreService");
     }
 
     boolean submitReady(String userId, long requestId) {
@@ -225,6 +228,32 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
         manager.submit(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
     }
 
+    void skipTurnForDisconnected(GameSession session, String userId, int expectedTurnNumber) {
+        Objects.requireNonNull(session, "session");
+        Objects.requireNonNull(userId, "userId");
+        boolean shouldSubmit = false;
+        session.lock().lock();
+        try {
+            if (session.isGameStarted() && !session.isGameFinished()) {
+                TurnService.TurnSnapshot current =
+                    turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                shouldSubmit = current != null
+                    && current.turnNumber() == expectedTurnNumber
+                    && userId.equals(current.currentPlayerId());
+            }
+        } finally {
+            session.lock().unlock();
+        }
+        if (!shouldSubmit) {
+            return;
+        }
+        timeoutCoordinator.cancel(session.getId());
+        GameSessionStateManager manager = store.ensureManager(session);
+        long now = System.currentTimeMillis();
+        TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
+        manager.submit(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
+    }
+
     private void handleDecisionTimeout(UUID sessionId) {
         Optional<GameSession> optionalSession = store.findById(sessionId);
         if (optionalSession.isEmpty()) {
@@ -234,13 +263,11 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
         GameSessionStateManager manager = store.ensureManager(session);
         long now = System.currentTimeMillis();
         DecisionTimeoutEvent event = new DecisionTimeoutEvent(now);
-        manager.submit(event, ctx -> handleDecisionTimeoutCompletion(session, manager, ctx, event));
+        manager.submit(event, ctx -> handleDecisionTimeoutCompletion(manager, ctx));
     }
 
-    private void handleDecisionTimeoutCompletion(GameSession session,
-                                                 GameSessionStateManager manager,
-                                                 GameSessionStateContext ctx,
-                                                 DecisionTimeoutEvent event) {
+    private void handleDecisionTimeoutCompletion(GameSessionStateManager manager,
+                                                 GameSessionStateContext ctx) {
         drainPostGameSideEffects(manager, ctx);
     }
 
@@ -279,6 +306,7 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
 
     private void handlePostGameResolution(PostGameResolution resolution) {
         GameSession session = resolution.session();
+        scoreService.applyGameResults(session);
         cancelAllTimers(session.getId());
         if (resolution.type() == PostGameResolution.ResolutionType.REMATCH) {
             handleRematchResolution(resolution);

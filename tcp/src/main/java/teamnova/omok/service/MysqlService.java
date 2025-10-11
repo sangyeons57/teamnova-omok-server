@@ -26,12 +26,6 @@ public class MysqlService {
         this.password = orDefault(dotenv.get("DB_PASS"), "");
     }
 
-    public String getHost() { return host; }
-    public int getPort() { return port; }
-    public String getDatabase() { return database; }
-    public String getUser() { return user; }
-    public String getPassword() { return password; }
-
     public String jdbcUrl() {
         String db = (database == null || database.isBlank()) ? "" : "/" + database;
         return "jdbc:mysql://" + host + ":" + port + db + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
@@ -61,6 +55,36 @@ public class MysqlService {
             System.err.println("[MysqlService] getUserScore failed: " + e.getMessage());
         }
         return defaultScore;
+    }
+
+    /**
+     * Adjusts a user's score by the provided delta. Returns true if at least one row was updated.
+     */
+    public boolean adjustUserScore(String userId, int delta) {
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+        if (delta == 0) {
+            return true;
+        }
+        if (user == null || user.isBlank()) {
+            return false;
+        }
+        String url = jdbcUrl();
+        String sql = "UPDATE users SET score = score + ? WHERE user_id = ?";
+        try (Connection conn = DriverManager.getConnection(url, user, password);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, delta);
+            ps.setString(2, userId);
+            int updated = ps.executeUpdate();
+            if (updated == 0) {
+                System.err.printf("[MysqlService] adjustUserScore: no row updated for user %s%n", userId);
+            }
+            return updated > 0;
+        } catch (SQLException e) {
+            System.err.printf("[MysqlService] adjustUserScore failed for %s: %s%n", userId, e.getMessage());
+            return false;
+        }
     }
 
     private static String orDefault(String v, String d) { return (v == null || v.isBlank()) ? d : v; }

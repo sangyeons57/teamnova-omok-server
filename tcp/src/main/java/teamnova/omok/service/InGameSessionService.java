@@ -9,7 +9,6 @@ import teamnova.omok.store.InGameSessionStore;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -20,73 +19,14 @@ public class InGameSessionService {
     private final SessionMessenger messenger = new SessionMessenger();
     private final SessionMessagePublisher messagePublisher = new SessionMessagePublisher(messenger);
     private final SessionEventService eventService;
-    /*
-     * Post-game networking contract (planned):
-     *
-     * Broadcast: GAME_SESSION_COMPLETED (already live)
-     *   {
-     *     "sessionId": "<uuid>",
-     *     "outcomes": [
-     *       { "userId": "<id>", "result": "WIN|LOSS|DRAW" }
-     *     ]
-     *   }
-     *
-     * Broadcast: GAME_POST_DECISION_PROMPT
-     *   {
-     *     "sessionId": "<uuid>",
-     *     "deadlineAt": <epochMillis>,
-     *     "options": ["REMATCH", "LEAVE"],
-     *     "autoAction": "LEAVE"  // what happens if no reply before deadline
-     *   }
-     *
-     * Client request: POST_GAME_DECISION
-     *   {
-     *     "sessionId": "<uuid>",
-     *     "decision": "REMATCH|LEAVE"
-     *   }
-     *
-     * Server response (ack/error) on POST_GAME_DECISION
-     *   Success:
-     *     { "status": "OK" }
-     *   Error:
-     *     { "status": "ERROR", "reason": "INVALID_PLAYER|TIMEOUT|ALREADY_DECIDED|SESSION_CLOSED|SESSION_NOT_FOUND|INVALID_PAYLOAD" }
-     *
-     * Optional broadcast: GAME_POST_DECISION_UPDATE
-     *   {
-     *     "sessionId": "<uuid>",
-     *     "decided": [
-     *       { "userId": "<id>", "decision": "REMATCH|LEAVE" }
-     *     ],
-     *     "remaining": ["<userId>", ...]
-     *   }
-     *
-     * Broadcast: GAME_SESSION_REMATCH_STARTED
-     *   {
-     *     "sessionId": "<previousUuid>",
-     *     "rematchSessionId": "<newUuid>",
-     *     "participants": ["<userId>", ...]
-     *   }
-     *
-     * Broadcast: GAME_SESSION_TERMINATED
-     *   {
-     *     "sessionId": "<uuid>",
-     *     "disconnected": ["<userId>", ...]
-     *   }
-     *
-     * Planned state flow:
-     *   1. OutcomeEvaluatingState ⇒ POST_GAME_DECISION_WAITING (new). On enter: GAME_SESSION_COMPLETED + GAME_POST_DECISION_PROMPT; start 30s timer.
-     *   2. Clients send POST_GAME_DECISION; state records REMATCH/LEAVE and can emit GAME_POST_DECISION_UPDATE.
-     *   3. When all decide or timer hits (DecisionTimeoutEvent), transition ⇒ POST_GAME_DECISION_RESOLVING.
-     *   4. POST_GAME_DECISION_RESOLVING:
-     *        • rematchCount ≥ 2 ⇒ SESSION_REMATCH_PREPARING → spawn new session, send GAME_SESSION_REMATCH_STARTED.
-     *        • otherwise ⇒ SESSION_TERMINATING → send GAME_SESSION_TERMINATED and drop session from store.
-     */
 
     public InGameSessionService(InGameSessionStore store,
                                 BoardService boardService,
                                 TurnService turnService,
-                                OutcomeService outcomeService) {
+                                OutcomeService outcomeService,
+                                ScoreService scoreService) {
         Objects.requireNonNull(outcomeService, "outcomeService");
+        Objects.requireNonNull(scoreService, "scoreService");
         this.store = Objects.requireNonNull(store, "store");
         this.boardService = Objects.requireNonNull(boardService, "boardService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
@@ -97,7 +37,8 @@ public class InGameSessionService {
             this.turnService,
             this.messagePublisher,
             timeoutCoordinator,
-            decisionTimeoutCoordinator
+            decisionTimeoutCoordinator,
+            scoreService
         );
     }
 
@@ -135,6 +76,32 @@ public class InGameSessionService {
         store.removeByUserId(userId);
     }
 
+    public void handleClientDisconnected(String userId) {
+        Objects.requireNonNull(userId, "userId");
+        store.findByUserId(userId).ifPresent(session -> {
+            boolean shouldSkip = false;
+            int expectedTurn = -1;
+            session.lock().lock();
+            try {
+                session.markDisconnected(userId);
+                session.updateOutcome(userId, PlayerResult.LOSS);
+                if (session.isGameStarted() && !session.isGameFinished()) {
+                    TurnService.TurnSnapshot snapshot =
+                        turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                    if (snapshot != null && userId.equals(snapshot.currentPlayerId())) {
+                        shouldSkip = true;
+                        expectedTurn = snapshot.turnNumber();
+                    }
+                }
+            } finally {
+                session.lock().unlock();
+            }
+            if (shouldSkip && expectedTurn > 0) {
+                eventService.skipTurnForDisconnected(session, userId, expectedTurn);
+            }
+        });
+    }
+
     public boolean submitReady(String userId, long requestId) {
         return eventService.submitReady(userId, requestId);
     }
@@ -147,30 +114,12 @@ public class InGameSessionService {
         return eventService.submitPostGameDecision(userId, requestId, decision);
     }
 
-    public GameSession createFromGroup(NioReactorServer server, MatchingService.Group group) {
+    public void createFromGroup(NioReactorServer server, MatchingService.Group group) {
         attachServer(server);
         List<String> userIds = new ArrayList<>();
         group.getTickets().forEach(t -> userIds.add(t.id));
         GameSession session = new GameSession(userIds);
         store.save(session);
         messagePublisher.broadcastJoin(session);
-        return session;
-    }
-
-
-    public byte[] boardSnapshot(GameSession session) {
-        return boardService.snapshot(session.getBoardStore());
-    }
-
-    public boolean isTurnExpired(GameSession session, long now) {
-        return eventService.isTurnExpired(session, now);
-    }
-
-    public TurnService.TurnSnapshot turnSnapshot(GameSession session) {
-        return eventService.turnSnapshot(session);
-    }
-
-    public Map<String, Boolean> readyStatesView(GameSession session) {
-        return session.readyStatesView();
     }
 }

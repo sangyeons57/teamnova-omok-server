@@ -1,8 +1,10 @@
 package teamnova.omok.service;
 
-import teamnova.omok.store.TurnStore;
-
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+
+import teamnova.omok.store.TurnStore;
 
 /**
  * Handles turn sequencing logic for in-game sessions.
@@ -26,17 +28,28 @@ public class TurnService {
         return snapshot(store, userOrder);
     }
 
-    public TurnSnapshot advance(TurnStore store, List<String> userOrder, long now) {
+    public TurnSnapshot advanceSkippingDisconnected(TurnStore store,
+                                                    List<String> userOrder,
+                                                    Set<String> disconnectedUserIds,
+                                                    long now) {
         requirePlayers(userOrder);
-        int current = store.getCurrentPlayerIndex();
-        if (current < 0) {
-            store.setCurrentPlayerIndex(0);
-        } else {
-            store.setCurrentPlayerIndex((current + 1) % userOrder.size());
+        Set<String> skip = (disconnectedUserIds == null) ? Collections.emptySet() : disconnectedUserIds;
+        int total = userOrder.size();
+        int current = Math.max(-1, store.getCurrentPlayerIndex());
+        int checked = 0;
+        int nextIndex = current;
+        while (checked < total) {
+            nextIndex = (nextIndex + 1) % total;
+            String candidate = userOrder.get(nextIndex);
+            if (!skip.contains(candidate)) {
+                store.setCurrentPlayerIndex(nextIndex);
+                updateTurnTiming(store, now);
+                return snapshot(store, userOrder);
+            }
+            checked++;
         }
-        store.setTurnNumber(Math.max(1, store.getTurnNumber() + 1));
-        store.setTurnStartAt(now);
-        store.setTurnEndAt(now + durationMillis);
+        store.setCurrentPlayerIndex(-1);
+        updateTurnTiming(store, now);
         return snapshot(store, userOrder);
     }
 
@@ -60,6 +73,12 @@ public class TurnService {
         if (userOrder == null || userOrder.isEmpty()) {
             throw new IllegalStateException("No players registered for turn management");
         }
+    }
+
+    private void updateTurnTiming(TurnStore store, long now) {
+        store.setTurnNumber(Math.max(1, store.getTurnNumber() + 1));
+        store.setTurnStartAt(now);
+        store.setTurnEndAt(now + durationMillis);
     }
 
     public record TurnSnapshot(int currentPlayerIndex, String currentPlayerId, int turnNumber,

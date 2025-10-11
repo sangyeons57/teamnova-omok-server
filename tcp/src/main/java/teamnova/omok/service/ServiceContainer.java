@@ -17,6 +17,7 @@ public class ServiceContainer {
 
     private final DotenvService dotenvService;
     private final MysqlService mysqlService;
+    private final ScoreService scoreService;
     private final BoardService boardService;
     private final TurnService turnService;
     private final OutcomeService outcomeService;
@@ -33,12 +34,19 @@ public class ServiceContainer {
         String basePath = System.getProperty("user.dir") + "/..";
         this.dotenvService = new DotenvService(basePath);
         this.mysqlService = new MysqlService(dotenvService);
+        this.scoreService = new ScoreService(mysqlService);
         this.boardService = new BoardService();
         this.turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
         this.outcomeService = new OutcomeService(boardService);
         this.matchingService = new MatchingService();
         this.inGameSessionStore = new InGameSessionStore(boardService, turnService, outcomeService);
-        this.inGameSessionService = new InGameSessionService(inGameSessionStore, boardService, turnService, outcomeService);
+        this.inGameSessionService = new InGameSessionService(
+            inGameSessionStore,
+            boardService,
+            turnService,
+            outcomeService,
+            scoreService
+        );
         this.matchScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
             t.setName("match-scheduler");
@@ -86,6 +94,7 @@ public class ServiceContainer {
 
     public DotenvService getDotenvService() { return dotenvService; }
     public MysqlService getMysqlService() { return mysqlService; }
+    public ScoreService getScoreService() { return scoreService; }
 
     public MatchingService getMatchingService() {
         return matchingService;
