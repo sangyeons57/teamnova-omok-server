@@ -38,6 +38,8 @@ public class GameSession {
 
     private volatile boolean gameStarted;
     private volatile long gameStartedAt;
+    private volatile long gameEndedAt;
+    private volatile int completedTurnCount;
 
     public GameSession(List<String> userIds) {
         Objects.requireNonNull(userIds, "userIds");
@@ -91,6 +93,8 @@ public class GameSession {
     public void markGameStarted(long startedAt) {
         this.gameStarted = true;
         this.gameStartedAt = startedAt;
+        this.gameEndedAt = 0L;
+        this.completedTurnCount = 0;
     }
 
     public boolean isReady(String userId) {
@@ -190,5 +194,35 @@ public class GameSession {
 
     public boolean isGameFinished() {
         return outcomeStore.isResolved();
+    }
+
+    public long getGameEndedAt() {
+        return gameEndedAt;
+    }
+
+    public void markGameFinished(long endedAt, int turnCount) {
+        if (endedAt > 0) {
+            if (this.gameEndedAt == 0L || endedAt > this.gameEndedAt) {
+                this.gameEndedAt = endedAt;
+            }
+        }
+        if (turnCount > 0) {
+            if (turnCount > this.completedTurnCount) {
+                this.completedTurnCount = turnCount;
+            }
+        }
+    }
+
+    public int getCompletedTurnCount() {
+        return completedTurnCount > 0 ? completedTurnCount : turnStore.getTurnNumber();
+    }
+
+    public long getGameDurationMillis() {
+        long start = gameStartedAt;
+        long end = gameEndedAt;
+        if (start <= 0 || end <= 0 || end < start) {
+            return 0L;
+        }
+        return end - start;
     }
 }

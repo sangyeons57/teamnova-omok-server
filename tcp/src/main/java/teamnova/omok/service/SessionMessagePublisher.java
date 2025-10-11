@@ -5,6 +5,7 @@ import java.util.List;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.message.encoder.ErrorMessageEncoder;
 import teamnova.omok.message.encoder.GameSessionCompletedMessageEncoder;
+import teamnova.omok.message.encoder.GameSessionPlayerDisconnectedMessageEncoder;
 import teamnova.omok.message.encoder.GameSessionRematchStartedMessageEncoder;
 import teamnova.omok.message.encoder.GameSessionStartedMessageEncoder;
 import teamnova.omok.message.encoder.GameSessionTerminatedMessageEncoder;
@@ -73,6 +74,10 @@ final class SessionMessagePublisher {
 
     void broadcastRematchStarted(GameSession previous, GameSession rematch, List<String> participants) {
         messenger.broadcast(previous, Type.GAME_SESSION_REMATCH_STARTED, GameSessionRematchStartedMessageEncoder.encode(previous, rematch, participants));
+    }
+
+    void broadcastPlayerDisconnected(GameSession session, String userId, String reason) {
+        messenger.broadcast(session, Type.GAME_SESSION_PLAYER_DISCONNECTED, GameSessionPlayerDisconnectedMessageEncoder.encode(session, userId, reason));
     }
 
     void respondReady(String userId, long requestId, ReadyResult result) {

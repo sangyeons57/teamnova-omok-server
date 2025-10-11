@@ -26,6 +26,18 @@ public final class OutcomeEvaluatingState implements GameSessionState {
         boolean finished = context.outcomeService()
             .handleStonePlaced(cycle.session(), cycle.userId(), cycle.x(), cycle.y(), cycle.stone());
         if (finished) {
+            int turnCount = 0;
+            if (cycle.snapshots().current() != null) {
+                turnCount = cycle.snapshots().current().turnNumber();
+            } else {
+                turnCount = cycle.session().getTurnStore().getTurnNumber();
+            }
+            cycle.session().lock().lock();
+            try {
+                cycle.session().markGameFinished(cycle.now(), turnCount);
+            } finally {
+                cycle.session().lock().unlock();
+            }
             context.pendingMoveResult(MoveResult.success(
                 cycle.session(),
                 cycle.stone(),

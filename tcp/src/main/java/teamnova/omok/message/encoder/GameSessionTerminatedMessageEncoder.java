@@ -13,6 +13,14 @@ public final class GameSessionTerminatedMessageEncoder {
         sb.append('{')
           .append("\"sessionId\":\"").append(session.getId()).append('\"')
           .append(',')
+          .append("\"startedAt\":").append(session.getGameStartedAt())
+          .append(',')
+          .append("\"endedAt\":").append(session.getGameEndedAt())
+          .append(',')
+          .append("\"durationMillis\":").append(session.getGameDurationMillis())
+          .append(',')
+          .append("\"turnCount\":").append(session.getCompletedTurnCount())
+          .append(',')
           .append("\"disconnected\":[");
         for (int i = 0; i < disconnected.size(); i++) {
             if (i > 0) {

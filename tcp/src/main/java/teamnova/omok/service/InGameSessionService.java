@@ -65,12 +65,16 @@ public class InGameSessionService {
     public void leaveByUser(String userId) {
         store.findByUserId(userId).ifPresent(session -> {
             eventService.cancelAllTimers(session.getId());
+            boolean newlyDisconnected = false;
             session.lock().lock();
             try {
-                session.markDisconnected(userId);
+                newlyDisconnected = session.markDisconnected(userId);
                 session.updateOutcome(userId, PlayerResult.LOSS);
             } finally {
                 session.lock().unlock();
+            }
+            if (newlyDisconnected) {
+                messagePublisher.broadcastPlayerDisconnected(session, userId, "LEFT");
             }
         });
         store.removeByUserId(userId);
@@ -81,9 +85,10 @@ public class InGameSessionService {
         store.findByUserId(userId).ifPresent(session -> {
             boolean shouldSkip = false;
             int expectedTurn = -1;
+            boolean newlyDisconnected = false;
             session.lock().lock();
             try {
-                session.markDisconnected(userId);
+                newlyDisconnected = session.markDisconnected(userId);
                 session.updateOutcome(userId, PlayerResult.LOSS);
                 if (session.isGameStarted() && !session.isGameFinished()) {
                     TurnService.TurnSnapshot snapshot =
@@ -95,6 +100,9 @@ public class InGameSessionService {
                 }
             } finally {
                 session.lock().unlock();
+            }
+            if (newlyDisconnected) {
+                messagePublisher.broadcastPlayerDisconnected(session, userId, "DISCONNECTED");
             }
             if (shouldSkip && expectedTurn > 0) {
                 eventService.skipTurnForDisconnected(session, userId, expectedTurn);

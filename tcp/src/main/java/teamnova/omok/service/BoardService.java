@@ -32,7 +32,10 @@ public class BoardService {
     }
 
     public boolean hasFiveInARow(BoardStore store, int x, int y, Stone stone) {
-        if (stone == null || stone == Stone.EMPTY) {
+        if (stone == null || stone == Stone.EMPTY || stone.isBlocking()) {
+            return false;
+        }
+        if (!stone.isPlayerStone()) {
             return false;
         }
         int[][] directions = {
@@ -56,11 +59,15 @@ public class BoardService {
         return y * store.width() + x;
     }
 
-    private int countDirection(BoardStore store, int startX, int startY, int dx, int dy, Stone stone) {
+    private int countDirection(BoardStore store, int startX, int startY, int dx, int dy, Stone playerStone) {
         int count = 0;
         int x = startX + dx;
         int y = startY + dy;
-        while (isWithinBounds(store, x, y) && stoneAt(store, x, y) == stone) {
+        while (isWithinBounds(store, x, y)) {
+            Stone occupying = stoneAt(store, x, y);
+            if (!occupying.countsForPlayerSequence(playerStone)) {
+                break;
+            }
             count++;
             x += dx;
             y += dy;
