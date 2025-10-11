@@ -83,6 +83,43 @@ public class MysqlService {
             return updated > 0;
         } catch (SQLException e) {
             System.err.printf("[MysqlService] adjustUserScore failed for %s: %s%n", userId, e.getMessage());
+            if (isScoreCheckViolation(e) && resetUserScoreToZero(userId)) {
+                System.err.printf(
+                    "[MysqlService] adjustUserScore fallback: reset score to zero for user %s after failure%n",
+                    userId
+                );
+                return true;
+            }
+            return false;
+        }
+    }
+
+    private boolean isScoreCheckViolation(SQLException e) {
+        if (e == null) {
+            return false;
+        }
+        if (e.getErrorCode() == 3819) {
+            return true;
+        }
+        String message = e.getMessage();
+        return message != null && message.contains("ScoreCheck");
+    }
+
+    private boolean resetUserScoreToZero(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return false;
+        }
+        if (user == null || user.isBlank()) {
+            return false;
+        }
+        String url = jdbcUrl();
+        String sql = "UPDATE users SET score = 0 WHERE user_id = ?";
+        try (Connection conn = DriverManager.getConnection(url, user, password);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException ex) {
+            System.err.printf("[MysqlService] resetUserScoreToZero failed for %s: %s%n", userId, ex.getMessage());
             return false;
         }
     }
