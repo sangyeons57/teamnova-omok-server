@@ -12,6 +12,7 @@ import teamnova.omok.rule.RuleId;
 import teamnova.omok.rule.RuleMetadata;
 import teamnova.omok.rule.RuleType;
 import teamnova.omok.rule.RulesContext;
+import teamnova.omok.service.dto.BoardSnapshotUpdate;
 import teamnova.omok.state.game.manage.GameSessionStateContext;
 import teamnova.omok.store.BoardStore;
 import teamnova.omok.store.GameSession;
@@ -47,7 +48,7 @@ public class EveryFiveTurnBlockerRule implements Rule {
         if (completedTurns <= 0 || completedTurns % 5 != 0) {
             return;
         }
-        Object lastTrigger = context.data().get(LAST_TRIGGER_KEY);
+        Object lastTrigger = context.getData(LAST_TRIGGER_KEY);
         if (lastTrigger instanceof Integer lastTurn && lastTurn == completedTurns) {
             return;
         }
@@ -69,6 +70,7 @@ public class EveryFiveTurnBlockerRule implements Rule {
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
         List<String> userIds = session.getUserIds();
+        boolean mutated = false;
         for (int playerIndex = 0; playerIndex < userIds.size(); playerIndex++) {
             Stone playerStone = Stone.fromPlayerOrder(playerIndex);
             if (!playerStone.isPlayerStone()) {
@@ -82,8 +84,18 @@ public class EveryFiveTurnBlockerRule implements Rule {
             int x = cellIndex % width;
             int y = cellIndex / width;
             stateContext.boardService().setStone(boardStore, x, y, Stone.BLOCKER);
+            mutated = true;
         }
 
-        context.data().put(LAST_TRIGGER_KEY, completedTurns);
+        if (mutated) {
+            byte[] snapshot = stateContext.boardService().snapshot(boardStore);
+            stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(
+                session,
+                snapshot,
+                System.currentTimeMillis()
+            ));
+        }
+
+        context.putData(LAST_TRIGGER_KEY, completedTurns);
     }
 }

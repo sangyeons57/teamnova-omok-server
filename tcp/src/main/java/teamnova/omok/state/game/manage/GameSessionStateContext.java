@@ -11,6 +11,7 @@ import teamnova.omok.store.GameSession;
 
 import teamnova.omok.service.dto.GameCompletionNotice;
 import teamnova.omok.service.dto.MoveResult;
+import teamnova.omok.service.dto.BoardSnapshotUpdate;
 import teamnova.omok.service.dto.PostGameDecisionPrompt;
 import teamnova.omok.service.dto.PostGameDecisionResult;
 import teamnova.omok.service.dto.PostGameDecisionUpdate;
@@ -37,6 +38,7 @@ public final class GameSessionStateContext {
     private PostGameResolution pendingPostGameResolution;
     private long postGameDecisionDeadline;
     private GameCompletionNotice pendingGameCompletion;
+    private BoardSnapshotUpdate pendingBoardSnapshot;
 
     public GameSessionStateContext(GameSession session,
                                    BoardService boardService,
@@ -174,5 +176,15 @@ public final class GameSessionStateContext {
         GameCompletionNotice notice = this.pendingGameCompletion;
         this.pendingGameCompletion = null;
         return notice;
+    }
+
+    public void pendingBoardSnapshot(BoardSnapshotUpdate update) {
+        this.pendingBoardSnapshot = update;
+    }
+
+    public BoardSnapshotUpdate consumePendingBoardSnapshot() {
+        BoardSnapshotUpdate update = this.pendingBoardSnapshot;
+        this.pendingBoardSnapshot = null;
+        return update;
     }
 }

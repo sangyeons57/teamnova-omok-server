@@ -17,7 +17,9 @@ import teamnova.omok.message.encoder.PostGameDecisionUpdateMessageEncoder;
 import teamnova.omok.message.encoder.ReadyStateMessageEncoder;
 import teamnova.omok.message.encoder.StonePlacedMessageEncoder;
 import teamnova.omok.message.encoder.TurnTimeoutMessageEncoder;
+import teamnova.omok.message.encoder.BoardSnapshotMessageEncoder;
 import teamnova.omok.service.dto.MoveResult;
+import teamnova.omok.service.dto.BoardSnapshotUpdate;
 import teamnova.omok.service.dto.PostGameDecisionPrompt;
 import teamnova.omok.service.dto.PostGameDecisionResult;
 import teamnova.omok.service.dto.PostGameDecisionUpdate;
@@ -54,6 +56,10 @@ final class SessionMessagePublisher {
 
     void broadcastTurnTimeout(GameSession session, TurnTimeoutResult result) {
         messenger.broadcast(session, Type.TURN_TIMEOUT, TurnTimeoutMessageEncoder.encode(result));
+    }
+
+    void broadcastBoardSnapshot(BoardSnapshotUpdate update) {
+        messenger.broadcast(update.session(), Type.BOARD_SNAPSHOT, BoardSnapshotMessageEncoder.encode(update));
     }
 
     void broadcastGameCompleted(GameSession session) {

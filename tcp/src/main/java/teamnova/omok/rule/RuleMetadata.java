@@ -10,7 +10,7 @@ public class RuleMetadata {
 
     public RuleMetadata(RuleId id, Set<RuleType> types, int limitScore) {
         this.id = id;
-        this.types = types;
+        this.types = Set.copyOf(types);
         this.limitScore = limitScore;
     }
 }

@@ -54,12 +54,16 @@ public class RulesContext {
         return session;
     }
 
+    public Object getData(String key) {
+        return data.get(key);
+    }
+
     public int lowestScore() {
         return lowestScore;
     }
 
-    public Map<String, Object> data() {
-        return data;
+    public void putData(String key, Object value) {
+        data.put(key, value);
     }
 
     public GameSessionStateContext stateContext() {

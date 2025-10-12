@@ -10,6 +10,7 @@ import teamnova.omok.game.PostGameDecision;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.service.cordinator.DecisionTimeoutCoordinator;
 import teamnova.omok.service.cordinator.TurnTimeoutCoordinator;
+import teamnova.omok.service.dto.BoardSnapshotUpdate;
 import teamnova.omok.service.dto.GameCompletionNotice;
 import teamnova.omok.service.dto.MoveResult;
 import teamnova.omok.service.dto.MoveStatus;
@@ -293,6 +294,10 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
 
     private void drainPostGameSideEffects(GameSessionStateManager manager,
                                           GameSessionStateContext ctx) {
+        BoardSnapshotUpdate boardUpdate = ctx.consumePendingBoardSnapshot();
+        if (boardUpdate != null) {
+            publisher.broadcastBoardSnapshot(boardUpdate);
+        }
         GameCompletionNotice completion = ctx.consumePendingGameCompletion();
         if (completion != null) {
             publisher.broadcastGameCompleted(completion.session());
