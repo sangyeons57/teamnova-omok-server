@@ -1,28 +1,49 @@
 package teamnova.omok.rule;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RuleRegistry {
-    public static RuleRegistry INSTANCE = null;
+    private static RuleRegistry INSTANCE;
 
-    private Map<RuleId,Rule> registry;
+    private final Map<RuleId, Rule> registry;
 
-    public static RuleRegistry getInstance() {
+    public static synchronized RuleRegistry getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new RuleRegistry();
         }
         return INSTANCE;
     }
+
     private RuleRegistry() {
-        registry = new HashMap<>();
+        registry = new ConcurrentHashMap<>();
     }
 
     public void register(Rule rule) {
-        registry.put(rule.getMetadata().id, rule);
+        Objects.requireNonNull(rule, "rule");
+        RuleMetadata metadata = Objects.requireNonNull(rule.getMetadata(), "metadata");
+        Objects.requireNonNull(metadata.id, "rule id");
+        registry.put(metadata.id, rule);
     }
 
     public Rule get(RuleId id) {
-        return registry.get(id);
+        return id == null ? null : registry.get(id);
+    }
+
+    public List<Rule> eligibleRules(int lowestParticipantScore) {
+        List<Rule> result = new ArrayList<>();
+        for (Rule rule : registry.values()) {
+            RuleMetadata metadata = rule.getMetadata();
+            if (metadata == null) {
+                continue;
+            }
+            if (metadata.limitScore <= lowestParticipantScore) {
+                result.add(rule);
+            }
+        }
+        return result;
     }
 }

@@ -36,7 +36,7 @@ public class GameSession {
     private final OutcomeStore outcomeStore;
     private final Map<String, PostGameDecision> postGameDecisions = new ConcurrentHashMap<>();
     private final Set<String> rematchRequestUserIds = ConcurrentHashMap.newKeySet();
-    private final RulesContext rulesContext;
+    private volatile RulesContext rulesContext;
 
     private volatile boolean gameStarted;
     private volatile long gameStartedAt;
@@ -54,6 +54,7 @@ public class GameSession {
         this.boardStore = new BoardStore(BOARD_WIDTH, BOARD_HEIGHT);
         this.turnStore = new TurnStore();
         this.outcomeStore = new OutcomeStore(this.userIds);
+        this.rulesContext = null;
 
         for (String userId : this.userIds) {
             readyStates.put(userId, Boolean.FALSE);
@@ -82,6 +83,14 @@ public class GameSession {
 
     public TurnStore getTurnStore() {
         return turnStore;
+    }
+
+    public RulesContext getRulesContext() {
+        return rulesContext;
+    }
+
+    public void setRulesContext(RulesContext rulesContext) {
+        this.rulesContext = rulesContext;
     }
 
     public boolean isGameStarted() {

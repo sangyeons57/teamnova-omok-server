@@ -41,12 +41,13 @@ public class ServiceContainer {
         this.outcomeService = new OutcomeService(boardService);
         this.matchingService = new MatchingService();
         this.inGameSessionStore = new InGameSessionStore(boardService, turnService, outcomeService);
-        this.ruleService = new RuleService();
+        this.ruleService = new RuleService(mysqlService);
         this.inGameSessionService = new InGameSessionService(
             inGameSessionStore,
             turnService,
             outcomeService,
-            scoreService
+            scoreService,
+            ruleService
         );
         this.matchScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
@@ -111,6 +112,10 @@ public class ServiceContainer {
 
     public OutcomeService getOutcomeService() {
         return outcomeService;
+    }
+
+    public RuleService getRuleService() {
+        return ruleService;
     }
 
     public InGameSessionService getInGameSessionService() {

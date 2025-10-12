@@ -3,7 +3,6 @@ package teamnova.omok;
 import java.io.IOException;
 import teamnova.omok.handler.register.DefaultHandlerRegistry;
 import teamnova.omok.nio.NioReactorServer;
-import teamnova.omok.rule.RuleBootstrap;
 import teamnova.omok.service.ServiceContainer;
 
 public final class Main {
@@ -17,7 +16,6 @@ public final class Main {
             System.out.printf("[NIO] Reactor server listening on port %d%n", port);
             // Start service container scheduler
             ServiceContainer.getInstance().start(server);
-            RuleBootstrap.getInstance()
             server.start();
         } catch (IOException e) {
             System.err.println("Failed to start NIO reactor server: " + e.getMessage());

@@ -64,6 +64,10 @@ public final class GameSessionStateContext {
         return outcomeService;
     }
 
+    public RulesContext rulesContext() {
+        return session.getRulesContext();
+    }
+
     public void beginTurnCycle(TurnCycleContext context) {
         if (this.activeTurnCycle != null) {
             throw new IllegalStateException("Turn cycle already in progress");

@@ -10,9 +10,11 @@ import teamnova.omok.store.GameSession;
 import teamnova.omok.store.InGameSessionStore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Map;
 
 public class InGameSessionService {
     private final InGameSessionStore store;
@@ -20,15 +22,18 @@ public class InGameSessionService {
     private final SessionMessenger messenger = new SessionMessenger();
     private final SessionMessagePublisher messagePublisher = new SessionMessagePublisher(messenger);
     private final SessionEventService eventService;
+    private final RuleService ruleService;
 
     public InGameSessionService(InGameSessionStore store,
                                 TurnService turnService,
                                 OutcomeService outcomeService,
-                                ScoreService scoreService) {
+                                ScoreService scoreService,
+                                RuleService ruleService) {
         Objects.requireNonNull(outcomeService, "outcomeService");
         Objects.requireNonNull(scoreService, "scoreService");
         this.store = Objects.requireNonNull(store, "store");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
+        this.ruleService = Objects.requireNonNull(ruleService, "ruleService");
         TurnTimeoutCoordinator timeoutCoordinator = new TurnTimeoutCoordinator();
         DecisionTimeoutCoordinator decisionTimeoutCoordinator = new DecisionTimeoutCoordinator();
         this.eventService = new SessionEventService(
@@ -37,7 +42,8 @@ public class InGameSessionService {
             this.messagePublisher,
             timeoutCoordinator,
             decisionTimeoutCoordinator,
-            scoreService
+            scoreService,
+            ruleService
         );
     }
 
@@ -126,6 +132,9 @@ public class InGameSessionService {
         List<String> userIds = new ArrayList<>();
         group.getTickets().forEach(t -> userIds.add(t.id));
         GameSession session = new GameSession(userIds);
+        Map<String, Integer> knownScores = new HashMap<>();
+        group.getTickets().forEach(ticket -> knownScores.put(ticket.id, ticket.rating));
+        session.setRulesContext(ruleService.prepareRules(session, knownScores, RuleService.DEFAULT_RULE_SELECTION_COUNT));
         store.save(session);
         messagePublisher.broadcastJoin(session);
     }

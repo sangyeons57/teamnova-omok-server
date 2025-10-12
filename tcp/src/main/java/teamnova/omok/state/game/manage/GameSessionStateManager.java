@@ -7,6 +7,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
+import teamnova.omok.rule.RulesContext;
 import teamnova.omok.service.BoardService;
 import teamnova.omok.service.OutcomeService;
 import teamnova.omok.service.TurnService;
@@ -60,6 +61,7 @@ public class GameSessionStateManager {
             throw new IllegalStateException("Lobby state not registered");
         }
         GameSessionStateStep entryStep = currentRegistration.state.onEnter(context);
+        triggerRules(currentRegistration.state.type());
         applyTransition(entryStep);
     }
 
@@ -132,10 +134,19 @@ public class GameSessionStateManager {
         currentRegistration.state.onExit(context);
         currentRegistration = next;
         GameSessionStateStep entryStep = currentRegistration.state.onEnter(context);
-
-        context.
-
+        triggerRules(targetType);
         applyTransition(entryStep);
+    }
+
+    private void triggerRules(GameSessionStateType targetType) {
+        RulesContext rulesContext = context.session().getRulesContext();
+        if (rulesContext == null) {
+            return;
+        }
+        rulesContext.attachStateContext(context);
+        if (rulesContext.setCurrentRuleByGameState(targetType)) {
+            rulesContext.activateCurrentRule();
+        }
     }
 
     private record StateRegistration(GameSessionState state,
