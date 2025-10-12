@@ -4,6 +4,8 @@ import teamnova.omok.game.PlayerResult;
 import teamnova.omok.game.PostGameDecision;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.NioReactorServer;
+import teamnova.omok.service.cordinator.DecisionTimeoutCoordinator;
+import teamnova.omok.service.cordinator.TurnTimeoutCoordinator;
 import teamnova.omok.store.GameSession;
 import teamnova.omok.store.InGameSessionStore;
 
@@ -14,21 +16,18 @@ import java.util.Optional;
 
 public class InGameSessionService {
     private final InGameSessionStore store;
-    private final BoardService boardService;
     private final TurnService turnService;
     private final SessionMessenger messenger = new SessionMessenger();
     private final SessionMessagePublisher messagePublisher = new SessionMessagePublisher(messenger);
     private final SessionEventService eventService;
 
     public InGameSessionService(InGameSessionStore store,
-                                BoardService boardService,
                                 TurnService turnService,
                                 OutcomeService outcomeService,
                                 ScoreService scoreService) {
         Objects.requireNonNull(outcomeService, "outcomeService");
         Objects.requireNonNull(scoreService, "scoreService");
         this.store = Objects.requireNonNull(store, "store");
-        this.boardService = Objects.requireNonNull(boardService, "boardService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
         TurnTimeoutCoordinator timeoutCoordinator = new TurnTimeoutCoordinator();
         DecisionTimeoutCoordinator decisionTimeoutCoordinator = new DecisionTimeoutCoordinator();

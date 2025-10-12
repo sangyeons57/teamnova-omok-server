@@ -1,4 +1,4 @@
-package teamnova.omok.service;
+package teamnova.omok.service.cordinator;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,6 +8,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import teamnova.omok.service.TurnService;
 import teamnova.omok.store.GameSession;
 
 /**

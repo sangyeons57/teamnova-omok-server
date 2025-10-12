@@ -2,6 +2,7 @@ package teamnova.omok.state.game.manage;
 
 import java.util.Objects;
 
+import teamnova.omok.rule.RulesContext;
 import teamnova.omok.service.BoardService;
 import teamnova.omok.service.InGameSessionService;
 import teamnova.omok.service.OutcomeService;

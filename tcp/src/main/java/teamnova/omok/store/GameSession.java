@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import teamnova.omok.game.PlayerResult;
 import teamnova.omok.game.PostGameDecision;
+import teamnova.omok.rule.RulesContext;
 
 /**
  * Represents an in-game session with participants and mutable runtime state.
@@ -35,6 +36,7 @@ public class GameSession {
     private final OutcomeStore outcomeStore;
     private final Map<String, PostGameDecision> postGameDecisions = new ConcurrentHashMap<>();
     private final Set<String> rematchRequestUserIds = ConcurrentHashMap.newKeySet();
+    private final RulesContext rulesContext;
 
     private volatile boolean gameStarted;
     private volatile long gameStartedAt;

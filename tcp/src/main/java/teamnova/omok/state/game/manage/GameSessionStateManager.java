@@ -132,6 +132,9 @@ public class GameSessionStateManager {
         currentRegistration.state.onExit(context);
         currentRegistration = next;
         GameSessionStateStep entryStep = currentRegistration.state.onEnter(context);
+
+        context.
+
         applyTransition(entryStep);
     }
 

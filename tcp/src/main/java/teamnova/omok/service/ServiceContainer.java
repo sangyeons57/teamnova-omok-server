@@ -24,6 +24,7 @@ public class ServiceContainer {
     private final MatchingService matchingService;
     private final InGameSessionStore inGameSessionStore;
     private final InGameSessionService inGameSessionService;
+    private final RuleService ruleService;
 
     private final ScheduledExecutorService matchScheduler;
     private final ScheduledExecutorService sessionScheduler;
@@ -40,9 +41,9 @@ public class ServiceContainer {
         this.outcomeService = new OutcomeService(boardService);
         this.matchingService = new MatchingService();
         this.inGameSessionStore = new InGameSessionStore(boardService, turnService, outcomeService);
+        this.ruleService = new RuleService();
         this.inGameSessionService = new InGameSessionService(
             inGameSessionStore,
-            boardService,
             turnService,
             outcomeService,
             scoreService

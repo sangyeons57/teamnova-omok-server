@@ -1,4 +1,4 @@
-package teamnova.omok.service;
+package teamnova.omok.service.cordinator;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
