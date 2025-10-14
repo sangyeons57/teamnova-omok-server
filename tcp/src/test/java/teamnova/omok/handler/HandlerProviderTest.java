@@ -4,8 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.junit.jupiter.api.Test;
-import teamnova.omok.handler.register.FrameHandler;
-import teamnova.omok.handler.register.HandlerProvider;
+import teamnova.omok.glue.handler.register.FrameHandler;
+import teamnova.omok.glue.handler.register.HandlerProvider;
+import teamnova.omok.core.nio.ClientSession;
+import teamnova.omok.core.nio.FramedMessage;
+import teamnova.omok.core.nio.NioReactorServer;
 
 class HandlerProviderTest {
 
@@ -21,9 +24,9 @@ class HandlerProviderTest {
     void factoryCreatesNewInstances() {
         HandlerProvider provider = HandlerProvider.factory(() -> new FrameHandler() {
             @Override
-            public void handle(teamnova.omok.nio.NioReactorServer server,
-                               teamnova.omok.nio.ClientSession session,
-                               teamnova.omok.nio.FramedMessage frame) {
+            public void handle(NioReactorServer server,
+                               ClientSession session,
+                               FramedMessage frame) {
                 // no-op
             }
         });

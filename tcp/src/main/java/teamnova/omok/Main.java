@@ -1,9 +1,9 @@
 package teamnova.omok;
 
 import java.io.IOException;
-import teamnova.omok.handler.register.DefaultHandlerRegistry;
-import teamnova.omok.nio.NioReactorServer;
-import teamnova.omok.service.ServiceContainer;
+import teamnova.omok.glue.handler.register.DefaultHandlerRegistry;
+import teamnova.omok.core.nio.NioReactorServer;
+import teamnova.omok.glue.service.ServiceContainer;
 
 public final class Main {
     private static final int DEFAULT_PORT = 15015;

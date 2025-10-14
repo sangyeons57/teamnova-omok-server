@@ -1,0 +1,14 @@
+package teamnova.omok.glue.service.dto;
+
+import java.util.List;
+import java.util.Map;
+
+import teamnova.omok.glue.game.PostGameDecision;
+import teamnova.omok.glue.store.GameSession;
+
+/**
+ * Broadcast payload capturing partial post-game decision progress.
+ */
+public record PostGameDecisionUpdate(GameSession session,
+                                     Map<String, PostGameDecision> decisions,
+                                     List<String> remaining) { }

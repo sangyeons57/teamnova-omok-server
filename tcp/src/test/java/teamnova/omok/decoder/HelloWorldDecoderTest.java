@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.junit.jupiter.api.Test;
-import teamnova.omok.message.decoder.HelloWorldDecoder;
+import teamnova.omok.glue.message.decoder.HelloWorldDecoder;
 
 class HelloWorldDecoderTest {
 
