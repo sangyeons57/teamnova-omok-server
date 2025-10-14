@@ -1,8 +1,8 @@
 package teamnova.omok.service.dto;
 
-import teamnova.omok.service.TurnService;
-import teamnova.omok.store.GameSession;
-import teamnova.omok.store.Stone;
+import teamnova.omok.domain.session.game.GameSession;
+import teamnova.omok.domain.session.game.entity.stone.Stone;
+import teamnova.omok.domain.session.game.entity.turn.TurnSnapshot;
 
 /**
  * Represents how a move request impacted the game session.
@@ -10,14 +10,14 @@ import teamnova.omok.store.Stone;
 public record MoveResult(GameSession session,
                          MoveStatus status,
                          Stone placedAs,
-                         TurnService.TurnSnapshot turnSnapshot,
+                         TurnSnapshot turnSnapshot,
                          String userId,
                          int x,
                          int y) {
 
     public static MoveResult success(GameSession session,
                                      Stone stone,
-                                     TurnService.TurnSnapshot nextTurn,
+                                     TurnSnapshot nextTurn,
                                      String userId,
                                      int x,
                                      int y) {
@@ -26,7 +26,7 @@ public record MoveResult(GameSession session,
 
     public static MoveResult invalid(GameSession session,
                                      MoveStatus status,
-                                     TurnService.TurnSnapshot snapshot,
+                                     TurnSnapshot snapshot,
                                      String userId,
                                      int x,
                                      int y) {

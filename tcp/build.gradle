@@ -8,6 +8,7 @@ plugins {
     // 자바 애플리케이션을 빌드하고 실행하는 데 필요한 기본 기능을 제공합니다.
     id 'application'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'org.jetbrains.kotlin.jvm'
 }
 
 // 2. 프로젝트 기본 정보
@@ -19,7 +20,6 @@ version = '1.0.0'
 // 3. 자바 컴파일러 설정
 java {
     // CI/CD 환경과 동일한 JDK 버전을 지정합니다.
-    sourceCompatibility = JavaVersion.VERSION_17
 }
 
 // 4. 의존성 라이브러리를 다운로드할 원격 저장소
@@ -45,6 +45,7 @@ dependencies {
 
     // 테스트 코드용 의존성
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 // 6. 애플리케이션 실행 및 JAR 파일 설정
@@ -80,4 +81,7 @@ shadowJar {
     archiveBaseName.set('java-tcp-server')
     archiveVersion.set('1.0.0')
     archiveClassifier.set('all') // 파일명 : java-tcp-server=1.0.0-all.jar
+}
+kotlin {
+    jvmToolchain(17)
 }

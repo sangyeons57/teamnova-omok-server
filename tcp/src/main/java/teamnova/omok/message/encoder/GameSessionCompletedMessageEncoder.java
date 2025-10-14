@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import teamnova.omok.game.PlayerResult;
-import teamnova.omok.store.GameSession;
+import teamnova.omok.domain.session.game.GameSession;
 
 /**
  * Encodes the final per-player outcomes for a completed game session.

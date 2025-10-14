@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import teamnova.omok.message.decoder.StringDecoder;
 import teamnova.omok.handler.register.FrameHandler;
 import teamnova.omok.handler.register.Type;
-import teamnova.omok.service.DotenvService;
+import teamnova.omok.infra.Dotenv;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.FramedMessage;
 import teamnova.omok.nio.NioReactorServer;
@@ -33,9 +33,9 @@ public class AuthHandler implements FrameHandler {
     private final StringDecoder decoder;
     private final String secret;
 
-    public AuthHandler(StringDecoder decoder, DotenvService dotenvService){
+    public AuthHandler(StringDecoder decoder, Dotenv dotenv){
         this.decoder = decoder;
-        String value = dotenvService.get("JWT_SECRET");
+        String value = dotenv.get("JWT_SECRET");
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("JWT_SECRET is not configured");
         }

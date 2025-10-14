@@ -1,13 +1,16 @@
 package teamnova.omok.service;
 
 import teamnova.omok.game.PlayerResult;
-import teamnova.omok.game.PostGameDecision;
+import teamnova.omok.game.PostGameDecisionType;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.NioReactorServer;
+import teamnova.omok.application.SessionMessagePublisher;
+import teamnova.omok.application.SessionMessenger;
 import teamnova.omok.service.cordinator.DecisionTimeoutCoordinator;
 import teamnova.omok.service.cordinator.TurnTimeoutCoordinator;
-import teamnova.omok.store.GameSession;
-import teamnova.omok.store.InGameSessionStore;
+import teamnova.omok.domain.session.game.GameSession;
+import teamnova.omok.domain.session.game.entity.turn.TurnSnapshot;
+import teamnova.omok.application.GameSessionManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,28 +20,22 @@ import java.util.Optional;
 import java.util.Map;
 
 public class InGameSessionService {
-    private final InGameSessionStore store;
-    private final TurnService turnService;
+    private final GameSessionManager store;
     private final SessionMessenger messenger = new SessionMessenger();
     private final SessionMessagePublisher messagePublisher = new SessionMessagePublisher(messenger);
     private final SessionEventService eventService;
     private final RuleService ruleService;
 
-    public InGameSessionService(InGameSessionStore store,
-                                TurnService turnService,
-                                OutcomeService outcomeService,
+    public InGameSessionService(GameSessionManager store,
                                 ScoreService scoreService,
                                 RuleService ruleService) {
-        Objects.requireNonNull(outcomeService, "outcomeService");
         Objects.requireNonNull(scoreService, "scoreService");
         this.store = Objects.requireNonNull(store, "store");
-        this.turnService = Objects.requireNonNull(turnService, "turnService");
         this.ruleService = Objects.requireNonNull(ruleService, "ruleService");
         TurnTimeoutCoordinator timeoutCoordinator = new TurnTimeoutCoordinator();
         DecisionTimeoutCoordinator decisionTimeoutCoordinator = new DecisionTimeoutCoordinator();
         this.eventService = new SessionEventService(
             this.store,
-            this.turnService,
             this.messagePublisher,
             timeoutCoordinator,
             decisionTimeoutCoordinator,
@@ -96,8 +93,7 @@ public class InGameSessionService {
                 newlyDisconnected = session.markDisconnected(userId);
                 session.updateOutcome(userId, PlayerResult.LOSS);
                 if (session.isGameStarted() && !session.isGameFinished()) {
-                    TurnService.TurnSnapshot snapshot =
-                        turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                    TurnSnapshot snapshot = session.snapshotTurn();
                     if (snapshot != null && userId.equals(snapshot.currentPlayerId())) {
                         shouldSkip = true;
                         expectedTurn = snapshot.turnNumber();
@@ -123,7 +119,7 @@ public class InGameSessionService {
         return eventService.submitMove(userId, requestId, x, y);
     }
 
-    public boolean submitPostGameDecision(String userId, long requestId, PostGameDecision decision) {
+    public boolean submitPostGameDecision(String userId, long requestId, PostGameDecisionType decision) {
         return eventService.submitPostGameDecision(userId, requestId, decision);
     }
 

@@ -8,8 +8,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import teamnova.omok.service.TurnService;
-import teamnova.omok.store.GameSession;
+import teamnova.omok.domain.session.game.GameSession;
+import teamnova.omok.domain.session.game.entity.turn.TurnSnapshot;
 
 /**
  * Coordinates scheduling and cancellation of per-session turn timeouts.
@@ -28,7 +28,7 @@ public class TurnTimeoutCoordinator {
     }
 
     public void schedule(GameSession session,
-                         TurnService.TurnSnapshot turnSnapshot,
+                         TurnSnapshot turnSnapshot,
                          TurnTimeoutConsumer consumer) {
         if (session == null || turnSnapshot == null || consumer == null) {
             return;

@@ -8,27 +8,25 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 
-import teamnova.omok.rule.Rule;
-import teamnova.omok.rule.RuleBootstrap;
-import teamnova.omok.rule.RuleRegistry;
-import teamnova.omok.rule.RulesContext;
-import teamnova.omok.store.GameSession;
+import teamnova.omok.infra.InfraContainer;
+import teamnova.omok.infra.Mysql;
+import teamnova.omok.domain.rule.model.Rule;
+import teamnova.omok.domain.rule.RuleBootstrap;
+import teamnova.omok.domain.rule.RuleRegistry;
+import teamnova.omok.domain.rule.RulesContext;
+import teamnova.omok.domain.session.game.GameSession;
 
 public class RuleService {
     public static final int DEFAULT_RULE_SELECTION_COUNT = 1;
     private static final int DEFAULT_SCORE = 1000;
 
-    private final MysqlService mysqlService;
+    private final Mysql mysql;
     private final RuleRegistry registry;
     private final Random random = new Random();
 
-    public RuleService(MysqlService mysqlService) {
-        this(mysqlService, RuleRegistry.getInstance());
-    }
-
-    RuleService(MysqlService mysqlService, RuleRegistry registry) {
-        this.mysqlService = mysqlService;
-        this.registry = registry;
+    RuleService() {
+        this.mysql = InfraContainer.getInstance().getDefaultDB();
+        this.registry = RuleRegistry.getInstance();
         new RuleBootstrap().registerDefaults(registry);
     }
 
@@ -59,8 +57,8 @@ public class RuleService {
             int score = DEFAULT_SCORE;
             if (knownScores != null && knownScores.containsKey(userId)) {
                 score = knownScores.get(userId);
-            } else if (mysqlService != null) {
-                score = mysqlService.getUserScore(userId, DEFAULT_SCORE);
+            } else if (mysql != null) {
+                score = mysql.getUserScore(userId, DEFAULT_SCORE);
             }
             resolved.put(userId, score);
         }

@@ -1,8 +1,7 @@
 package teamnova.omok.service;
 
 import teamnova.omok.nio.NioReactorServer;
-import teamnova.omok.store.GameSession;
-import teamnova.omok.store.InGameSessionStore;
+import teamnova.omok.application.GameSessionManager;
 
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -15,14 +14,9 @@ import java.util.concurrent.TimeUnit;
 public class ServiceContainer {
     private static final ServiceContainer INSTANCE = new ServiceContainer();
 
-    private final DotenvService dotenvService;
-    private final MysqlService mysqlService;
     private final ScoreService scoreService;
-    private final BoardService boardService;
-    private final TurnService turnService;
-    private final OutcomeService outcomeService;
     private final MatchingService matchingService;
-    private final InGameSessionStore inGameSessionStore;
+    private final GameSessionManager gameSessionManager;
     private final InGameSessionService inGameSessionService;
     private final RuleService ruleService;
 
@@ -32,20 +26,12 @@ public class ServiceContainer {
 
     private ServiceContainer() {
         // .env is located at project root's parent (same as previous usage in DefaultHandlerRegistry)
-        String basePath = System.getProperty("user.dir") + "/..";
-        this.dotenvService = new DotenvService(basePath);
-        this.mysqlService = new MysqlService(dotenvService);
-        this.scoreService = new ScoreService(mysqlService);
-        this.boardService = new BoardService();
-        this.turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
-        this.outcomeService = new OutcomeService(boardService);
+        this.scoreService = new ScoreService();
         this.matchingService = new MatchingService();
-        this.inGameSessionStore = new InGameSessionStore(boardService, turnService, outcomeService);
-        this.ruleService = new RuleService(mysqlService);
+        this.gameSessionManager = new GameSessionManager();
+        this.ruleService = new RuleService();
         this.inGameSessionService = new InGameSessionService(
-            inGameSessionStore,
-            turnService,
-            outcomeService,
+                gameSessionManager,
             scoreService,
             ruleService
         );
@@ -75,7 +61,7 @@ public class ServiceContainer {
         sessionScheduler.scheduleAtFixedRate(() -> {
             try {
                 long now = System.currentTimeMillis();
-                inGameSessionStore.updateSessions(now);
+                gameSessionManager.updateSessions(now);
             } catch (Exception ignored) {
                 // keep loop running even if one tick fails
             }
@@ -94,24 +80,10 @@ public class ServiceContainer {
         started = true;
     }
 
-    public DotenvService getDotenvService() { return dotenvService; }
-    public MysqlService getMysqlService() { return mysqlService; }
     public ScoreService getScoreService() { return scoreService; }
 
     public MatchingService getMatchingService() {
         return matchingService;
-    }
-
-    public BoardService getBoardService() {
-        return boardService;
-    }
-
-    public TurnService getTurnService() {
-        return turnService;
-    }
-
-    public OutcomeService getOutcomeService() {
-        return outcomeService;
     }
 
     public RuleService getRuleService() {
@@ -122,7 +94,7 @@ public class ServiceContainer {
         return inGameSessionService;
     }
 
-    public InGameSessionStore getInGameSessionStore() {
-        return inGameSessionStore;
+    public GameSessionManager getInGameSessionStore() {
+        return gameSessionManager;
     }
 }

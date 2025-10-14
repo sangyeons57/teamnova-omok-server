@@ -1,0 +1,69 @@
+package teamnova.omok.application;
+
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import teamnova.omok.handler.register.Type;
+import teamnova.omok.domain.session.game.GameSession;
+import teamnova.omok.nio.ClientSession;
+import teamnova.omok.nio.NioReactorServer;
+
+/**
+ * Handles network interactions with connected clients for a game session.
+ */
+public final class SessionMessenger {
+    private final ConcurrentMap<String, ClientSession> clients = new ConcurrentHashMap<>();
+    private volatile NioReactorServer server;
+
+    public SessionMessenger(NioReactorServer server) {
+        this.server = Objects.requireNonNull(server, "server");
+    }
+
+    public void attachServer(NioReactorServer server) {
+    }
+
+    void registerClient(String userId, ClientSession session) {
+        if (userId != null && session != null) {
+            clients.put(userId, session);
+        }
+    }
+
+    void unregisterClient(String userId) {
+        if (userId != null) {
+            clients.remove(userId);
+        }
+    }
+
+    ClientSession getClient(String userId) {
+        return clients.get(userId);
+    }
+
+    void broadcast(GameSession session, Type type, byte[] payload) {
+        NioReactorServer srv = server;
+        if (srv == null || session == null) {
+            return;
+        }
+        for (String uid : session.getUserIds()) {
+            ClientSession cs = clients.get(uid);
+            if (cs != null) {
+                cs.enqueueResponse(type, 0L, payload);
+                srv.enqueueSelectorTask(cs::enableWriteInterest);
+            }
+        }
+    }
+
+    void respond(String userId, Type type, long requestId, byte[] payload) {
+        NioReactorServer srv = server;
+        if (srv == null || userId == null) {
+            return;
+        }
+        ClientSession cs = clients.get(userId);
+        if (cs == null) {
+            return;
+        }
+        cs.enqueueResponse(type, requestId, payload);
+        srv.enqueueSelectorTask(cs::enableWriteInterest);
+    }
+
+}

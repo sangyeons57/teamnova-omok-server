@@ -1,13 +1,15 @@
 package teamnova.omok.message.encoder;
 
 import java.nio.charset.StandardCharsets;
-import teamnova.omok.service.TurnService;
-import teamnova.omok.store.GameSession;
+
+import teamnova.omok.domain.session.game.GameSession;
+import teamnova.omok.domain.session.game.entity.board.BoardService;
+import teamnova.omok.domain.session.game.entity.turn.TurnSnapshot;
 
 public final class GameSessionStartedMessageEncoder {
     private GameSessionStartedMessageEncoder() {}
 
-    public static byte[] encode(GameSession session, TurnService.TurnSnapshot turn) {
+    public static byte[] encode(GameSession session, TurnSnapshot turn) {
         StringBuilder sb = new StringBuilder(256);
         sb.append('{')
           .append("\"sessionId\":\"").append(session.getId()).append('\"')
@@ -15,8 +17,8 @@ public final class GameSessionStartedMessageEncoder {
           .append("\"startedAt\":").append(session.getGameStartedAt())
           .append(',')
           .append("\"board\":{")
-          .append("\"width\":").append(GameSession.BOARD_WIDTH).append(',')
-          .append("\"height\":").append(GameSession.BOARD_HEIGHT)
+          .append("\"width\":").append(BoardService.DEFAULT_WIDTH).append(',')
+          .append("\"height\":").append(BoardService.DEFAULT_HEIGHT)
           .append('}')
           .append(',')
           .append("\"turn\":");

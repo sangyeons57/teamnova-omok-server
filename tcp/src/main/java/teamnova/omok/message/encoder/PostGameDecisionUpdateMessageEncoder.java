@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-import teamnova.omok.game.PostGameDecision;
+import teamnova.omok.game.PostGameDecisionType;
 import teamnova.omok.service.dto.PostGameDecisionUpdate;
 
 public final class PostGameDecisionUpdateMessageEncoder {
@@ -16,9 +16,9 @@ public final class PostGameDecisionUpdateMessageEncoder {
           .append("\"sessionId\":\"").append(update.session().getId()).append('\"')
           .append(',')
           .append("\"decisions\":[");
-        Map<String, PostGameDecision> decisions = update.decisions();
+        Map<String, PostGameDecisionType> decisions = update.decisions();
         boolean first = true;
-        for (Map.Entry<String, PostGameDecision> entry : decisions.entrySet()) {
+        for (Map.Entry<String, PostGameDecisionType> entry : decisions.entrySet()) {
             if (!first) {
                 sb.append(',');
             }

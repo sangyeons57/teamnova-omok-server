@@ -1,6 +1,6 @@
 package teamnova.omok.handler;
 
-import teamnova.omok.game.PostGameDecision;
+import teamnova.omok.game.PostGameDecisionType;
 import teamnova.omok.handler.register.FrameHandler;
 import teamnova.omok.handler.register.Type;
 import teamnova.omok.message.decoder.StringDecoder;
@@ -32,9 +32,9 @@ public class PostGameDecisionHandler implements FrameHandler {
             respondImmediate(server, session, frame.requestId(), userId, PostGameDecisionStatus.INVALID_PAYLOAD);
             return;
         }
-        PostGameDecision decision;
+        PostGameDecisionType decision;
         try {
-            decision = PostGameDecision.valueOf(trimmed.toUpperCase());
+            decision = PostGameDecisionType.valueOf(trimmed.toUpperCase());
         } catch (IllegalArgumentException ex) {
             respondImmediate(server, session, frame.requestId(), userId, PostGameDecisionStatus.INVALID_PAYLOAD);
             return;

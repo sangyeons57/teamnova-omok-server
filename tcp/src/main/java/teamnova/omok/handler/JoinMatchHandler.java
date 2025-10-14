@@ -6,21 +6,21 @@ import teamnova.omok.handler.register.Type;
 import teamnova.omok.nio.ClientSession;
 import teamnova.omok.nio.FramedMessage;
 import teamnova.omok.nio.NioReactorServer;
-import teamnova.omok.service.MatchingService;
 import teamnova.omok.service.ServiceContainer;
 import teamnova.omok.service.InGameSessionService;
-import teamnova.omok.service.MysqlService;
+import teamnova.omok.infra.Mysql;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 public class JoinMatchHandler implements FrameHandler {
     private final StringDecoder stringDecoder;
+    private final Mysql mysql;
 
-    public JoinMatchHandler(StringDecoder stringDecoder) {
+    public JoinMatchHandler(StringDecoder stringDecoder, Mysql mysql) {
         this.stringDecoder = stringDecoder;
+        this.mysql = mysql;
     }
 
     @Override
@@ -36,8 +36,7 @@ public class JoinMatchHandler implements FrameHandler {
         igs.registerClient(userId, session);
 
         // Resolve rating from DB (users.score) using MysqlService, default to 1000
-        MysqlService mysql = ServiceContainer.getInstance().getMysqlService();
-        int rating = (mysql != null) ? mysql.getUserScore(userId, 1000) : 1000;
+        int rating = mysql.getUserScore(userId, 1000);
 
         // Payload now only contains mode: one of "1","2","3","4"
         Set<Integer> matchSet = new HashSet<>();

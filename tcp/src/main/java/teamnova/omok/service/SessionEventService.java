@@ -6,8 +6,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import teamnova.omok.game.PostGameDecision;
+import teamnova.omok.game.PostGameDecisionType;
 import teamnova.omok.handler.register.Type;
+import teamnova.omok.application.SessionMessagePublisher;
 import teamnova.omok.service.cordinator.DecisionTimeoutCoordinator;
 import teamnova.omok.service.cordinator.TurnTimeoutCoordinator;
 import teamnova.omok.service.dto.BoardSnapshotUpdate;
@@ -21,38 +22,30 @@ import teamnova.omok.service.dto.PostGameDecisionUpdate;
 import teamnova.omok.service.dto.PostGameResolution;
 import teamnova.omok.service.dto.ReadyResult;
 import teamnova.omok.service.dto.TurnTimeoutResult;
-import teamnova.omok.state.game.event.DecisionTimeoutEvent;
-import teamnova.omok.state.game.event.MoveEvent;
-import teamnova.omok.state.game.event.PostGameDecisionEvent;
-import teamnova.omok.state.game.event.ReadyEvent;
-import teamnova.omok.state.game.event.TimeoutEvent;
-import teamnova.omok.state.game.manage.GameSessionStateContext;
-import teamnova.omok.state.game.manage.GameSessionStateManager;
-import teamnova.omok.state.game.manage.GameSessionStateType;
-import teamnova.omok.store.GameSession;
-import teamnova.omok.store.InGameSessionStore;
+import teamnova.omok.domain.session.game.entity.turn.TurnSnapshot;
+import teamnova.omok.domain.session.game.entity.state.manage.GameSessionStateContext;
+import teamnova.omok.domain.session.game.entity.state.manage.GameSessionStateType;
+import teamnova.omok.domain.session.game.GameSession;
+import teamnova.omok.application.GameSessionManager;
 
 /**
  * Handles state-machine event submission, completion processing, and associated side effects.
  */
 final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutConsumer {
-    private final InGameSessionStore store;
-    private final TurnService turnService;
+    private final GameSessionManager store;
     private final SessionMessagePublisher publisher;
     private final TurnTimeoutCoordinator timeoutCoordinator;
     private final DecisionTimeoutCoordinator decisionTimeoutCoordinator;
     private final ScoreService scoreService;
     private final RuleService ruleService;
 
-    SessionEventService(InGameSessionStore store,
-                        TurnService turnService,
+    SessionEventService(GameSessionManager store,
                         SessionMessagePublisher publisher,
                         TurnTimeoutCoordinator timeoutCoordinator,
                         DecisionTimeoutCoordinator decisionTimeoutCoordinator,
                         ScoreService scoreService,
                         RuleService ruleService) {
         this.store = Objects.requireNonNull(store, "store");
-        this.turnService = Objects.requireNonNull(turnService, "turnService");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
         this.timeoutCoordinator = Objects.requireNonNull(timeoutCoordinator, "timeoutCoordinator");
         this.decisionTimeoutCoordinator = Objects.requireNonNull(decisionTimeoutCoordinator, "decisionTimeoutCoordinator");
@@ -63,36 +56,28 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
     boolean submitReady(String userId, long requestId) {
         return withSession(userId, ctx -> {
             ReadyEvent event = new ReadyEvent(userId, ctx.now(), requestId);
-            ctx.manager().submit(event, stateCtx -> handleReadyCompletion(ctx.manager(), stateCtx, event));
+            ctx.manager().submitEvent(event, stateCtx -> handleReadyCompletion(ctx.manager(), stateCtx, event));
         });
     }
 
     boolean submitMove(String userId, long requestId, int x, int y) {
         return withSession(userId, ctx -> {
             MoveEvent event = new MoveEvent(userId, x, y, ctx.now(), requestId);
-            ctx.manager().submit(event, stateCtx -> handleMoveCompletion(ctx.manager(), stateCtx, event));
+            ctx.manager().submitEvent(event, stateCtx -> handleMoveCompletion(ctx.manager(), stateCtx, event));
         });
     }
 
-    boolean submitPostGameDecision(String userId, long requestId, PostGameDecision decision) {
+    boolean submitPostGameDecision(String userId, long requestId, PostGameDecisionType decision) {
         Objects.requireNonNull(decision, "decision");
         return withSession(userId, ctx -> {
             PostGameDecisionEvent event = new PostGameDecisionEvent(userId, decision, ctx.now(), requestId);
-            ctx.manager().submit(event, stateCtx -> handlePostGameDecisionCompletion(ctx.manager(), stateCtx, event));
+            ctx.manager().submitEvent(event, stateCtx -> handlePostGameDecisionCompletion(ctx.manager(), stateCtx, event));
         });
     }
 
     void cancelAllTimers(UUID sessionId) {
         timeoutCoordinator.cancel(sessionId);
         decisionTimeoutCoordinator.cancel(sessionId);
-    }
-
-    TurnService.TurnSnapshot turnSnapshot(GameSession session) {
-        return turnService.snapshot(session.getTurnStore(), session.getUserIds());
-    }
-
-    boolean isTurnExpired(GameSession session, long now) {
-        return turnService.isExpired(session.getTurnStore(), now);
     }
 
     private boolean withSession(String userId, Consumer<SessionSubmissionContext> consumer) {
@@ -106,7 +91,7 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
         if (session.getRulesContext() == null) {
             session.setRulesContext(ruleService.prepareRules(session));
         }
-        GameSessionStateManager manager = store.ensureManager(session);
+        GameSessionStateManager manager = session.getStateManager();
         long now = System.currentTimeMillis();
         consumer.accept(new SessionSubmissionContext(session, manager, now));
         return true;
@@ -193,7 +178,7 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
         TurnTimeoutResult result = ctx.consumePendingTimeoutResult();
         if (result == null) {
             if (!session.isGameFinished()) {
-                TurnService.TurnSnapshot snapshot = turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                TurnSnapshot snapshot = session.snapshotTurn();
                 if (snapshot != null) {
                     scheduleTurnTimeout(session, snapshot);
                 }
@@ -230,11 +215,11 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
             return;
         }
         GameSession session = optionalSession.get();
-        GameSessionStateManager manager = store.ensureManager(session);
+        GameSessionStateManager manager = session.getStateManager();
         timeoutCoordinator.clearIfMatches(sessionId, expectedTurnNumber);
         long now = System.currentTimeMillis();
         TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
-        manager.submit(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
+        manager.submitEvent(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
     }
 
     void skipTurnForDisconnected(GameSession session, String userId, int expectedTurnNumber) {
@@ -244,8 +229,7 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
         session.lock().lock();
         try {
             if (session.isGameStarted() && !session.isGameFinished()) {
-                TurnService.TurnSnapshot current =
-                    turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                TurnSnapshot current = session.snapshotTurn();
                 shouldSubmit = current != null
                     && current.turnNumber() == expectedTurnNumber
                     && userId.equals(current.currentPlayerId());
@@ -257,10 +241,10 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
             return;
         }
         timeoutCoordinator.cancel(session.getId());
-        GameSessionStateManager manager = store.ensureManager(session);
+        GameSessionStateManager manager = session.getStateManager();
         long now = System.currentTimeMillis();
         TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
-        manager.submit(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
+        manager.submitEvent(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
     }
 
     private void handleDecisionTimeout(UUID sessionId) {
@@ -269,10 +253,10 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
             return;
         }
         GameSession session = optionalSession.get();
-        GameSessionStateManager manager = store.ensureManager(session);
+        GameSessionStateManager manager = session.getStateManager();
         long now = System.currentTimeMillis();
         DecisionTimeoutEvent event = new DecisionTimeoutEvent(now);
-        manager.submit(event, ctx -> handleDecisionTimeoutCompletion(manager, ctx));
+        manager.submitEvent(event, ctx -> handleDecisionTimeoutCompletion(manager, ctx));
     }
 
     private void handleDecisionTimeoutCompletion(GameSessionStateManager manager,
@@ -349,7 +333,7 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
         store.removeById(session.getId());
     }
 
-    private void scheduleTurnTimeout(GameSession session, TurnService.TurnSnapshot turnSnapshot) {
+    private void scheduleTurnTimeout(GameSession session, TurnSnapshot turnSnapshot) {
         timeoutCoordinator.schedule(session, turnSnapshot, this);
     }
 

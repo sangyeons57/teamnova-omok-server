@@ -2,7 +2,7 @@ package teamnova.omok.service.dto;
 
 import java.util.List;
 
-import teamnova.omok.store.GameSession;
+import teamnova.omok.domain.session.game.GameSession;
 
 /**
  * Describes how a post-game stage concluded.

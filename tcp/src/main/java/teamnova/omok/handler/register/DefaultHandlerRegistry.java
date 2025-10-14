@@ -2,6 +2,7 @@ package teamnova.omok.handler.register;
 
 import teamnova.omok.handler.AuthHandler;
 import teamnova.omok.handler.PingPongHandler;
+import teamnova.omok.infra.InfraContainer;
 import teamnova.omok.message.decoder.HelloWorldDecoder;
 import teamnova.omok.handler.dispatcher.Dispatcher;
 import teamnova.omok.handler.HelloWorldHandler;
@@ -21,21 +22,23 @@ import java.util.function.Supplier;
 public final class DefaultHandlerRegistry implements HandlerRegistry {
     private final HelloWorldDecoder helloWorldDecoder;
     private final StringDecoder stringDecoder;
+    private final InfraContainer infraContainer;
 
     private Dispatcher dispatcher;;
 
-    public DefaultHandlerRegistry() {
+    public DefaultHandlerRegistry(InfraContainer infraContainer) {
         this.helloWorldDecoder = new HelloWorldDecoder();
         this.stringDecoder = new StringDecoder();
+        this.infraContainer = infraContainer;
     }
 
     @Override
     public void configure(Dispatcher dispatcher) {
         this.dispatcher = dispatcher;
         register(Type.HELLO, new HelloWorldHandler(helloWorldDecoder));
-        register(Type.AUTH, new AuthHandler(stringDecoder, ServiceContainer.getInstance().getDotenvService()));
+        register(Type.AUTH, new AuthHandler(stringDecoder, infraContainer.getDefaultEnv()));
         register(Type.PINGPONG, new PingPongHandler());
-        register(Type.JOIN_MATCH, new JoinMatchHandler(stringDecoder));
+        register(Type.JOIN_MATCH, new JoinMatchHandler(stringDecoder, infraContainer.getDefaultDB()));
         register(Type.LEAVE_IN_GAME_SESSION, new LeaveInGameSessionHandler());
         register(Type.READY_IN_GAME_SESSION, new ReadyInGameSessionHandler());
         register(Type.PLACE_STONE, new PlaceStoneHandler(stringDecoder));

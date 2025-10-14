@@ -15,7 +15,7 @@ import teamnova.omok.handler.register.Type;
 import teamnova.omok.nio.codec.DecodeFrame;
 import teamnova.omok.nio.codec.EncodeFrame;
 import teamnova.omok.service.ServiceContainer;
-import teamnova.omok.state.client.manage.ClientStateManager;
+import teamnova.omok.domain.session.client.manage.ClientStateManager;
 
 /**
  * Represents a single client connection managed by the selector.

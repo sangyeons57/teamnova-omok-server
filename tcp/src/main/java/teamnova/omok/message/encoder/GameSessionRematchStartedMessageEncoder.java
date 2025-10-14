@@ -3,7 +3,7 @@ package teamnova.omok.message.encoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import teamnova.omok.store.GameSession;
+import teamnova.omok.domain.session.game.GameSession;
 
 public final class GameSessionRematchStartedMessageEncoder {
     private GameSessionRematchStartedMessageEncoder() {}

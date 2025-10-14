@@ -1,9 +1,8 @@
 package teamnova.omok.service.dto;
 
-import java.util.Arrays;
 import java.util.Objects;
 
-import teamnova.omok.store.GameSession;
+import teamnova.omok.domain.session.game.GameSession;
 
 /**
  * Carries a full board snapshot that should be broadcast to participants.
