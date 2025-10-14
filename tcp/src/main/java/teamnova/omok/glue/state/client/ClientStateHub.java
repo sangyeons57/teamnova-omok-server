@@ -22,9 +22,9 @@ import teamnova.omok.glue.state.client.state.DisconnectedClientState;
 import teamnova.omok.glue.state.client.state.InGameClientState;
 import teamnova.omok.glue.state.client.state.MatchingClientState;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
+import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
-import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
 import teamnova.omok.modules.state_machine.models.StateName;
 import teamnova.omok.glue.state.game.GameStateHub;
 
@@ -36,15 +36,15 @@ public final class ClientStateHub {
         Arrays.stream(ClientStateType.values())
             .collect(Collectors.toUnmodifiableMap(ClientStateType::toStateName, type -> type));
 
-    private final StateMachineManager stateMachineManager;
+    private final Handle stateMachine;
     private final ClientStateContext context;
     private ClientStateType currentType;
 
     public ClientStateHub(ClientSession session) {
         Objects.requireNonNull(session, "session");
         this.context = new ClientStateContext(session);
-        this.stateMachineManager = StateMachineGateway.createStateMatchingManager();
-        this.stateMachineManager.onTransition(this::handleTransition);
+        this.stateMachine = StateMachineGateway.open();
+        this.stateMachine.onTransition(this::handleTransition);
 
         registerState(new ConnectedClientState());
         registerState(new AuthenticatedClientState());
@@ -52,11 +52,11 @@ public final class ClientStateHub {
         registerState(new InGameClientState());
         registerState(new DisconnectedClientState());
 
-        this.stateMachineManager.start(ClientStateType.CONNECTED.toStateName(), context);
+        this.stateMachine.start(ClientStateType.CONNECTED.toStateName(), context);
     }
 
     private void registerState(BaseState state) {
-        this.stateMachineManager.registerState(state);
+        this.stateMachine.register(state);
     }
 
     private void handleTransition(StateName stateName) {
@@ -75,6 +75,10 @@ public final class ClientStateHub {
         return context;
     }
 
+    public void markAuthenticated() {
+        submit(new AuthenticatedClientEvent());
+    }
+
     public void disconnect() {
         submit(new DisconnectClientEvent());
     }
@@ -90,7 +94,7 @@ public final class ClientStateHub {
 
     public void submit(BaseEvent event, Consumer<ClientStateContext> callback) {
         Objects.requireNonNull(event, "event");
-        stateMachineManager.submit(event, ctx -> {
+        stateMachine.submit(event, ctx -> {
             if (callback != null) {
                 callback.accept((ClientStateContext) ctx);
             }
@@ -98,6 +102,6 @@ public final class ClientStateHub {
     }
 
     public void process(long now) {
-        stateMachineManager.process(context, now);
+        stateMachine.process(context, now);
     }
 }

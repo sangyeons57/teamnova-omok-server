@@ -25,9 +25,9 @@ import teamnova.omok.glue.state.game.state.TurnFinalizingState;
 import teamnova.omok.glue.state.game.state.TurnWaitingState;
 import teamnova.omok.glue.store.GameSession;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
+import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
-import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
 import teamnova.omok.modules.state_machine.models.StateName;
 
 public class GameStateHub {
@@ -35,7 +35,7 @@ public class GameStateHub {
         Arrays.stream(GameSessionStateType.values())
             .collect(Collectors.toUnmodifiableMap(GameSessionStateType::toStateName, type -> type));
 
-    private final StateMachineManager stateMachineManager;
+    private final Handle stateMachine;
     private final GameSessionStateContext context;
     private GameSessionStateType currentType;
 
@@ -49,8 +49,8 @@ public class GameStateHub {
         Objects.requireNonNull(outcomeService, "outcomeService");
 
         this.context = new GameSessionStateContext(session, boardService, turnService, outcomeService);
-        this.stateMachineManager = StateMachineGateway.createStateMatchingManager();
-        this.stateMachineManager.onTransition(this::handleTransition);
+        this.stateMachine = StateMachineGateway.open();
+        this.stateMachine.onTransition(this::handleTransition);
 
         registerState(new LobbyGameSessionState());
         registerState(new TurnWaitingState());
@@ -64,11 +64,11 @@ public class GameStateHub {
         registerState(new SessionTerminatingState());
         registerState(new CompletedGameSessionState());
 
-        this.stateMachineManager.start(GameSessionStateType.LOBBY.toStateName(), context);
+        this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
     }
 
     private void registerState(BaseState state) {
-        this.stateMachineManager.registerState(state);
+        this.stateMachine.register(state);
     }
 
     private void handleTransition(StateName stateName) {
@@ -108,7 +108,7 @@ public class GameStateHub {
 
     public void submit(BaseEvent event, Consumer<GameSessionStateContext> callback) {
         Objects.requireNonNull(event, "event");
-        stateMachineManager.submit(event, ctx -> {
+        stateMachine.submit(event, ctx -> {
             if (callback != null) {
                 callback.accept((GameSessionStateContext) ctx);
             }
@@ -116,6 +116,6 @@ public class GameStateHub {
     }
 
     public void process(long now) {
-        stateMachineManager.process(context, now);
+        stateMachine.process(context, now);
     }
 }

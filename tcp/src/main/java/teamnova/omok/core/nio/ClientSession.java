@@ -16,7 +16,6 @@ import teamnova.omok.core.nio.codec.DecodeFrame;
 import teamnova.omok.core.nio.codec.EncodeFrame;
 import teamnova.omok.glue.service.ServiceContainer;
 import teamnova.omok.glue.state.client.ClientStateHub;
-import teamnova.omok.glue.state.client.event.AuthenticatedClientEvent;
 
 /**
  * Represents a single client connection managed by the selector.
@@ -175,7 +174,7 @@ public final class ClientSession implements Closeable {
         this.authenticatedUserId = userId;
         this.authenticatedRole = role;
         this.authenticatedScope = scope;
-        stateHub.submit(new AuthenticatedClientEvent());
+        stateHub.markAuthenticated();
     }
 
     public void clearAuthentication() {
