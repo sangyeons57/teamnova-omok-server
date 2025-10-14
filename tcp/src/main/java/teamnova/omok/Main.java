@@ -2,7 +2,11 @@ package teamnova.omok;
 
 import java.io.IOException;
 import teamnova.omok.glue.handler.register.DefaultHandlerRegistry;
-import teamnova.omok.core.nio.NioReactorServer;
+import teamnova.omok.glue.manager.GameSessionManager;
+import teamnova.omok.glue.manager.MatchingManager;
+import teamnova.omok.glue.manager.NioManager;
+import teamnova.omok.glue.manager.ServerLifecycleManager;
+import teamnova.omok.glue.manager.UserSessionManager;
 import teamnova.omok.glue.service.ServiceContainer;
 
 public final class Main {
@@ -10,13 +14,22 @@ public final class Main {
 
     public static void main(String[] args) {
         int port = parsePort(args);
-        try (NioReactorServer server = new NioReactorServer(port,
-                Runtime.getRuntime().availableProcessors(),
-                new DefaultHandlerRegistry())) {
+        DefaultHandlerRegistry handlerRegistry = new DefaultHandlerRegistry();
+        int workerCount = Runtime.getRuntime().availableProcessors();
+        ServiceContainer services = ServiceContainer.getInstance();
+        GameSessionManager gameSessionManager = new GameSessionManager(services.getInGameSessionStore());
+        MatchingManager matchingManager = new MatchingManager(services.getMatchingService(), services.getInGameSessionService());
+        UserSessionManager userSessionManager = new UserSessionManager();
+        try (NioManager nioManager = new NioManager(port, workerCount, handlerRegistry);
+             ServerLifecycleManager lifecycle = new ServerLifecycleManager(
+                 services,
+                 nioManager,
+                 gameSessionManager,
+                 matchingManager,
+                 userSessionManager)) {
             System.out.printf("[NIO] Reactor server listening on port %d%n", port);
-            // Start service container scheduler
-            ServiceContainer.getInstance().start(server);
-            server.start();
+            lifecycle.start();
+            lifecycle.runBlocking();
         } catch (IOException e) {
             System.err.println("Failed to start NIO reactor server: " + e.getMessage());
             e.printStackTrace(System.err);

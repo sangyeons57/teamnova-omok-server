@@ -5,12 +5,9 @@ import teamnova.omok.glue.store.GameSession;
 import teamnova.omok.glue.store.InGameSessionStore;
 
 import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Simple service container (singleton) holding core services and scheduling matching.
+ * Simple service container (singleton) holding core services.
  */
 public class ServiceContainer {
     private static final ServiceContainer INSTANCE = new ServiceContainer();
@@ -25,10 +22,6 @@ public class ServiceContainer {
     private final InGameSessionStore inGameSessionStore;
     private final InGameSessionService inGameSessionService;
     private final RuleService ruleService;
-
-    private final ScheduledExecutorService matchScheduler;
-    private final ScheduledExecutorService sessionScheduler;
-    private volatile boolean started;
 
     private ServiceContainer() {
         // .env is located at project root's parent (same as previous usage in DefaultHandlerRegistry)
@@ -49,19 +42,6 @@ public class ServiceContainer {
             scoreService,
             ruleService
         );
-        this.matchScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r);
-            t.setName("match-scheduler");
-            t.setDaemon(true);
-            return t;
-        });
-        this.sessionScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r);
-            t.setName("session-scheduler");
-            t.setDaemon(true);
-            return t;
-        });
-        this.started = false;
     }
 
     public static ServiceContainer getInstance() {
@@ -69,29 +49,12 @@ public class ServiceContainer {
     }
 
     public synchronized void start(NioReactorServer server) {
-        if (started) return;
         Objects.requireNonNull(server, "server");
         inGameSessionService.attachServer(server);
-        sessionScheduler.scheduleAtFixedRate(() -> {
-            try {
-                long now = System.currentTimeMillis();
-                inGameSessionStore.updateSessions(now);
-            } catch (Exception ignored) {
-                // keep loop running even if one tick fails
-            }
-        }, 0, 20, TimeUnit.MILLISECONDS);
-        // Schedule tryMatch every 500 ms
-        matchScheduler.scheduleAtFixedRate(() -> {
-            try {
-                MatchingService.Result result = matchingService.tryMatch();
-                if (result instanceof MatchingService.Result.Success s) {
-                    inGameSessionService.createFromGroup(server, s.group());
-                }
-            } catch (Exception ignored) {
-                // swallow exceptions to keep scheduler running
-            }
-        }, 500, 500, TimeUnit.MILLISECONDS);
-        started = true;
+    }
+
+    public synchronized void stop() {
+        // no-op for now; retained for symmetry with lifecycle manager
     }
 
     public DotenvService getDotenvService() { return dotenvService; }

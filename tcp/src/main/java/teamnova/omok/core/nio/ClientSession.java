@@ -128,6 +128,10 @@ public final class ClientSession implements Closeable {
         }
     }
 
+    public void processLifecycle(long now) {
+        stateHub.process(now);
+    }
+
     public void enableWriteInterest() {
         if (key != null && key.isValid()) {
             key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);

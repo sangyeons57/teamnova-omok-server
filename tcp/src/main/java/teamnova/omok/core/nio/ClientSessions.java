@@ -3,6 +3,7 @@ package teamnova.omok.core.nio;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.service.ServiceContainer;
@@ -60,6 +61,17 @@ public final class ClientSessions {
         } catch (Throwable ignore) {
             // Best-effort cleanup only
         }
+    }
+
+    public static void forEachAuthenticated(Consumer<ClientSession> consumer) {
+        if (consumer == null) {
+            return;
+        }
+        USER_SESSIONS.forEach((uid, session) -> {
+            if (session != null) {
+                consumer.accept(session);
+            }
+        });
     }
 
     private static void notifyAndClose(NioReactorServer server, ClientSession oldSession) {
