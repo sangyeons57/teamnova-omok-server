@@ -24,7 +24,7 @@ import teamnova.omok.glue.state.game.state.SessionTerminatingState;
 import teamnova.omok.glue.state.game.state.TurnFinalizingState;
 import teamnova.omok.glue.state.game.state.TurnWaitingState;
 import teamnova.omok.glue.store.GameSession;
-import teamnova.omok.modules.state_machine.StateMachine;
+import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
@@ -49,7 +49,7 @@ public class GameStateHub {
         Objects.requireNonNull(outcomeService, "outcomeService");
 
         this.context = new GameSessionStateContext(session, boardService, turnService, outcomeService);
-        this.stateMachineManager = StateMachine.createStateMatchingManager();
+        this.stateMachineManager = StateMachineGateway.createStateMatchingManager();
         this.stateMachineManager.onTransition(this::handleTransition);
 
         registerState(new LobbyGameSessionState());

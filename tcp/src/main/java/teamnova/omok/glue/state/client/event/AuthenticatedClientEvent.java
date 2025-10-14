@@ -1,8 +1,6 @@
 package teamnova.omok.glue.state.client.event;
 
-public final class AuthenticatedClientEvent implements ClientEvent {
-    @Override
-    public ClientEventType type() {
-        return ClientEventType.AUTHENTICATED;
-    }
+import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
+
+public record AuthenticatedClientEvent() implements BaseEvent {
 }

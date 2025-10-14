@@ -1,43 +1,43 @@
 package teamnova.omok.glue.state.client.state;
 
-import teamnova.omok.glue.state.client.contract.ClientState;
-import teamnova.omok.glue.state.client.event.ClientEventRegistry;
-import teamnova.omok.glue.state.client.event.ClientEventType;
 import teamnova.omok.glue.state.client.event.DisconnectClientEvent;
 import teamnova.omok.glue.state.client.event.LeaveGameClientEvent;
+import teamnova.omok.glue.state.client.event.ResetClientEvent;
 import teamnova.omok.glue.state.client.manage.ClientStateContext;
-import teamnova.omok.glue.state.client.manage.ClientStateStep;
 import teamnova.omok.glue.state.client.manage.ClientStateType;
+import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
+import teamnova.omok.modules.state_machine.interfaces.BaseState;
+import teamnova.omok.modules.state_machine.interfaces.StateContext;
+import teamnova.omok.modules.state_machine.models.StateName;
+import teamnova.omok.modules.state_machine.models.StateStep;
 
 /**
  * State while the client participates in an in-progress game.
  */
-public final class InGameClientState implements ClientState {
+public final class InGameClientState implements BaseState {
     @Override
-    public ClientStateType type() {
-        return ClientStateType.IN_GAME;
-    }
-
-    @Override
-    public void onExit(ClientStateContext context) {
-        context.clearGame();
+    public StateName name() {
+        return ClientStateType.IN_GAME.toStateName();
     }
 
     @Override
-    public void registerHandlers(ClientEventRegistry registry) {
-        registry.register(ClientEventType.LEAVE_GAME, LeaveGameClientEvent.class,
-            this::handleLeaveGame);
-        registry.register(ClientEventType.DISCONNECT, DisconnectClientEvent.class,
-            this::handleDisconnect);
+    public <I extends StateContext> StateStep onEvent(I context, BaseEvent event) {
+        if (event instanceof LeaveGameClientEvent) {
+            return StateStep.transition(ClientStateType.AUTHENTICATED.toStateName());
+        }
+        if (event instanceof DisconnectClientEvent) {
+            return StateStep.transition(ClientStateType.DISCONNECTED.toStateName());
+        }
+        if (event instanceof ResetClientEvent) {
+            return StateStep.transition(ClientStateType.CONNECTED.toStateName());
+        }
+        return StateStep.stay();
     }
 
-    private ClientStateStep handleLeaveGame(ClientStateContext context,
-                                            LeaveGameClientEvent event) {
-        return ClientStateStep.transition(ClientStateType.AUTHENTICATED);
-    }
-
-    private ClientStateStep handleDisconnect(ClientStateContext context,
-                                             DisconnectClientEvent event) {
-        return ClientStateStep.transition(ClientStateType.DISCONNECTED);
+    @Override
+    public <I extends StateContext> void onExit(I context) {
+        ClientStateContext clientContext = (ClientStateContext) context;
+        clientContext.clearGame();
     }
 }
+

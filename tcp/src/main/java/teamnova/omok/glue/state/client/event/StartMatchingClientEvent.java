@@ -1,8 +1,6 @@
 package teamnova.omok.glue.state.client.event;
 
-public final class StartMatchingClientEvent implements ClientEvent {
-    @Override
-    public ClientEventType type() {
-        return ClientEventType.START_MATCHING;
-    }
+import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
+
+public record StartMatchingClientEvent() implements BaseEvent {
 }

@@ -4,11 +4,12 @@ import java.util.Objects;
 
 import teamnova.omok.core.nio.ClientSession;
 import teamnova.omok.glue.state.game.GameStateHub;
+import teamnova.omok.modules.state_machine.interfaces.StateContext;
 
 /**
  * Shared data for client-level state handling.
  */
-public final class ClientStateContext {
+public final class ClientStateContext implements StateContext {
     private final ClientSession clientSession;
     private GameStateHub gameStateManager;
 

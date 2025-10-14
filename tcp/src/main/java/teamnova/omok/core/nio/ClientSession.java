@@ -15,7 +15,8 @@ import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.core.nio.codec.DecodeFrame;
 import teamnova.omok.core.nio.codec.EncodeFrame;
 import teamnova.omok.glue.service.ServiceContainer;
-import teamnova.omok.glue.state.client.manage.ClientStateManager;
+import teamnova.omok.glue.state.client.ClientStateHub;
+import teamnova.omok.glue.state.client.event.AuthenticatedClientEvent;
 
 /**
  * Represents a single client connection managed by the selector.
@@ -39,14 +40,14 @@ public final class ClientSession implements Closeable {
     private volatile String authenticatedRole;
     private volatile String authenticatedScope;
 
-    private final ClientStateManager stateManager;
+    private final ClientStateHub stateHub;
 
 
     public ClientSession(SocketChannel channel) {
         this.channel = Objects.requireNonNull(channel, "channel");
         // Initialize last contact time at session creation
         this.lastContactTime = System.currentTimeMillis();
-        this.stateManager = new ClientStateManager(this);
+        this.stateHub = new ClientStateHub(this);
     }
 
     void attachKey(SelectionKey key) {
@@ -155,7 +156,7 @@ public final class ClientSession implements Closeable {
         ClientSessions.cancelMatchingIfAuthenticated(this);
         // remove from user session index if mapped to this session
         ClientSessions.onSessionClosed(this);
-        stateManager.disconnect();
+        stateHub.disconnect();
         try {
             System.out.printf("Closing connection %s%n", remoteAddress());
         } catch (IOException ignore) { /* ignore */ }
@@ -174,7 +175,7 @@ public final class ClientSession implements Closeable {
         this.authenticatedUserId = userId;
         this.authenticatedRole = role;
         this.authenticatedScope = scope;
-        stateManager.markAuthenticated();
+        stateHub.submit(new AuthenticatedClientEvent());
     }
 
     public void clearAuthentication() {
@@ -183,7 +184,7 @@ public final class ClientSession implements Closeable {
         this.authenticatedRole = null;
         this.authenticatedScope = null;
         // revert to the connected state when authentication is cleared
-        stateManager.resetToConnected();
+        stateHub.resetToConnected();
     }
 
     public boolean isAuthenticated() {

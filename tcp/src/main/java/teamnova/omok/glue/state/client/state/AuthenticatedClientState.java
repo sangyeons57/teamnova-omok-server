@@ -1,48 +1,45 @@
 package teamnova.omok.glue.state.client.state;
 
-import teamnova.omok.glue.state.client.contract.ClientState;
-import teamnova.omok.glue.state.client.event.ClientEventRegistry;
-import teamnova.omok.glue.state.client.event.ClientEventType;
 import teamnova.omok.glue.state.client.event.DisconnectClientEvent;
 import teamnova.omok.glue.state.client.event.EnterGameClientEvent;
+import teamnova.omok.glue.state.client.event.ResetClientEvent;
 import teamnova.omok.glue.state.client.event.StartMatchingClientEvent;
 import teamnova.omok.glue.state.client.manage.ClientStateContext;
-import teamnova.omok.glue.state.client.manage.ClientStateStep;
 import teamnova.omok.glue.state.client.manage.ClientStateType;
+import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
+import teamnova.omok.modules.state_machine.interfaces.BaseState;
+import teamnova.omok.modules.state_machine.interfaces.StateContext;
+import teamnova.omok.modules.state_machine.models.StateName;
+import teamnova.omok.modules.state_machine.models.StateStep;
 
 /**
  * State once the client has successfully authenticated but is not yet in a game.
  */
-public final class AuthenticatedClientState implements ClientState {
+public final class AuthenticatedClientState implements BaseState {
     @Override
-    public ClientStateType type() {
-        return ClientStateType.AUTHENTICATED;
+    public StateName name() {
+        return ClientStateType.AUTHENTICATED.toStateName();
     }
 
     @Override
-    public void registerHandlers(ClientEventRegistry registry) {
-        registry.register(ClientEventType.START_MATCHING, StartMatchingClientEvent.class,
-            this::handleStartMatching);
-        registry.register(ClientEventType.ENTER_GAME, EnterGameClientEvent.class,
-            this::handleEnterGame);
-        registry.register(ClientEventType.DISCONNECT, DisconnectClientEvent.class,
-            this::handleDisconnect);
-    }
-
-    private ClientStateStep handleStartMatching(ClientStateContext context,
-                                                StartMatchingClientEvent event) {
-        return ClientStateStep.transition(ClientStateType.MATCHING);
-    }
-
-    private ClientStateStep handleEnterGame(ClientStateContext context,
-                                            EnterGameClientEvent event) {
-        context.attachGame(event.gameStateManager());
-        return ClientStateStep.transition(ClientStateType.IN_GAME);
-    }
-
-    private ClientStateStep handleDisconnect(ClientStateContext context,
-                                             DisconnectClientEvent event) {
-        context.clearGame();
-        return ClientStateStep.transition(ClientStateType.DISCONNECTED);
+    public <I extends StateContext> StateStep onEvent(I context, BaseEvent event) {
+        ClientStateContext clientContext = (ClientStateContext) context;
+        if (event instanceof StartMatchingClientEvent) {
+            return StateStep.transition(ClientStateType.MATCHING.toStateName());
+        }
+        if (event instanceof EnterGameClientEvent enterGame) {
+            clientContext.attachGame(enterGame.gameStateManager());
+            return StateStep.transition(ClientStateType.IN_GAME.toStateName());
+        }
+        if (event instanceof DisconnectClientEvent) {
+            clientContext.clearGame();
+            return StateStep.transition(ClientStateType.DISCONNECTED.toStateName());
+        }
+        if (event instanceof ResetClientEvent) {
+            clientContext.clearGame();
+            return StateStep.transition(ClientStateType.CONNECTED.toStateName());
+        }
+        return StateStep.stay();
     }
 }
+

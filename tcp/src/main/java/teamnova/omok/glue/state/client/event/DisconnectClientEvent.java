@@ -1,8 +1,7 @@
 package teamnova.omok.glue.state.client.event;
 
-public final class DisconnectClientEvent implements ClientEvent {
-    @Override
-    public ClientEventType type() {
-        return ClientEventType.DISCONNECT;
-    }
+import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
+
+public record DisconnectClientEvent() implements BaseEvent {
+
 }

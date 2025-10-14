@@ -1,8 +1,6 @@
 package teamnova.omok.glue.state.client.event;
 
-public final class CancelMatchingClientEvent implements ClientEvent {
-    @Override
-    public ClientEventType type() {
-        return ClientEventType.CANCEL_MATCHING;
-    }
+import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
+
+public record CancelMatchingClientEvent() implements BaseEvent {
 }
