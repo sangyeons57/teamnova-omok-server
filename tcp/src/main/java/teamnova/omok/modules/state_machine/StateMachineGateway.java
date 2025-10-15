@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
+import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -17,6 +18,7 @@ import teamnova.omok.modules.state_machine.services.DefaultStateMachineManager;
  */
 public final class StateMachineGateway {
     private StateMachineGateway() { }
+
 
     public static Handle open() {
         return new Handle(new DefaultStateMachineManager());
@@ -40,6 +42,12 @@ public final class StateMachineGateway {
 
         public Handle onTransition(Consumer<StateName> listener) {
             delegate.onTransition(listener);
+            return this;
+        }
+
+        // register state-scoped lifecycle listener
+        public Handle onStateLifecycle(StateLifecycleListener listener) {
+            delegate.onStateLifecycle(listener);
             return this;
         }
 

@@ -1,26 +1,32 @@
 package teamnova.omok.modules.state_machine.services;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
+import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
 import teamnova.omok.modules.state_machine.models.StateName;
 import teamnova.omok.modules.state_machine.models.StateStep;
 
 public class DefaultStateMachineManager implements StateMachineManager {
+
     private final Map<StateName, BaseState> states;
     private final Queue<PendingEvent> eventQueue;
+    private final Map<StateName, List<StateLifecycleListener>> lifecycleListeners;
     private BaseState currentState;
     private Consumer<StateName> transitionListener;
 
     public DefaultStateMachineManager() {
         this.states = new java.util.concurrent.ConcurrentHashMap<>();
         this.eventQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        this.lifecycleListeners = new java.util.concurrent.ConcurrentHashMap<>();
         this.currentState = null;
         this.transitionListener = stateName -> { };
     }
@@ -34,6 +40,7 @@ public class DefaultStateMachineManager implements StateMachineManager {
             throw new IllegalStateException("No state registered for type " + stateName);
         }
         StateStep entryStep = currentState.onEnter(context);
+        notifyEnter(currentState.name(), context);
         notifyTransition(currentState.name());
         applyTransition(entryStep, context);
     }
@@ -61,6 +68,16 @@ public class DefaultStateMachineManager implements StateMachineManager {
     }
 
     @Override
+    public void onStateLifecycle(StateLifecycleListener listener) {
+        if (listener != null && listener.state() != null) {
+            lifecycleListeners
+                .computeIfAbsent(listener.state(), k -> new CopyOnWriteArrayList<>())
+                .add(listener);
+        }
+    }
+
+
+    @Override
     public void process(StateContext context, long now) {
         Objects.requireNonNull(context, "context");
         PendingEvent pending;
@@ -71,6 +88,7 @@ public class DefaultStateMachineManager implements StateMachineManager {
             return;
         }
         StateStep updateStep = currentState.onUpdate(context, now);
+        notifyUpdate(currentState.name(), context, now);
         applyTransition(updateStep, context);
     }
 
@@ -79,6 +97,7 @@ public class DefaultStateMachineManager implements StateMachineManager {
             return;
         }
         StateStep eventStep = currentState.onEvent(context, pending.event());
+        notifyEvent(currentState.name(), context, pending.event());
         applyTransition(eventStep, context);
         Consumer<StateContext> callback = pending.callback();
         if (callback != null) {
@@ -102,11 +121,45 @@ public class DefaultStateMachineManager implements StateMachineManager {
         }
         if (currentState != null) {
             currentState.onExit(context);
+            notifyExit(currentState.name(), context);
         }
         currentState = next;
         StateStep entryStep = currentState.onEnter(context);
+        notifyEnter(currentState.name(), context);
         notifyTransition(stateName);
         applyTransition(entryStep, context);
+    }
+
+    private void notifyEnter(StateName state, StateContext ctx) {
+        var ls = lifecycleListeners.get(state);
+        if (ls == null) return;
+        for (StateLifecycleListener l : ls) {
+            try { l.onEnter(ctx); } catch (Throwable t) { }
+        }
+    }
+
+    private void notifyExit(StateName state, StateContext ctx) {
+        var ls = lifecycleListeners.get(state);
+        if (ls == null) return;
+        for (StateLifecycleListener l : ls) {
+            try { l.onExit(ctx); } catch (Throwable t) { }
+        }
+    }
+
+    private void notifyUpdate(StateName state, StateContext ctx, long now) {
+        var ls = lifecycleListeners.get(state);
+        if (ls == null) return;
+        for (StateLifecycleListener l : ls) {
+            try { l.onUpdate(ctx, now); } catch (Throwable t) { }
+        }
+    }
+
+    private void notifyEvent(StateName state, StateContext ctx, BaseEvent ev) {
+        var ls = lifecycleListeners.get(state);
+        if (ls == null) return;
+        for (StateLifecycleListener l : ls) {
+            try { l.onEvent(ctx, ev); } catch (Throwable t) { }
+        }
     }
 
     private void notifyTransition(StateName stateName) {

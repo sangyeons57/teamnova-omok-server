@@ -20,5 +20,8 @@ public interface StateMachineManager {
 
     default void onTransition(Consumer<StateName> listener) { }
 
+    // State-scoped lifecycle listener channel
+    default void onStateLifecycle(StateLifecycleListener listener) { }
+
     void process(StateContext stateContext, long now);
 }
