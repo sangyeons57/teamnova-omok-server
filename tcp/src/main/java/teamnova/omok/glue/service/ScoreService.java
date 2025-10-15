@@ -5,20 +5,24 @@ import java.util.Set;
 
 import teamnova.omok.glue.game.PlayerResult;
 import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.modules.score.ScoreGateway;
+import teamnova.omok.modules.score.models.ScoreCalculationRequest;
+import teamnova.omok.modules.score.models.ScoreOutcome;
 
 /**
  * Applies post-game score adjustments to players using {@link MysqlService}.
  */
 public final class ScoreService {
-    private static final int WIN_DELTA = 10;
-    private static final int LOSS_DELTA = -5;
-    private static final int DRAW_DELTA = 0;
-    private static final int DISCONNECTED_PENALTY = -5;
-
     private final MysqlService mysqlService;
+    private final ScoreGateway.Handle scoreGateway;
 
     public ScoreService(MysqlService mysqlService) {
+        this(mysqlService, ScoreGateway.open());
+    }
+
+    ScoreService(MysqlService mysqlService, ScoreGateway.Handle scoreGateway) {
         this.mysqlService = Objects.requireNonNull(mysqlService, "mysqlService");
+        this.scoreGateway = Objects.requireNonNull(scoreGateway, "scoreGateway");
     }
 
     public void applyGameResults(GameSession session) {
@@ -26,10 +30,9 @@ public final class ScoreService {
         Set<String> disconnected = session.disconnectedUsersView();
         for (String userId : session.getUserIds()) {
             PlayerResult result = session.outcomeFor(userId);
-            int delta = deltaFor(result);
-            if (disconnected.contains(userId)) {
-                delta += DISCONNECTED_PENALTY;
-            }
+            boolean isDisconnected = disconnected.contains(userId);
+            ScoreOutcome outcome = mapOutcome(result);
+            int delta = scoreGateway.calculate(new ScoreCalculationRequest(outcome, isDisconnected)).delta();
             if (delta == 0) {
                 continue;
             }
@@ -39,22 +42,22 @@ public final class ScoreService {
                 session.getId(),
                 userId,
                 result,
-                disconnected.contains(userId),
+                isDisconnected,
                 delta,
                 success
             );
         }
     }
 
-    private int deltaFor(PlayerResult result) {
+    private ScoreOutcome mapOutcome(PlayerResult result) {
         if (result == null) {
-            return 0;
+            return ScoreOutcome.PENDING;
         }
         return switch (result) {
-            case WIN -> WIN_DELTA;
-            case LOSS -> LOSS_DELTA;
-            case DRAW -> DRAW_DELTA;
-            case PENDING -> 0;
+            case WIN -> ScoreOutcome.WIN;
+            case LOSS -> ScoreOutcome.LOSS;
+            case DRAW -> ScoreOutcome.DRAW;
+            case PENDING -> ScoreOutcome.PENDING;
         };
     }
 }

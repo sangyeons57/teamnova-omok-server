@@ -8,6 +8,7 @@ import teamnova.omok.glue.handler.HelloWorldHandler;
 import teamnova.omok.glue.message.decoder.StringDecoder;
 import teamnova.omok.glue.handler.JoinMatchHandler;
 import teamnova.omok.glue.handler.LeaveInGameSessionHandler;
+import teamnova.omok.glue.handler.LeaveMatchHandler;
 import teamnova.omok.glue.handler.PostGameDecisionHandler;
 import teamnova.omok.glue.handler.PlaceStoneHandler;
 import teamnova.omok.glue.handler.ReadyInGameSessionHandler;
@@ -36,6 +37,7 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
         register(Type.AUTH, new AuthHandler(stringDecoder, ServiceContainer.getInstance().getDotenvService()));
         register(Type.PINGPONG, new PingPongHandler());
         register(Type.JOIN_MATCH, new JoinMatchHandler(stringDecoder));
+        register(Type.LEAVE_MATCH, new LeaveMatchHandler());
         register(Type.LEAVE_IN_GAME_SESSION, new LeaveInGameSessionHandler());
         register(Type.READY_IN_GAME_SESSION, new ReadyInGameSessionHandler());
         register(Type.PLACE_STONE, new PlaceStoneHandler(stringDecoder));
