@@ -10,8 +10,10 @@ import java.util.function.Consumer;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
+import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
+import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 import teamnova.omok.modules.state_machine.models.StateStep;
 
@@ -19,7 +21,8 @@ public class DefaultStateMachineManager implements StateMachineManager {
 
     private final Map<StateName, BaseState> states;
     private final Queue<PendingEvent> eventQueue;
-    private final Map<StateName, List<StateLifecycleListener>> lifecycleListeners;
+    private final Map<StateName, List<StateLifecycleListener>> lifecycleListeners; // deprecated path
+    private final List<StateSignalListener> signalListeners;
     private BaseState currentState;
     private Consumer<StateName> transitionListener;
 
@@ -27,6 +30,7 @@ public class DefaultStateMachineManager implements StateMachineManager {
         this.states = new java.util.concurrent.ConcurrentHashMap<>();
         this.eventQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
         this.lifecycleListeners = new java.util.concurrent.ConcurrentHashMap<>();
+        this.signalListeners = new CopyOnWriteArrayList<>();
         this.currentState = null;
         this.transitionListener = stateName -> { };
     }
@@ -41,6 +45,8 @@ public class DefaultStateMachineManager implements StateMachineManager {
         }
         StateStep entryStep = currentState.onEnter(context);
         notifyEnter(currentState.name(), context);
+        notifySignal(currentState.name(), LifecycleEventKind.ON_START);
+        notifySignal(currentState.name(), LifecycleEventKind.ON_TRANSITION); // initial as transition into first state
         notifyTransition(currentState.name());
         applyTransition(entryStep, context);
     }
@@ -76,6 +82,12 @@ public class DefaultStateMachineManager implements StateMachineManager {
         }
     }
 
+    @Override
+    public void addStateSignalListener(StateSignalListener listener) {
+        if (listener != null) {
+            signalListeners.add(listener);
+        }
+    }
 
     @Override
     public void process(StateContext context, long now) {
@@ -89,6 +101,7 @@ public class DefaultStateMachineManager implements StateMachineManager {
         }
         StateStep updateStep = currentState.onUpdate(context, now);
         notifyUpdate(currentState.name(), context, now);
+        notifySignal(currentState.name(), LifecycleEventKind.ON_UPDATE);
         applyTransition(updateStep, context);
     }
 
@@ -97,7 +110,8 @@ public class DefaultStateMachineManager implements StateMachineManager {
             return;
         }
         StateStep eventStep = currentState.onEvent(context, pending.event());
-        notifyEvent(currentState.name(), context, pending.event());
+        // No outbound signal for external input event to avoid cycles
+        notifyEvent(currentState.name(), context, pending.event()); // deprecated path only
         applyTransition(eventStep, context);
         Consumer<StateContext> callback = pending.callback();
         if (callback != null) {
@@ -120,12 +134,16 @@ public class DefaultStateMachineManager implements StateMachineManager {
             return;
         }
         if (currentState != null) {
+            StateName from = currentState.name();
             currentState.onExit(context);
-            notifyExit(currentState.name(), context);
+            notifyExit(from, context);
+            notifySignal(from, LifecycleEventKind.ON_EXIT);
         }
         currentState = next;
         StateStep entryStep = currentState.onEnter(context);
         notifyEnter(currentState.name(), context);
+        notifySignal(currentState.name(), LifecycleEventKind.ON_START);
+        notifySignal(currentState.name(), LifecycleEventKind.ON_TRANSITION);
         notifyTransition(stateName);
         applyTransition(entryStep, context);
     }
@@ -164,6 +182,18 @@ public class DefaultStateMachineManager implements StateMachineManager {
 
     private void notifyTransition(StateName stateName) {
         transitionListener.accept(stateName);
+    }
+
+    private void notifySignal(StateName state, LifecycleEventKind kind) {
+        for (StateSignalListener l : signalListeners) {
+            try {
+                var ss = l.states();
+                if (ss != null && !ss.contains(state)) continue;
+                var es = l.events();
+                if (es != null && !es.contains(kind)) continue;
+                l.onSignal(state, kind);
+            } catch (Throwable t) { }
+        }
     }
 
     private record PendingEvent(BaseEvent event, Consumer<StateContext> callback) { }

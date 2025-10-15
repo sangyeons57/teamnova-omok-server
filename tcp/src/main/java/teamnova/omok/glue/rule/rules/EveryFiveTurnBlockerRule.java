@@ -1,7 +1,6 @@
 package teamnova.omok.glue.rule.rules;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,7 +9,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleType;
 import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
 import teamnova.omok.glue.state.game.manage.GameSessionStateContext;
@@ -22,7 +20,6 @@ import teamnova.omok.glue.store.TurnStore;
 public class EveryFiveTurnBlockerRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.FIVE_TURN_RANDOM_BLOCKER,
-        EnumSet.of(RuleType.TURN_FINALIZING),
         0
     );
 
@@ -38,6 +35,7 @@ public class EveryFiveTurnBlockerRule implements Rule {
         if (context == null) {
             return;
         }
+        System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule invoked");
         GameSession session = context.getSession();
         GameSessionStateContext stateContext = context.stateContext();
         if (session == null || stateContext == null) {
@@ -88,12 +86,15 @@ public class EveryFiveTurnBlockerRule implements Rule {
         }
 
         if (mutated) {
+            System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule placed blockers for players present");
             byte[] snapshot = stateContext.boardService().snapshot(boardStore);
             stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(
                 session,
                 snapshot,
                 System.currentTimeMillis()
             ));
+        } else {
+            System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule no placement this turn");
         }
 
         context.putData(LAST_TRIGGER_KEY, completedTurns);

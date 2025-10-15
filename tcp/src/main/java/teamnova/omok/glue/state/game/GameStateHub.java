@@ -3,6 +3,7 @@ package teamnova.omok.glue.state.game;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,8 @@ import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
+import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
+import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 
 public class GameStateHub {
@@ -51,6 +54,16 @@ public class GameStateHub {
         this.context = new GameSessionStateContext(session, boardService, turnService, outcomeService);
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.onTransition(this::handleTransition);
+        // Register signal listener to trigger rules on TurnFinalizing enter only
+        this.stateMachine.addStateSignalListener(new StateSignalListener() {
+            private final Set<StateName> states = Set.of(GameSessionStateType.TURN_FINALIZING.toStateName());
+            private final Set<LifecycleEventKind> events = Set.of(LifecycleEventKind.ON_START);
+            @Override public Set<StateName> states() { return states; }
+            @Override public Set<LifecycleEventKind> events() { return events; }
+            @Override public void onSignal(StateName state, LifecycleEventKind kind) {
+                triggerRules(STATE_NAME_LOOKUP.get(state));
+            }
+        });
 
         registerState(new LobbyGameSessionState());
         registerState(new TurnWaitingState());
@@ -80,10 +93,11 @@ public class GameStateHub {
             return;
         }
         currentType = resolved;
-        triggerRules(resolved);
+        // Do NOT trigger rules here to avoid duplicate calls; signals handle rule triggering
     }
 
     private void triggerRules(GameSessionStateType targetType) {
+        if (targetType == null) return;
         RulesContext rulesContext = context.session().getRulesContext();
         if (rulesContext == null) {
             return;

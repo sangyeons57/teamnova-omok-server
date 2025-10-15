@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
+import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -45,9 +46,15 @@ public final class StateMachineGateway {
             return this;
         }
 
-        // register state-scoped lifecycle listener
+        // Deprecated: state-scoped lifecycle listener with context
         public Handle onStateLifecycle(StateLifecycleListener listener) {
             delegate.onStateLifecycle(listener);
+            return this;
+        }
+
+        // New: context-less unified state signal listener
+        public Handle addStateSignalListener(StateSignalListener listener) {
+            delegate.addStateSignalListener(listener);
             return this;
         }
 

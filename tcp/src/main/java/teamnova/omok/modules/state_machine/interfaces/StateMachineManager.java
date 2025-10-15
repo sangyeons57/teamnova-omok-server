@@ -20,8 +20,12 @@ public interface StateMachineManager {
 
     default void onTransition(Consumer<StateName> listener) { }
 
-    // State-scoped lifecycle listener channel
+    // Deprecated: state-scoped lifecycle listener with context exposure
+    @Deprecated
     default void onStateLifecycle(StateLifecycleListener listener) { }
+
+    // New: context-less unified signal listener
+    default void addStateSignalListener(StateSignalListener listener) { }
 
     void process(StateContext stateContext, long now);
 }

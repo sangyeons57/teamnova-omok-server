@@ -1,7 +1,6 @@
 package teamnova.omok.glue.rule;
 
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,19 +12,17 @@ import teamnova.omok.glue.store.GameSession;
 
 public class RulesContext {
     private final GameSession session;
-    private final Map<RuleType, List<RuleId>> ruleMap;
+    private final List<RuleId> ruleIds;
     private final int lowestScore;
     private final Map<String, Object> data = new ConcurrentHashMap<>();
 
-    private volatile RuleType currentType = RuleType.UNKNOWN;
     private volatile GameSessionStateContext stateContext;
 
     private RulesContext(GameSession session,
-                         Map<RuleType, List<RuleId>> ruleMap,
+                         List<RuleId> ruleIds,
                          int lowestScore) {
         this.session = Objects.requireNonNull(session, "session");
-        this.ruleMap = new EnumMap<>(RuleType.class);
-        ruleMap.forEach((type, ids) -> this.ruleMap.put(type, List.copyOf(ids)));
+        this.ruleIds = List.copyOf(Objects.requireNonNull(ruleIds, "ruleIds"));
         this.lowestScore = lowestScore;
     }
 
@@ -34,20 +31,15 @@ public class RulesContext {
                                          int lowestScore) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(rules, "rules");
-        Map<RuleType, List<RuleId>> mapping = new EnumMap<>(RuleType.class);
+        List<RuleId> ids = new ArrayList<>();
         for (Rule rule : rules) {
             RuleMetadata metadata = rule.getMetadata();
-            if (metadata == null || metadata.id == null || metadata.types == null) {
+            if (metadata == null || metadata.id == null) {
                 continue;
             }
-            for (RuleType type : metadata.types) {
-                if (type == null || type == RuleType.UNKNOWN) {
-                    continue;
-                }
-                mapping.computeIfAbsent(type, ignored -> new ArrayList<>()).add(metadata.id);
-            }
+            ids.add(metadata.id);
         }
-        return new RulesContext(session, mapping, lowestScore);
+        return new RulesContext(session, ids, lowestScore);
     }
 
     public GameSession getSession() {
@@ -74,26 +66,9 @@ public class RulesContext {
         this.stateContext = stateContext;
     }
 
+    // With simplified rules, we ignore the specific state and always allow activation when any rule exists.
     public boolean setCurrentRuleByGameState(GameSessionStateType type) {
-        RuleType ruleType = switch (type) {
-            case LOBBY -> RuleType.LOBBY;
-            case TURN_WAITING -> RuleType.TURN_WAITING;
-            case MOVE_VALIDATING -> RuleType.MOVE_VALIDATING;
-            case MOVE_APPLYING -> RuleType.MOVE_APPLYING;
-            case OUTCOME_EVALUATING -> RuleType.OUTCOME_EVALUATING;
-            case TURN_FINALIZING -> RuleType.TURN_FINALIZING;
-            case POST_GAME_DECISION_WAITING -> RuleType.POST_GAME_DECISION_WAITING;
-            case POST_GAME_DECISION_RESOLVING -> RuleType.POST_GAME_DECISION_RESOLVING;
-            case SESSION_REMATCH_PREPARING -> RuleType.SESSION_REMATCH_PREPARING;
-            case SESSION_TERMINATING -> RuleType.SESSION_TERMINATING;
-            case COMPLETED -> RuleType.COMPLETED;
-        };
-        this.currentType = ruleType;
-        return !getCurrentRuleIds().isEmpty();
-    }
-
-    private List<RuleId> getCurrentRuleIds() {
-        return ruleMap.getOrDefault(currentType, List.of());
+        return !ruleIds.isEmpty();
     }
 
     private void activateRule(RuleId id) {
@@ -108,7 +83,7 @@ public class RulesContext {
     }
 
     public void activateCurrentRule() {
-        for (RuleId id : getCurrentRuleIds()) {
+        for (RuleId id : ruleIds) {
             activateRule(id);
         }
     }
