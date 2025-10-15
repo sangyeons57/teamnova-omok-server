@@ -11,9 +11,10 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.core.nio.codec.DecodeFrame;
 import teamnova.omok.core.nio.codec.EncodeFrame;
+import teamnova.omok.glue.game.PlayerResult;
+import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.service.ServiceContainer;
 import teamnova.omok.glue.state.client.ClientStateHub;
 
@@ -40,6 +41,12 @@ public final class ClientSession implements Closeable {
     private volatile String authenticatedScope;
 
     private final ClientStateHub stateHub;
+
+    private final Object metricsLock = new Object();
+    private int totalWins;
+    private int totalLosses;
+    private int totalDraws;
+    private int consecutiveWins;
 
 
     public ClientSession(SocketChannel channel) {
@@ -196,6 +203,56 @@ public final class ClientSession implements Closeable {
 
     public String authenticatedUserId() {
         return authenticatedUserId;
+    }
+
+    public int registerOutcome(PlayerResult result) {
+        if (result == null) {
+            return currentWinStreak();
+        }
+        synchronized (metricsLock) {
+            return switch (result) {
+                case WIN -> {
+                    consecutiveWins = Math.max(0, consecutiveWins) + 1;
+                    totalWins += 1;
+                    yield consecutiveWins;
+                }
+                case LOSS -> {
+                    int streak = consecutiveWins;
+                    consecutiveWins = 0;
+                    totalLosses += 1;
+                    yield streak;
+                }
+                case DRAW -> {
+                    totalDraws += 1;
+                    yield consecutiveWins;
+                }
+                case PENDING -> consecutiveWins;
+            };
+        }
+    }
+
+    public int currentWinStreak() {
+        synchronized (metricsLock) {
+            return consecutiveWins;
+        }
+    }
+
+    public int totalWins() {
+        synchronized (metricsLock) {
+            return totalWins;
+        }
+    }
+
+    public int totalLosses() {
+        synchronized (metricsLock) {
+            return totalLosses;
+        }
+    }
+
+    public int totalDraws() {
+        synchronized (metricsLock) {
+            return totalDraws;
+        }
     }
 
     private void ensureCapacity(int required) {

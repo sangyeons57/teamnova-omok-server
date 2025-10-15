@@ -1,38 +1,84 @@
 package teamnova.omok.glue.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import teamnova.omok.core.nio.ClientSession;
+import teamnova.omok.core.nio.ClientSessions;
 import teamnova.omok.glue.game.PlayerResult;
 import teamnova.omok.glue.store.GameSession;
-import teamnova.omok.modules.score.ScoreGateway;
-import teamnova.omok.modules.score.models.ScoreCalculationRequest;
-import teamnova.omok.modules.score.models.ScoreOutcome;
+import teamnova.omok.modules.formula.FormulaGateway;
+import teamnova.omok.modules.formula.models.FormulaRequest;
+import teamnova.omok.modules.formula.models.FormulaVariables;
+import teamnova.omok.modules.formula.models.MatchOutcome;
+import teamnova.omok.modules.formula.models.PreparedFormula;
+import teamnova.omok.modules.formula.terminals.FinalizeTerminal;
 
 /**
  * Applies post-game score adjustments to players using {@link MysqlService}.
+ * Delegates the score delta computation to the reusable score module.
  */
 public final class ScoreService {
+    private static final double STAGE_REQUIREMENT_POINTS = 100.0; // 단계 당  요구 점수
+    private static final double STAGE_REQUIREMENT_WINS = 10.0;    // 단계 당 요구 승리 횟수
+    private static final double INITIAL_BONUS_STAGE_LIMIT = 5.0;  // 초기 보너스 제공 단계 수 (5단계 = 500점)
+    private static final double LOSS_RATIO_DIVISOR = 500.0;       // 패배시 소수점 내림(플레이어 점수 / 500)
+    private static final double DISCONNECTED_PENALTY = 0.0;       // 명시된 값 없음 -> 기본 0 적용
+
     private final MysqlService mysqlService;
-    private final ScoreGateway.Handle scoreGateway;
+    private final FormulaGateway.Handle formulaHandle;
 
-    public ScoreService(MysqlService mysqlService) {
-        this(mysqlService, ScoreGateway.open());
-    }
-
-    ScoreService(MysqlService mysqlService, ScoreGateway.Handle scoreGateway) {
+    ScoreService(MysqlService mysqlService) {
         this.mysqlService = Objects.requireNonNull(mysqlService, "mysqlService");
-        this.scoreGateway = Objects.requireNonNull(scoreGateway, "scoreGateway");
+        PreparedFormula prepared = FormulaGateway.pipeline()
+                .bootstrap(STAGE_REQUIREMENT_POINTS, STAGE_REQUIREMENT_WINS, INITIAL_BONUS_STAGE_LIMIT, DISCONNECTED_PENALTY)
+                .resolveOutcome(STAGE_REQUIREMENT_POINTS, STAGE_REQUIREMENT_WINS, INITIAL_BONUS_STAGE_LIMIT, LOSS_RATIO_DIVISOR)
+                .clampWinResult(STAGE_REQUIREMENT_POINTS, STAGE_REQUIREMENT_WINS)
+                .applyDisconnectedPenalty(DISCONNECTED_PENALTY)
+                .build(new FinalizeTerminal());
+        this.formulaHandle = FormulaGateway.wrapPrepared(prepared);
     }
 
     public void applyGameResults(GameSession session) {
         Objects.requireNonNull(session, "session");
+        List<String> participants = session.getUserIds();
         Set<String> disconnected = session.disconnectedUsersView();
-        for (String userId : session.getUserIds()) {
+        Map<String, Integer> currentScores = loadCurrentScores(participants);
+        for (String userId : participants) {
             PlayerResult result = session.outcomeFor(userId);
+            MatchOutcome outcome = mapOutcome(result);
             boolean isDisconnected = disconnected.contains(userId);
-            ScoreOutcome outcome = mapOutcome(result);
-            int delta = scoreGateway.calculate(new ScoreCalculationRequest(outcome, isDisconnected)).delta();
+
+            int playerScore = currentScores.getOrDefault(userId, 0);
+            int opponentScore = selectOpponentScore(userId, participants, currentScores);
+
+            ClientSession clientSession = ClientSessions.findAuthenticated(userId);
+            int streakValue = 0;
+            int totalWins = 0;
+            int totalLosses = 0;
+            int totalDraws = 0;
+            if (clientSession != null) {
+                streakValue = clientSession.registerOutcome(result);
+                totalWins = clientSession.totalWins();
+                totalLosses = clientSession.totalLosses();
+                totalDraws = clientSession.totalDraws();
+            }
+
+            FormulaRequest request = FormulaRequest.builder()
+                .put(FormulaVariables.OUTCOME, outcome)
+                .put(FormulaVariables.DISCONNECTED, isDisconnected)
+                .put(FormulaVariables.PLAYER_SCORE, playerScore)
+                .put(FormulaVariables.OPPONENT_SCORE, opponentScore)
+                .put(FormulaVariables.WIN_STREAK, streakValue)
+                .put(FormulaVariables.TOTAL_WINS, totalWins)
+                .put(FormulaVariables.TOTAL_LOSSES, totalLosses)
+                .put(FormulaVariables.TOTAL_DRAWS, totalDraws)
+                .build();
+
+            int delta = formulaHandle.evaluate(request).delta();
             if (delta == 0) {
                 continue;
             }
@@ -49,15 +95,35 @@ public final class ScoreService {
         }
     }
 
-    private ScoreOutcome mapOutcome(PlayerResult result) {
+    private Map<String, Integer> loadCurrentScores(List<String> userIds) {
+        Map<String, Integer> scores = new HashMap<>();
+        for (String userId : userIds) {
+            int score = mysqlService.getUserScore(userId, 0);
+            scores.put(userId, score);
+        }
+        return scores;
+    }
+
+    private int selectOpponentScore(String userId,
+                                    List<String> participants,
+                                    Map<String, Integer> scores) {
+        for (String other : participants) {
+            if (!Objects.equals(other, userId)) {
+                return scores.getOrDefault(other, 0);
+            }
+        }
+        return scores.getOrDefault(userId, 0);
+    }
+
+    private MatchOutcome mapOutcome(PlayerResult result) {
         if (result == null) {
-            return ScoreOutcome.PENDING;
+            return MatchOutcome.PENDING;
         }
         return switch (result) {
-            case WIN -> ScoreOutcome.WIN;
-            case LOSS -> ScoreOutcome.LOSS;
-            case DRAW -> ScoreOutcome.DRAW;
-            case PENDING -> ScoreOutcome.PENDING;
+            case WIN -> MatchOutcome.WIN;
+            case LOSS -> MatchOutcome.LOSS;
+            case DRAW -> MatchOutcome.DRAW;
+            case PENDING -> MatchOutcome.PENDING;
         };
     }
 }

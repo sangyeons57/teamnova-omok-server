@@ -74,6 +74,13 @@ public final class ClientSessions {
         });
     }
 
+    public static ClientSession findAuthenticated(String userId) {
+        if (userId == null) {
+            return null;
+        }
+        return USER_SESSIONS.get(userId);
+    }
+
     private static void notifyAndClose(NioReactorServer server, ClientSession oldSession) {
         try {
             byte[] msg = "SESSION_REPLACED".getBytes(StandardCharsets.UTF_8);
