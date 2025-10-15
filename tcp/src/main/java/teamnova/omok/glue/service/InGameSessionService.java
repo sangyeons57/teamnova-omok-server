@@ -16,24 +16,26 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Map;
 
+import teamnova.omok.glue.rule.RuleManager;
+
 public class InGameSessionService {
     private final InGameSessionStore store;
     private final TurnService turnService;
     private final SessionMessenger messenger = new SessionMessenger();
     private final SessionMessagePublisher messagePublisher = new SessionMessagePublisher(messenger);
     private final SessionEventService eventService;
-    private final RuleService ruleService;
+    private final RuleManager ruleManager;
 
     public InGameSessionService(InGameSessionStore store,
                                 TurnService turnService,
                                 OutcomeService outcomeService,
                                 ScoreService scoreService,
-                                RuleService ruleService) {
+                                RuleManager ruleManager) {
         Objects.requireNonNull(outcomeService, "outcomeService");
         Objects.requireNonNull(scoreService, "scoreService");
         this.store = Objects.requireNonNull(store, "store");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
-        this.ruleService = Objects.requireNonNull(ruleService, "ruleService");
+        this.ruleManager = Objects.requireNonNull(ruleManager, "ruleManager");
         TurnTimeoutCoordinator timeoutCoordinator = new TurnTimeoutCoordinator();
         DecisionTimeoutCoordinator decisionTimeoutCoordinator = new DecisionTimeoutCoordinator();
         this.eventService = new SessionEventService(
@@ -43,7 +45,7 @@ public class InGameSessionService {
             timeoutCoordinator,
             decisionTimeoutCoordinator,
             scoreService,
-            ruleService
+            ruleManager
         );
     }
 
@@ -134,7 +136,7 @@ public class InGameSessionService {
         GameSession session = new GameSession(userIds);
         Map<String, Integer> knownScores = new HashMap<>();
         group.getTickets().forEach(ticket -> knownScores.put(ticket.id, ticket.rating));
-        session.setRulesContext(ruleService.prepareRules(session, knownScores, RuleService.DEFAULT_RULE_SELECTION_COUNT));
+        session.setRulesContext(ruleManager.prepareRules(session, knownScores));
         store.save(session);
         messagePublisher.broadcastJoin(session);
     }

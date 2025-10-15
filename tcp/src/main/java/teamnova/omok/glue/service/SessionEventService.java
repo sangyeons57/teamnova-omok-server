@@ -42,7 +42,7 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
     private final TurnTimeoutCoordinator timeoutCoordinator;
     private final DecisionTimeoutCoordinator decisionTimeoutCoordinator;
     private final ScoreService scoreService;
-    private final RuleService ruleService;
+    private final teamnova.omok.glue.rule.RuleManager ruleManager;
 
     SessionEventService(InGameSessionStore store,
                         TurnService turnService,
@@ -50,14 +50,14 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
                         TurnTimeoutCoordinator timeoutCoordinator,
                         DecisionTimeoutCoordinator decisionTimeoutCoordinator,
                         ScoreService scoreService,
-                        RuleService ruleService) {
+                        teamnova.omok.glue.rule.RuleManager ruleManager) {
         this.store = Objects.requireNonNull(store, "store");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
         this.publisher = Objects.requireNonNull(publisher, "publisher");
         this.timeoutCoordinator = Objects.requireNonNull(timeoutCoordinator, "timeoutCoordinator");
         this.decisionTimeoutCoordinator = Objects.requireNonNull(decisionTimeoutCoordinator, "decisionTimeoutCoordinator");
         this.scoreService = Objects.requireNonNull(scoreService, "scoreService");
-        this.ruleService = Objects.requireNonNull(ruleService, "ruleService");
+        this.ruleManager = Objects.requireNonNull(ruleManager, "ruleManager");
     }
 
     boolean submitReady(String userId, long requestId) {
@@ -103,9 +103,6 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
             return false;
         }
         GameSession session = optionalSession.get();
-        if (session.getRulesContext() == null) {
-            session.setRulesContext(ruleService.prepareRules(session));
-        }
         GameStateHub manager = store.ensureManager(session);
         long now = System.currentTimeMillis();
         consumer.accept(new SessionSubmissionContext(session, manager, now));
@@ -336,7 +333,7 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
             return;
         }
         GameSession newSession = new GameSession(participants);
-        newSession.setRulesContext(ruleService.prepareRules(newSession));
+        newSession.setRulesContext(ruleManager.prepareRules(newSession));
         store.save(newSession);
         publisher.broadcastRematchStarted(oldSession, newSession, participants);
         publisher.broadcastJoin(newSession);

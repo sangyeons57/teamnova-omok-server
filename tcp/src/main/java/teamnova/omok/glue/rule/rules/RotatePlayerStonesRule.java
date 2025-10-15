@@ -1,0 +1,56 @@
+package teamnova.omok.glue.rule.rules;
+
+import teamnova.omok.glue.rule.Rule;
+import teamnova.omok.glue.rule.RuleId;
+import teamnova.omok.glue.rule.RuleMetadata;
+import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
+import teamnova.omok.glue.state.game.manage.GameSessionStateContext;
+import teamnova.omok.glue.store.BoardStore;
+import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.store.Stone;
+
+/**
+ * Each turn, rotate player stones: 1->2, 2->3, 3->4, 4->1.
+ */
+public class RotatePlayerStonesRule implements Rule {
+    private static final RuleMetadata METADATA = new RuleMetadata(
+        RuleId.ROTATE_STONES,
+        0
+    );
+
+    @Override
+    public RuleMetadata getMetadata() { return METADATA; }
+
+    @Override
+    public void invoke(RulesContext context) {
+        if (context == null) return;
+        GameSession session = context.getSession();
+        GameSessionStateContext stateContext = context.stateContext();
+        if (session == null || stateContext == null) return;
+
+        BoardStore board = session.getBoardStore();
+        int w = board.width();
+        int h = board.height();
+        int changed = 0;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                Stone s = Stone.fromByte(board.get(y * w + x));
+                Stone ns = s;
+                if (s == Stone.PLAYER1) ns = Stone.PLAYER2;
+                else if (s == Stone.PLAYER2) ns = Stone.PLAYER3;
+                else if (s == Stone.PLAYER3) ns = Stone.PLAYER4;
+                else if (s == Stone.PLAYER4) ns = Stone.PLAYER1;
+                if (ns != s) {
+                    stateContext.boardService().setStone(board, x, y, ns);
+                    changed++;
+                }
+            }
+        }
+        if (changed > 0) {
+            System.out.println("[RULE_LOG] RotatePlayerStonesRule rotated " + changed + " stones");
+            byte[] snapshot = stateContext.boardService().snapshot(board);
+            stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(session, snapshot, System.currentTimeMillis()));
+        }
+    }
+}

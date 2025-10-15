@@ -1,41 +1,50 @@
-package teamnova.omok.glue.service;
+package teamnova.omok.glue.rule;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleBootstrap;
-import teamnova.omok.glue.rule.RuleRegistry;
-import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.service.MysqlService;
 import teamnova.omok.glue.store.GameSession;
 
-public class RuleService {
-    public static final int DEFAULT_RULE_SELECTION_COUNT = 1;
+/**
+ * Selects and prepares rules for a GameSession once at creation time.
+ * Uses RuleRegistry and RuleBootstrap to discover available rules.
+ */
+public class RuleManager {
+    public static final int MIN_RULES = 1;
+    public static final int MAX_RULES = 4;
     private static final int DEFAULT_SCORE = 1000;
 
-    private final MysqlService mysqlService;
+    private final MysqlService mysqlService; // optional, may be null in tests
     private final RuleRegistry registry;
     private final Random random = new Random();
 
-    public RuleService(MysqlService mysqlService) {
+    public RuleManager(MysqlService mysqlService) {
         this(mysqlService, RuleRegistry.getInstance());
     }
 
-    RuleService(MysqlService mysqlService, RuleRegistry registry) {
+    RuleManager(MysqlService mysqlService, RuleRegistry registry) {
         this.mysqlService = mysqlService;
-        this.registry = registry;
-        new RuleBootstrap().registerDefaults(registry);
+        this.registry = Objects.requireNonNull(registry, "registry");
+        new RuleBootstrap().registerDefaults(this.registry);
     }
 
+    /**
+     * Prepare rules once for the session using DB scores.
+     */
     public RulesContext prepareRules(GameSession session) {
-        return prepareRules(session, Collections.emptyMap(), DEFAULT_RULE_SELECTION_COUNT);
+        return prepareRules(session, Collections.emptyMap(), pickDesiredRuleCount());
     }
 
+    /**
+     * Prepare rules once for the session using provided known scores.
+     */
+    public RulesContext prepareRules(GameSession session, Map<String, Integer> knownScores) {
+        return prepareRules(session, knownScores, pickDesiredRuleCount());
+    }
+
+    /**
+     * Core selection: choose desiredRuleCount among eligible rules where limitScore <= lowest participant score.
+     */
     public RulesContext prepareRules(GameSession session,
                                      Map<String, Integer> knownScores,
                                      int desiredRuleCount) {
@@ -44,12 +53,19 @@ public class RuleService {
         int lowestScore = scores.values().stream().min(Integer::compareTo).orElse(0);
         List<Rule> candidates = registry.eligibleRules(lowestScore);
         if (candidates.isEmpty() || desiredRuleCount <= 0) {
+            System.out.println("[RULE_LOG] No eligible rules for session " + session.getId());
             return RulesContext.fromRules(session, List.of(), lowestScore);
         }
         Collections.shuffle(candidates, random);
         int count = Math.min(Math.max(desiredRuleCount, 0), candidates.size());
         List<Rule> selected = new ArrayList<>(candidates.subList(0, count));
+        System.out.println("[RULE_LOG] Selected " + selected.size() + " rules for session " + session.getId());
         return RulesContext.fromRules(session, selected, lowestScore);
+    }
+
+    private int pickDesiredRuleCount() {
+        // 1..4 inclusive
+        return random.nextInt(MAX_RULES - MIN_RULES + 1) + MIN_RULES;
     }
 
     private Map<String, Integer> resolveScores(List<String> userIds,

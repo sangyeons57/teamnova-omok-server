@@ -21,7 +21,7 @@ public class ServiceContainer {
     private final MatchingService matchingService;
     private final InGameSessionStore inGameSessionStore;
     private final InGameSessionService inGameSessionService;
-    private final RuleService ruleService;
+    private final teamnova.omok.glue.rule.RuleManager ruleManager;
 
     private ServiceContainer() {
         // .env is located at project root's parent (same as previous usage in DefaultHandlerRegistry)
@@ -34,13 +34,13 @@ public class ServiceContainer {
         this.outcomeService = new OutcomeService(boardService);
         this.matchingService = new MatchingService();
         this.inGameSessionStore = new InGameSessionStore(boardService, turnService, outcomeService);
-        this.ruleService = new RuleService(mysqlService);
+        this.ruleManager = new teamnova.omok.glue.rule.RuleManager(mysqlService);
         this.inGameSessionService = new InGameSessionService(
             inGameSessionStore,
             turnService,
             outcomeService,
             scoreService,
-            ruleService
+            ruleManager
         );
     }
 
@@ -77,8 +77,8 @@ public class ServiceContainer {
         return outcomeService;
     }
 
-    public RuleService getRuleService() {
-        return ruleService;
+    public teamnova.omok.glue.rule.RuleManager getRuleManager() {
+        return ruleManager;
     }
 
     public InGameSessionService getInGameSessionService() {
