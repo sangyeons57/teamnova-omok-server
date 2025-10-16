@@ -46,7 +46,7 @@ class TokenService {
             'access_token' => $jwt,
             'token_type' => 'Bearer',
             'expires_in' => Config::accessTtlSec(),
-            'refresh_token' => $refresh,
+            'refresh_token' => $hash,
         );
     }
 
@@ -88,13 +88,13 @@ class TokenService {
      */
     public function refresh(string $refreshToken): array
     {
-        $hash = $this->crypto->sha256($refreshToken);
+        //이미 해신 된 상태를 전달하게 바꿔 씀
 
         if (!method_exists($this->refreshRepo, 'findByHash')) {
             throw new Exception('REFRESH_REPO_FIND_NOT_SUPPORTED');
         }
 
-        $record = $this->refreshRepo->findByHash($hash);
+        $record = $this->refreshRepo->findByHash($refreshToken);
         if (!$record) {
             throw new Exception('INVALID_REFRESH_TOKEN');
         }
