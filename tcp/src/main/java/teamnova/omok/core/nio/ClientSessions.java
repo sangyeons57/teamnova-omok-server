@@ -6,7 +6,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.glue.manager.MatchingManager;
+import teamnova.omok.glue.service.ServiceManager;
 
 /**
  * Small helper utilities related to ClientSession side-effects and cross-service interactions.
@@ -57,7 +58,7 @@ public final class ClientSessions {
         String uid = session.authenticatedUserId();
         if (uid == null) return;
         try {
-            ServiceContainer.getInstance().getMatchingService().cancel(uid);
+            MatchingManager.getInstance().cancel(uid);
         } catch (Throwable ignore) {
             // Best-effort cleanup only
         }

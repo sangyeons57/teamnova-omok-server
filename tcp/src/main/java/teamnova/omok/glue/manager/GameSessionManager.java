@@ -13,17 +13,22 @@ import teamnova.omok.glue.store.InGameSessionStore;
  */
 public final class GameSessionManager implements Closeable {
     private static final long DEFAULT_TICK_MILLIS = 20L;
+    private static GameSessionManager INSTANCE;
+
+    public static GameSessionManager Init(InGameSessionStore store) {
+        INSTANCE = new GameSessionManager(store, DEFAULT_TICK_MILLIS);
+        return INSTANCE;
+    }
+    public static GameSessionManager getInstance() {
+        return INSTANCE;
+    }
 
     private final InGameSessionStore store;
     private final ScheduledExecutorService scheduler;
     private final long tickMillis;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    public GameSessionManager(InGameSessionStore store) {
-        this(store, DEFAULT_TICK_MILLIS);
-    }
-
-    public GameSessionManager(InGameSessionStore store, long tickMillis) {
+    private GameSessionManager(InGameSessionStore store, long tickMillis) {
         this.store = Objects.requireNonNull(store, "store");
         this.tickMillis = tickMillis;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {

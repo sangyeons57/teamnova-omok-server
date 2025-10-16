@@ -2,13 +2,16 @@ package teamnova.omok.glue.manager;
 
 import java.io.Closeable;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.service.InGameSessionService;
-import teamnova.omok.glue.service.MatchingService;
+import teamnova.omok.modules.matching.MatchingGateway;
+import teamnova.omok.modules.matching.models.MatchResult;
+import teamnova.omok.modules.matching.models.MatchTicket;
 
 /**
  * Periodically attempts to match waiting players and spin up game sessions.
@@ -16,21 +19,35 @@ import teamnova.omok.glue.service.MatchingService;
 public final class MatchingManager implements Closeable {
     private static final long DEFAULT_INTERVAL_MILLIS = 500L;
 
-    private final MatchingService matchingService;
+    private static MatchingManager INSTANCE;
+
+    public static MatchingManager Init(InGameSessionService inGameSessionService) {
+        INSTANCE = new MatchingManager(
+                MatchingGateway.open(),
+                inGameSessionService,
+                DEFAULT_INTERVAL_MILLIS
+        );
+        return INSTANCE;
+    }
+
+    public static MatchingManager getInstance() {
+        if( INSTANCE == null) {
+            throw new IllegalStateException("MatchingManager not initialized");
+        }
+        return INSTANCE;
+    }
+
+    private final MatchingGateway.Handle matchingGateway;
     private final InGameSessionService inGameSessionService;
     private final ScheduledExecutorService scheduler;
     private final long intervalMillis;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile NioReactorServer server;
 
-    public MatchingManager(MatchingService matchingService, InGameSessionService inGameSessionService) {
-        this(matchingService, inGameSessionService, DEFAULT_INTERVAL_MILLIS);
-    }
-
-    public MatchingManager(MatchingService matchingService,
+    private MatchingManager(MatchingGateway.Handle matchingGateway,
                            InGameSessionService inGameSessionService,
                            long intervalMillis) {
-        this.matchingService = Objects.requireNonNull(matchingService, "matchingService");
+        this.matchingGateway = Objects.requireNonNull(matchingGateway, "matchingGateway");
         this.inGameSessionService = Objects.requireNonNull(inGameSessionService, "inGameSessionService");
         this.intervalMillis = intervalMillis;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -55,8 +72,8 @@ public final class MatchingManager implements Closeable {
             return;
         }
         try {
-            MatchingService.Result result = matchingService.tryMatch();
-            if (result instanceof MatchingService.Result.Success success) {
+            MatchResult result = matchingGateway.tryMatchOnce();
+            if (result instanceof MatchResult.Success success) {
                 inGameSessionService.createFromGroup(srv, success.group());
             }
         } catch (Exception ignored) {
@@ -68,6 +85,18 @@ public final class MatchingManager implements Closeable {
         if (running.compareAndSet(true, false)) {
             scheduler.shutdownNow();
         }
+    }
+
+    public void enqueue(MatchTicket matchTicket) {
+        matchingGateway.enqueue(matchTicket);
+    }
+
+    public void enqueue(String userId, int rating, Set<Integer> matchSet){
+        matchingGateway.enqueue(MatchTicket.create(userId, rating, matchSet));
+    }
+
+    public void cancel(String ticketId) {
+        matchingGateway.cancel(ticketId);
     }
 
     @Override

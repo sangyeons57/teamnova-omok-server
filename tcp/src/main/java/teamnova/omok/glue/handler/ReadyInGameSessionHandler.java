@@ -7,7 +7,7 @@ import teamnova.omok.core.nio.ClientSession;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.service.InGameSessionService;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.glue.service.ServiceManager;
 
 public class ReadyInGameSessionHandler implements FrameHandler {
     @Override
@@ -16,7 +16,7 @@ public class ReadyInGameSessionHandler implements FrameHandler {
             return;
         }
         String userId = session.authenticatedUserId();
-        InGameSessionService inGameService = ServiceContainer.getInstance().getInGameSessionService();
+        InGameSessionService inGameService = ServiceManager.getInstance().getInGameSessionService();
 
         boolean accepted = inGameService.submitReady(userId, frame.requestId());
         if (!accepted) {

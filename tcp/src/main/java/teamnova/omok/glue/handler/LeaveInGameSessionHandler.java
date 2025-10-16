@@ -6,7 +6,7 @@ import teamnova.omok.core.nio.ClientSession;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.service.InGameSessionService;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.glue.service.ServiceManager;
 
 import java.nio.charset.StandardCharsets;
 
@@ -17,7 +17,7 @@ public class LeaveInGameSessionHandler implements FrameHandler {
             return;
         }
         String userId = session.authenticatedUserId();
-        InGameSessionService igs = ServiceContainer.getInstance().getInGameSessionService();
+        InGameSessionService igs = ServiceManager.getInstance().getInGameSessionService();
 
         // Notify other users in the same session, if any
         igs.findByUser(userId).ifPresent(gs -> {

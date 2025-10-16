@@ -1,15 +1,17 @@
 package teamnova.omok.glue.handler;
 
+import teamnova.omok.glue.manager.MatchingManager;
 import teamnova.omok.glue.message.decoder.StringDecoder;
 import teamnova.omok.glue.handler.register.FrameHandler;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.core.nio.ClientSession;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
-import teamnova.omok.glue.service.MatchingService;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.modules.matching.MatchingGateway;
+import teamnova.omok.glue.service.ServiceManager;
 import teamnova.omok.glue.service.InGameSessionService;
 import teamnova.omok.glue.service.MysqlService;
+import teamnova.omok.modules.matching.models.MatchTicket;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
@@ -31,11 +33,11 @@ public class JoinMatchHandler implements FrameHandler {
 
         String userId = session.authenticatedUserId();
         // Register client for later broadcasting
-        InGameSessionService igs = ServiceContainer.getInstance().getInGameSessionService();
+        InGameSessionService igs = ServiceManager.getInstance().getInGameSessionService();
         igs.registerClient(userId, session);
 
         // Resolve rating from DB (users.score) using MysqlService, default to 1000
-        MysqlService mysql = ServiceContainer.getInstance().getMysqlService();
+        MysqlService mysql = ServiceManager.getInstance().getMysqlService();
         int rating = (mysql != null) ? mysql.getUserScore(userId, 1000) : 1000;
 
         // Payload now only contains mode: one of "1","2","3","4"
@@ -57,10 +59,9 @@ public class JoinMatchHandler implements FrameHandler {
         // concise log for join match
         System.out.println("[MATCH][JOIN] user=" + userId + " mode=" + payload + " matchSet=" + matchSet + " rating=" + rating);
 
-        MatchingService matching = ServiceContainer.getInstance().getMatchingService();
         // Ensure previous ticket is removed to avoid duplicates
-        matching.cancel(userId);
-        matching.enqueue(new MatchingService.Ticket(userId, rating, matchSet));
+        MatchingManager.getInstance().cancel(userId);
+        MatchingManager.getInstance().enqueue(userId, rating, matchSet);
 
         // optional ack
         session.enqueueResponse(Type.JOIN_MATCH, frame.requestId(), ("ENQUEUED:" + matchSet).getBytes(StandardCharsets.UTF_8));

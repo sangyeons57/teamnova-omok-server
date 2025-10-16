@@ -11,7 +11,7 @@ import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.service.InGameSessionService;
 import teamnova.omok.glue.service.dto.PostGameDecisionResult;
 import teamnova.omok.glue.service.dto.PostGameDecisionStatus;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.glue.service.ServiceManager;
 
 public class PostGameDecisionHandler implements FrameHandler {
     private final StringDecoder stringDecoder;
@@ -40,7 +40,7 @@ public class PostGameDecisionHandler implements FrameHandler {
             return;
         }
 
-        InGameSessionService inGameService = ServiceContainer.getInstance().getInGameSessionService();
+        InGameSessionService inGameService = ServiceManager.getInstance().getInGameSessionService();
         boolean accepted = inGameService.submitPostGameDecision(userId, frame.requestId(), decision);
         if (!accepted) {
             respondImmediate(server, session, frame.requestId(), userId, PostGameDecisionStatus.SESSION_NOT_FOUND);

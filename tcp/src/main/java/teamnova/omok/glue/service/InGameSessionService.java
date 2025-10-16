@@ -129,13 +129,13 @@ public class InGameSessionService {
         return eventService.submitPostGameDecision(userId, requestId, decision);
     }
 
-    public void createFromGroup(NioReactorServer server, MatchingService.Group group) {
+    public void createFromGroup(NioReactorServer server, teamnova.omok.modules.matching.models.MatchGroup group) {
         attachServer(server);
         List<String> userIds = new ArrayList<>();
-        group.getTickets().forEach(t -> userIds.add(t.id));
+        group.tickets().forEach(t -> userIds.add(t.id()));
         GameSession session = new GameSession(userIds);
         Map<String, Integer> knownScores = new HashMap<>();
-        group.getTickets().forEach(ticket -> knownScores.put(ticket.id, ticket.rating));
+        group.tickets().forEach(ticket -> knownScores.put(ticket.id(), ticket.rating()));
         session.setRulesContext(ruleManager.prepareRules(session, knownScores));
         store.save(session);
         messagePublisher.broadcastJoin(session);

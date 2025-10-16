@@ -3,20 +3,20 @@ package teamnova.omok.glue.manager;
 import java.io.Closeable;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.glue.service.ServiceManager;
 
 /**
  * Top-level coordinator that wires managers together and drives the process lifecycle.
  */
 public final class ServerLifecycleManager implements Closeable {
-    private final ServiceContainer services;
+    private final ServiceManager services;
     private final NioManager nioManager;
     private final GameSessionManager gameSessionManager;
     private final MatchingManager matchingManager;
     private final UserSessionManager userSessionManager;
     private final AtomicBoolean started = new AtomicBoolean(false);
 
-    public ServerLifecycleManager(ServiceContainer services,
+    public ServerLifecycleManager(ServiceManager services,
                                   NioManager nioManager,
                                   GameSessionManager gameSessionManager,
                                   MatchingManager matchingManager,

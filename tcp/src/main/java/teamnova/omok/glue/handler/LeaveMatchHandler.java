@@ -7,8 +7,9 @@ import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.handler.register.FrameHandler;
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.service.MatchingService;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.glue.manager.MatchingManager;
+import teamnova.omok.modules.matching.MatchingGateway;
+import teamnova.omok.glue.service.ServiceManager;
 
 public class LeaveMatchHandler implements FrameHandler {
     @Override
@@ -22,8 +23,7 @@ public class LeaveMatchHandler implements FrameHandler {
             return;
         }
 
-        MatchingService matchingService = ServiceContainer.getInstance().getMatchingService();
-        matchingService.cancel(userId);
+        MatchingManager.getInstance().cancel(userId);
         System.out.println("[MATCH][LEAVE] user=" + userId);
 
         session.enqueueResponse(Type.LEAVE_MATCH, frame.requestId(), "CANCELLED".getBytes(StandardCharsets.UTF_8));

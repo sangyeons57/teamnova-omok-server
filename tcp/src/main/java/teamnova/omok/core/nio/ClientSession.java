@@ -15,7 +15,8 @@ import teamnova.omok.core.nio.codec.DecodeFrame;
 import teamnova.omok.core.nio.codec.EncodeFrame;
 import teamnova.omok.glue.game.PlayerResult;
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.glue.manager.MatchingManager;
+import teamnova.omok.glue.service.ServiceManager;
 import teamnova.omok.glue.state.client.ClientStateHub;
 
 /**
@@ -274,7 +275,7 @@ public final class ClientSession implements Closeable {
         if (userId == null || userId.isBlank()) {
             return;
         }
-        ServiceContainer.getInstance()
+        ServiceManager.getInstance()
             .getInGameSessionService()
             .handleClientDisconnected(userId);
     }

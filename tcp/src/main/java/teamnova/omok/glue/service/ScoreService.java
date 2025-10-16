@@ -31,7 +31,7 @@ public final class ScoreService {
     private final MysqlService mysqlService;
     private final FormulaGateway.Handle formulaHandle;
 
-    ScoreService(MysqlService mysqlService) {
+    public ScoreService(MysqlService mysqlService) {
         this.mysqlService = Objects.requireNonNull(mysqlService, "mysqlService");
         PreparedFormula prepared = FormulaGateway.pipeline()
                 .bootstrap(STAGE_REQUIREMENT_POINTS, STAGE_REQUIREMENT_WINS, INITIAL_BONUS_STAGE_LIMIT, DISCONNECTED_PENALTY)

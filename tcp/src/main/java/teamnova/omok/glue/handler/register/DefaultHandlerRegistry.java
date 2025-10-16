@@ -12,7 +12,7 @@ import teamnova.omok.glue.handler.LeaveMatchHandler;
 import teamnova.omok.glue.handler.PostGameDecisionHandler;
 import teamnova.omok.glue.handler.PlaceStoneHandler;
 import teamnova.omok.glue.handler.ReadyInGameSessionHandler;
-import teamnova.omok.glue.service.ServiceContainer;
+import teamnova.omok.glue.service.ServiceManager;
 
 import java.util.function.Supplier;
 
@@ -34,7 +34,7 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
     public void configure(Dispatcher dispatcher) {
         this.dispatcher = dispatcher;
         register(Type.HELLO, new HelloWorldHandler(helloWorldDecoder));
-        register(Type.AUTH, new AuthHandler(stringDecoder, ServiceContainer.getInstance().getDotenvService()));
+        register(Type.AUTH, new AuthHandler(stringDecoder, ServiceManager.getInstance().getDotenvService()));
         register(Type.PINGPONG, new PingPongHandler());
         register(Type.JOIN_MATCH, new JoinMatchHandler(stringDecoder));
         register(Type.LEAVE_MATCH, new LeaveMatchHandler());

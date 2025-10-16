@@ -6,22 +6,30 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import teamnova.omok.core.nio.ClientSessions;
+import teamnova.omok.glue.handler.register.DefaultHandlerRegistry;
 
 /**
  * Advances client state machines for authenticated sessions.
  */
 public final class UserSessionManager implements Closeable {
     private static final long DEFAULT_INTERVAL_MILLIS = 50L;
+    private static UserSessionManager INSTANCE;
+
+    public static UserSessionManager Init() {
+        INSTANCE = new UserSessionManager(DEFAULT_INTERVAL_MILLIS);
+        return INSTANCE;
+    }
+
+    public static UserSessionManager getInstance() {
+        return INSTANCE;
+    }
+
 
     private final ScheduledExecutorService scheduler;
     private final long intervalMillis;
     private final AtomicBoolean running = new AtomicBoolean(false);
 
-    public UserSessionManager() {
-        this(DEFAULT_INTERVAL_MILLIS);
-    }
-
-    public UserSessionManager(long intervalMillis) {
+    private UserSessionManager(long intervalMillis) {
         this.intervalMillis = intervalMillis;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
