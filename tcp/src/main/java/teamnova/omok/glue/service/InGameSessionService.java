@@ -28,10 +28,8 @@ public class InGameSessionService {
 
     public InGameSessionService(InGameSessionStore store,
                                 TurnService turnService,
-                                OutcomeService outcomeService,
                                 ScoreService scoreService,
                                 RuleManager ruleManager) {
-        Objects.requireNonNull(outcomeService, "outcomeService");
         Objects.requireNonNull(scoreService, "scoreService");
         this.store = Objects.requireNonNull(store, "store");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
@@ -76,7 +74,6 @@ public class InGameSessionService {
             session.lock().lock();
             try {
                 newlyDisconnected = session.markDisconnected(userId);
-                session.updateOutcome(userId, PlayerResult.LOSS);
             } finally {
                 session.lock().unlock();
             }
@@ -96,10 +93,8 @@ public class InGameSessionService {
             session.lock().lock();
             try {
                 newlyDisconnected = session.markDisconnected(userId);
-                session.updateOutcome(userId, PlayerResult.LOSS);
                 if (session.isGameStarted() && !session.isGameFinished()) {
-                    TurnService.TurnSnapshot snapshot =
-                        turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                    TurnService.TurnSnapshot snapshot = turnService.snapshot(session.getTurnStore(), session.getUserIds());
                     if (snapshot != null && userId.equals(snapshot.currentPlayerId())) {
                         shouldSkip = true;
                         expectedTurn = snapshot.turnNumber();

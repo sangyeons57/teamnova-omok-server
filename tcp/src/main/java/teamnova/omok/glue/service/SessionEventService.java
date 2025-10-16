@@ -316,7 +316,6 @@ final class SessionEventService implements TurnTimeoutCoordinator.TurnTimeoutCon
 
     private void handlePostGameResolution(PostGameResolution resolution) {
         GameSession session = resolution.session();
-        scoreService.applyGameResults(session);
         cancelAllTimers(session.getId());
         if (resolution.type() == PostGameResolution.ResolutionType.REMATCH) {
             handleRematchResolution(resolution);

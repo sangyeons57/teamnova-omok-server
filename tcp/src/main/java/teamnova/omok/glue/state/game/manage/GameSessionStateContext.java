@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.service.BoardService;
-import teamnova.omok.glue.service.OutcomeService;
+import teamnova.omok.glue.service.ScoreService;
 import teamnova.omok.glue.service.TurnService;
 import teamnova.omok.glue.store.GameSession;
 
@@ -26,7 +26,7 @@ public final class GameSessionStateContext implements StateContext {
     private final GameSession session;
     private final BoardService boardService;
     private final TurnService turnService;
-    private final OutcomeService outcomeService;
+    private final ScoreService scoreService;
 
     private TurnCycleContext activeTurnCycle;
     private MoveResult pendingMoveResult;
@@ -43,11 +43,11 @@ public final class GameSessionStateContext implements StateContext {
     public GameSessionStateContext(GameSession session,
                                    BoardService boardService,
                                    TurnService turnService,
-                                   OutcomeService outcomeService) {
+                                   ScoreService scoreService) {
         this.session = Objects.requireNonNull(session, "session");
         this.boardService = Objects.requireNonNull(boardService, "boardService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
-        this.outcomeService = Objects.requireNonNull(outcomeService, "outcomeService");
+        this.scoreService = Objects.requireNonNull(scoreService, "scoreService");
     }
 
     public GameSession session() {
@@ -62,8 +62,8 @@ public final class GameSessionStateContext implements StateContext {
         return turnService;
     }
 
-    public OutcomeService outcomeService() {
-        return outcomeService;
+    public ScoreService scoreService() {
+        return scoreService;
     }
 
     public RulesContext rulesContext() {

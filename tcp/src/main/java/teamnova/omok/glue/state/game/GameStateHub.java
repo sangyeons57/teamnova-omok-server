@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.service.BoardService;
-import teamnova.omok.glue.service.OutcomeService;
+import teamnova.omok.glue.service.ScoreService;
 import teamnova.omok.glue.service.TurnService;
 import teamnova.omok.glue.state.game.manage.GameSessionStateContext;
 import teamnova.omok.glue.state.game.manage.GameSessionStateType;
@@ -45,13 +45,12 @@ public class GameStateHub {
     public GameStateHub(GameSession session,
                         BoardService boardService,
                         TurnService turnService,
-                        OutcomeService outcomeService) {
+                        ScoreService scoreService) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(boardService, "boardService");
         Objects.requireNonNull(turnService, "turnService");
-        Objects.requireNonNull(outcomeService, "outcomeService");
 
-        this.context = new GameSessionStateContext(session, boardService, turnService, outcomeService);
+        this.context = new GameSessionStateContext(session, boardService, turnService, scoreService);
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.onTransition(this::handleTransition);
         // Register signal listener to trigger rules on TurnFinalizing enter only

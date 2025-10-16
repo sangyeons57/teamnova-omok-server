@@ -29,7 +29,6 @@ public class ServiceManager {
     private final ScoreService scoreService;
     private final BoardService boardService;
     private final TurnService turnService;
-    private final OutcomeService outcomeService;
     private final InGameSessionStore inGameSessionStore;
     private final InGameSessionService inGameSessionService;
     private final teamnova.omok.glue.rule.RuleManager ruleManager;
@@ -42,13 +41,11 @@ public class ServiceManager {
         this.scoreService = new ScoreService(mysqlService);
         this.boardService = new BoardService();
         this.turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
-        this.outcomeService = new OutcomeService(boardService);
-        this.inGameSessionStore = new InGameSessionStore(boardService, turnService, outcomeService);
+        this.inGameSessionStore = new InGameSessionStore(boardService, turnService, scoreService);
         this.ruleManager = new teamnova.omok.glue.rule.RuleManager(mysqlService);
         this.inGameSessionService = new InGameSessionService(
             inGameSessionStore,
             turnService,
-            outcomeService,
             scoreService,
             ruleManager
         );
@@ -74,10 +71,6 @@ public class ServiceManager {
 
     public TurnService getTurnService() {
         return turnService;
-    }
-
-    public OutcomeService getOutcomeService() {
-        return outcomeService;
     }
 
     public teamnova.omok.glue.rule.RuleManager getRuleManager() {

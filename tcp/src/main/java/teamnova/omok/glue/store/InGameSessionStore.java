@@ -8,7 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import teamnova.omok.glue.service.BoardService;
-import teamnova.omok.glue.service.OutcomeService;
+import teamnova.omok.glue.service.ScoreService;
 import teamnova.omok.glue.service.TurnService;
 import teamnova.omok.glue.state.game.GameStateHub;
 
@@ -22,14 +22,14 @@ public class InGameSessionStore {
 
     private final BoardService boardService;
     private final TurnService turnService;
-    private final OutcomeService outcomeService;
+    private final ScoreService scoreService;
 
     public InGameSessionStore(BoardService boardService,
                               TurnService turnService,
-                              OutcomeService outcomeService) {
+                              ScoreService scoreService) {
         this.boardService = boardService;
         this.turnService = turnService;
-        this.outcomeService = outcomeService;
+        this.scoreService = scoreService;
     }
 
     public GameSession save(GameSession session) {
@@ -65,7 +65,7 @@ public class InGameSessionStore {
     public GameStateHub ensureManager(GameSession session) {
         return managersById.computeIfAbsent(
             session.getId(),
-            id -> new GameStateHub(session, boardService, turnService, outcomeService)
+            id -> new GameStateHub(session, boardService, turnService, scoreService)
         );
     }
 
@@ -92,10 +92,6 @@ public class InGameSessionStore {
             }
             managersById.remove(id);
         }
-    }
-
-    public Collection<GameSession> allSessions() {
-        return Collections.unmodifiableCollection(sessionsById.values());
     }
 
     public void updateSessions(long now) {
