@@ -37,6 +37,10 @@ public class GameSession {
     private final Map<String, PostGameDecision> postGameDecisions = new ConcurrentHashMap<>();
     private final Set<String> rematchRequestUserIds = ConcurrentHashMap.newKeySet();
     private volatile RulesContext rulesContext;
+    // Lowest participant score captured at session creation for rule selection
+    private volatile int lowestParticipantScore;
+    // Deterministically chosen rule count based on lowest score
+    private volatile int desiredRuleCount;
 
     private volatile boolean gameStarted;
     private volatile long gameStartedAt;
@@ -92,6 +96,11 @@ public class GameSession {
     public void setRulesContext(RulesContext rulesContext) {
         this.rulesContext = rulesContext;
     }
+
+    public int getLowestParticipantScore() { return lowestParticipantScore; }
+    public void setLowestParticipantScore(int score) { this.lowestParticipantScore = score; }
+    public int getDesiredRuleCount() { return desiredRuleCount; }
+    public void setDesiredRuleCount(int count) { this.desiredRuleCount = count; }
 
     public boolean isGameStarted() {
         return gameStarted;
