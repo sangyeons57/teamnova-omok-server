@@ -95,7 +95,7 @@ class TokenService {
         }
 
         $record = $this->refreshRepo->findByHash($hash);
-        if (!isset($record)) {
+        if (!$record) {
             throw new Exception('INVALID_REFRESH_TOKEN');
         }
 

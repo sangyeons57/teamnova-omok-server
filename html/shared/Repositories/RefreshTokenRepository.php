@@ -19,7 +19,8 @@ class RefreshTokenRepository {
     public function findByHash($tokenHash) {
         $st = $this->pdo->prepare('SELECT user_id, expires_at, revoked_at FROM teamnova_omok_db.refresh_tokens WHERE token_hash = :th LIMIT 1');
         $st->execute(array(':th' => $tokenHash));
-        return $st->fetch();
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 
     public function revokeByHash($tokenHash): void
