@@ -102,7 +102,7 @@ class TokenService {
         $nowUtc = $this->clock->nowUtc();
 
         // revoked_at  null 로 검사 수정
-        if ($record['revoked_at'] !== null) {
+        if ($record['revoked_at'] != null) {
             throw new Exception('REFRESH_TOKEN_REVOKED');
         }
 
