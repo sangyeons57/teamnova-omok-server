@@ -34,9 +34,6 @@ import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 
 public class GameStateHub {
-    private static final Map<StateName, GameSessionStateType> STATE_NAME_LOOKUP =
-        Arrays.stream(GameSessionStateType.values())
-            .collect(Collectors.toUnmodifiableMap(GameSessionStateType::toStateName, type -> type));
 
     private final Handle stateMachine;
     private final GameSessionStateContext context;
@@ -60,7 +57,7 @@ public class GameStateHub {
             @Override public Set<StateName> states() { return states; }
             @Override public Set<LifecycleEventKind> events() { return events; }
             @Override public void onSignal(StateName state, LifecycleEventKind kind) {
-                triggerRules(STATE_NAME_LOOKUP.get(state));
+                triggerRules(GameSessionStateType.stateNameLookup(state));
             }
         });
 
@@ -84,7 +81,7 @@ public class GameStateHub {
     }
 
     private void handleTransition(StateName stateName) {
-        GameSessionStateType resolved = STATE_NAME_LOOKUP.get(stateName);
+        GameSessionStateType resolved = GameSessionStateType.stateNameLookup(stateName);
         if (resolved == null) {
             throw new IllegalStateException("Unrecognised state: " + stateName.name());
         }

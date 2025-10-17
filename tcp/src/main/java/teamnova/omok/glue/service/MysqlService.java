@@ -1,10 +1,13 @@
 package teamnova.omok.glue.service;
 
+import teamnova.omok.glue.store.User;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.function.Supplier;
 
 /**
  * Simple MySQL service that reads configuration from DotenvService
@@ -29,6 +32,34 @@ public class MysqlService {
     public String jdbcUrl() {
         String db = (database == null || database.isBlank()) ? "" : "/" + database;
         return "jdbc:mysql://" + host + ":" + port + db + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+    }
+
+    public User findUser(String userId, User defaultUser) {
+        if (userId == null || userId.isBlank()) return defaultUser;
+        // If configuration is incomplete, bail out quickly
+        if (user == null || user.isBlank()) return defaultUser;
+
+        String sql = "SELECT user_id, display_name, profile_icon_code, status, score FROM users WHERE user_id = ? LIMIT 1";
+        try (Connection conn = DriverManager.getConnection(jdbcUrl(), user, password);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String id = rs.getString("user_id");
+                    String name = rs.getString("display_name");
+                    int icon = rs.getInt("profile_icon_code");
+                    // status 컬럼이 문자열이면 enum 변환
+                    User.Status status = User.Status.valueOf(rs.getString("status").toUpperCase());
+                    int score = rs.getInt("score");
+
+                    return new User(id, name, icon, status, score);
+                }
+            }
+        } catch (SQLException e) {
+            // Log quietly to stderr; return default on failure
+            System.err.println("[MysqlService] getUserScore failed: " + e.getMessage());
+        }
+        return defaultUser;
     }
 
     /**

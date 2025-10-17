@@ -3,6 +3,7 @@ package teamnova.omok.glue.message.encoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.store.User;
 
 public final class JoinSessionMessageEncoder {
     private JoinSessionMessageEncoder() {}
@@ -15,15 +16,15 @@ public final class JoinSessionMessageEncoder {
           .append("\"createdAt\":").append(session.getCreatedAt())
           .append(',')
           .append("\"users\":[");
-        List<String> userIds = session.getUserIds();
+        List<User> userIds = session.getUsers();
         for (int i = 0; i < userIds.size(); i++) {
-            String uid = userIds.get(i);
+            User user = userIds.get(i);
             sb.append('{')
-              .append("\"userId\":\"").append(MessageEncodingUtil.escape(uid)).append('\"')
+              .append("\"userId\":\"").append(MessageEncodingUtil.escape(user.id())).append('\"')
               .append(',')
-              .append("\"displayName\":\"").append(MessageEncodingUtil.escape(uid)).append('\"')
+              .append("\"displayName\":\"").append(MessageEncodingUtil.escape(user.name())).append('\"')
               .append(',')
-              .append("\"profileIconCode\":").append(0)
+              .append("\"profileIconCode\":").append(user.profileIconCode())
               .append('}');
             if (i < userIds.size() - 1) {
                 sb.append(',');

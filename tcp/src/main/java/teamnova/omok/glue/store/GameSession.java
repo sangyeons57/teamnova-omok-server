@@ -12,6 +12,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import teamnova.omok.glue.game.PlayerResult;
 import teamnova.omok.glue.game.PostGameDecision;
 import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.service.MysqlService;
+import teamnova.omok.glue.service.ServiceManager;
 
 /**
  * Represents an in-game session with participants and mutable runtime state.
@@ -23,7 +25,7 @@ public class GameSession {
     public static final long POST_GAME_DECISION_DURATION_MILLIS = 30_000L;
 
     private final UUID id;
-    private final List<String> userIds;
+    private final List<User> users;
     private final long createdAt;
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -53,24 +55,32 @@ public class GameSession {
             throw new IllegalArgumentException("userIds must not be empty");
         }
         this.id = UUID.randomUUID();
-        this.userIds = List.copyOf(userIds);
         this.createdAt = System.currentTimeMillis();
         this.boardStore = new BoardStore(BOARD_WIDTH, BOARD_HEIGHT);
         this.turnStore = new TurnStore();
-        this.outcomeStore = new OutcomeStore(this.userIds);
+        this.outcomeStore = new OutcomeStore(userIds);
         this.rulesContext = null;
 
-        for (String userId : this.userIds) {
+        this.users = Collections.synchronizedList(new java.util.ArrayList<>());
+
+        for (String userId : userIds) {
             readyStates.put(userId, Boolean.FALSE);
+            this.users.add(
+                    ServiceManager.getInstance().getMysqlService().findUser(userId, new User("", "", 0, User.Status.INACTIVE, 0))
+            );
         }
+
     }
 
     public UUID getId() {
         return id;
     }
 
+    public List<User> getUsers() {
+        return Collections.unmodifiableList(users);
+    }
     public List<String> getUserIds() {
-        return Collections.unmodifiableList(userIds);
+        return Collections.unmodifiableList(users.stream().map(User::id).toList());
     }
 
     public long getCreatedAt() {
@@ -189,7 +199,7 @@ public class GameSession {
     }
 
     public int playerIndexOf(String userId) {
-        return userIds.indexOf(userId);
+        return getUserIds().indexOf(userId);
     }
 
     public boolean containsUser(String userId) {
@@ -197,7 +207,7 @@ public class GameSession {
     }
 
     public void resetOutcomes() {
-        outcomeStore.reset(userIds);
+        outcomeStore.reset(getUserIds());
     }
 
     public OutcomeStore getOutcomeStore() {
