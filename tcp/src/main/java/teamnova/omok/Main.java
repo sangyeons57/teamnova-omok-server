@@ -2,11 +2,10 @@ package teamnova.omok;
 
 import java.io.IOException;
 import teamnova.omok.glue.handler.register.DefaultHandlerRegistry;
-import teamnova.omok.glue.manager.GameSessionManager;
-import teamnova.omok.glue.manager.MatchingManager;
-import teamnova.omok.glue.manager.NioManager;
-import teamnova.omok.glue.manager.ServerLifecycleManager;
-import teamnova.omok.glue.manager.UserSessionManager;
+import teamnova.omok.glue.manager.*;
+import teamnova.omok.glue.rule.RuleManager;
+import teamnova.omok.glue.rule.RuleMetadata;
+import teamnova.omok.glue.rule.RuleRegistry;
 import teamnova.omok.glue.service.ServiceManager;
 
 public final class Main {
@@ -16,7 +15,9 @@ public final class Main {
         int port = parsePort(args);
         int workerCount = Runtime.getRuntime().availableProcessors();
 
-        ServiceManager serviceManager = ServiceManager.Init();
+        DataManager.Init();
+        RuleManager.Init(RuleRegistry.getInstance());
+        ServiceManager serviceManager = ServiceManager.Init(RuleManager.getInstance());
         GameSessionManager gameSessionManager = GameSessionManager.Init(serviceManager.getInGameSessionStore());
         MatchingManager matchingManager = MatchingManager.Init(serviceManager.getInGameSessionService());
         UserSessionManager userSessionManager = UserSessionManager.Init();

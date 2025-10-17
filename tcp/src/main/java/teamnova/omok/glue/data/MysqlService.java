@@ -1,13 +1,13 @@
-package teamnova.omok.glue.service;
+package teamnova.omok.glue.data;
 
-import teamnova.omok.glue.store.User;
+import teamnova.omok.glue.data.model.UserData;
+import teamnova.omok.glue.data.model.UserScoreData;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.function.Supplier;
 
 /**
  * Simple MySQL service that reads configuration from DotenvService
@@ -29,15 +29,15 @@ public class MysqlService {
         this.password = orDefault(dotenv.get("DB_PASS"), "");
     }
 
-    public String jdbcUrl() {
+    private String jdbcUrl() {
         String db = (database == null || database.isBlank()) ? "" : "/" + database;
         return "jdbc:mysql://" + host + ":" + port + db + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     }
 
-    public User findUser(String userId, User defaultUser) {
-        if (userId == null || userId.isBlank()) return defaultUser;
+    public UserData findUser(String userId, UserData defaultUserData) {
+        if (userId == null || userId.isBlank()) return defaultUserData;
         // If configuration is incomplete, bail out quickly
-        if (user == null || user.isBlank()) return defaultUser;
+        if (user == null || user.isBlank()) return defaultUserData;
 
         String sql = "SELECT user_id, display_name, profile_icon_code, status, score FROM users WHERE user_id = ? LIMIT 1";
         try (Connection conn = DriverManager.getConnection(jdbcUrl(), user, password);
@@ -49,24 +49,28 @@ public class MysqlService {
                     String name = rs.getString("display_name");
                     int icon = rs.getInt("profile_icon_code");
                     // status 컬럼이 문자열이면 enum 변환
-                    User.Status status = User.Status.valueOf(rs.getString("status").toUpperCase());
+                    UserData.Status status = UserData.Status.valueOf(rs.getString("status").toUpperCase());
                     int score = rs.getInt("score");
 
-                    return new User(id, name, icon, status, score);
+                    return new UserData(id, name, icon, status, score);
                 }
             }
         } catch (SQLException e) {
             // Log quietly to stderr; return default on failure
             System.err.println("[MysqlService] getUserScore failed: " + e.getMessage());
         }
-        return defaultUser;
+        return defaultUserData;
+    }
+
+    public UserScoreData getUserScore(String userId, int defaultScore) {
+        return getUserScore(userId, UserScoreData.of(defaultScore));
     }
 
     /**
      * Fetches a user's score from the users table using their user_id.
      * Returns defaultScore if not found or if any error occurs.
      */
-    public int getUserScore(String userId, int defaultScore) {
+    public UserScoreData getUserScore(String userId, UserScoreData defaultScore) {
         if (userId == null || userId.isBlank()) return defaultScore;
         // If configuration is incomplete, bail out quickly
         if (user == null || user.isBlank()) return defaultScore;
@@ -78,7 +82,7 @@ public class MysqlService {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     int score = rs.getInt(1);
-                    return rs.wasNull() ? defaultScore : score;
+                    return rs.wasNull() ? defaultScore : UserScoreData.of(score);
                 }
             }
         } catch (SQLException e) {

@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import teamnova.omok.glue.game.PlayerResult;
+import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.service.ServiceManager;
 import teamnova.omok.glue.service.dto.GameCompletionNotice;
 import teamnova.omok.glue.service.dto.MoveResult;
@@ -182,7 +183,10 @@ public final class OutcomeEvaluatingState implements BaseState {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
         if (ctx.session().isGameFinished()) {
             // Apply scores immediately when the game is confirmed finished
-            ctx.scoreService().applyGameResults(ctx.session());
+            for(String userId : ctx.session().getUserIds()) {
+                int score = ctx.scoreService().calculateScoreDelta(ctx.session(), userId);
+                DataManager.getInstance().adjustUserScore(userId, score);
+            }
         }
     }
 

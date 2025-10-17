@@ -1,9 +1,12 @@
 package teamnova.omok.glue.service;
 
 import teamnova.omok.core.nio.NioReactorServer;
+import teamnova.omok.glue.data.DotenvService;
+import teamnova.omok.glue.data.MysqlService;
+import teamnova.omok.glue.rule.RuleManager;
+import teamnova.omok.glue.rule.RuleRegistry;
 import teamnova.omok.glue.store.GameSession;
 import teamnova.omok.glue.store.InGameSessionStore;
-import teamnova.omok.modules.matching.MatchingGateway;
 
 import java.util.Objects;
 
@@ -13,8 +16,8 @@ import java.util.Objects;
 public class ServiceManager {
     private static ServiceManager INSTANCE;
 
-    public static ServiceManager Init() {
-        INSTANCE = new ServiceManager();
+    public static ServiceManager Init(RuleManager ruleManager) {
+        INSTANCE = new ServiceManager(ruleManager);
         return INSTANCE;
     }
     public static ServiceManager getInstance() {
@@ -24,25 +27,20 @@ public class ServiceManager {
         return INSTANCE;
     }
 
-    private final DotenvService dotenvService;
-    private final MysqlService mysqlService;
     private final ScoreService scoreService;
     private final BoardService boardService;
     private final TurnService turnService;
     private final InGameSessionStore inGameSessionStore;
     private final InGameSessionService inGameSessionService;
-    private final teamnova.omok.glue.rule.RuleManager ruleManager;
+    private final RuleManager ruleManager;
 
-    private ServiceManager() {
+    private ServiceManager(RuleManager ruleManager) {
         // .env is located at project root's parent (same as previous usage in DefaultHandlerRegistry)
-        String basePath = System.getProperty("user.dir") + "/..";
-        this.dotenvService = new DotenvService(basePath);
-        this.mysqlService = new MysqlService(dotenvService);
-        this.scoreService = new ScoreService(mysqlService);
+        this.ruleManager = ruleManager;
+        this.scoreService = new ScoreService();
         this.boardService = new BoardService();
         this.turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
         this.inGameSessionStore = new InGameSessionStore(boardService, turnService, scoreService);
-        this.ruleManager = new teamnova.omok.glue.rule.RuleManager(mysqlService);
         this.inGameSessionService = new InGameSessionService(
             inGameSessionStore,
             turnService,
@@ -60,8 +58,6 @@ public class ServiceManager {
         // no-op for now; retained for symmetry with lifecycle manager
     }
 
-    public DotenvService getDotenvService() { return dotenvService; }
-    public MysqlService getMysqlService() { return mysqlService; }
     public ScoreService getScoreService() { return scoreService; }
 
 

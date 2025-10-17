@@ -9,10 +9,11 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import teamnova.omok.glue.data.model.UserData;
 import teamnova.omok.glue.game.PlayerResult;
 import teamnova.omok.glue.game.PostGameDecision;
+import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.rule.RulesContext;
-import teamnova.omok.glue.service.MysqlService;
 import teamnova.omok.glue.service.ServiceManager;
 
 /**
@@ -25,7 +26,7 @@ public class GameSession {
     public static final long POST_GAME_DECISION_DURATION_MILLIS = 30_000L;
 
     private final UUID id;
-    private final List<User> users;
+    private final List<UserData> userData;
     private final long createdAt;
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -61,12 +62,12 @@ public class GameSession {
         this.outcomeStore = new OutcomeStore(userIds);
         this.rulesContext = null;
 
-        this.users = Collections.synchronizedList(new java.util.ArrayList<>());
+        this.userData = Collections.synchronizedList(new java.util.ArrayList<>());
 
         for (String userId : userIds) {
             readyStates.put(userId, Boolean.FALSE);
-            this.users.add(
-                    ServiceManager.getInstance().getMysqlService().findUser(userId, new User("", "", 0, User.Status.INACTIVE, 0))
+            this.userData.add(
+                    DataManager.getInstance().findUser(userId, DataManager.getDefaultUser())
             );
         }
 
@@ -76,11 +77,11 @@ public class GameSession {
         return id;
     }
 
-    public List<User> getUsers() {
-        return Collections.unmodifiableList(users);
+    public List<UserData> getUsers() {
+        return Collections.unmodifiableList(userData);
     }
     public List<String> getUserIds() {
-        return Collections.unmodifiableList(users.stream().map(User::id).toList());
+        return Collections.unmodifiableList(userData.stream().map(UserData::id).toList());
     }
 
     public long getCreatedAt() {

@@ -15,11 +15,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.message.decoder.StringDecoder;
 import teamnova.omok.glue.handler.register.FrameHandler;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.core.nio.ClientSessions;
-import teamnova.omok.glue.service.DotenvService;
+import teamnova.omok.glue.data.DotenvService;
 import teamnova.omok.core.nio.ClientSession;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
@@ -34,9 +35,9 @@ public class AuthHandler implements FrameHandler {
     private final StringDecoder decoder;
     private final String secret;
 
-    public AuthHandler(StringDecoder decoder, DotenvService dotenvService){
+    public AuthHandler(StringDecoder decoder, DataManager dataManager){
         this.decoder = decoder;
-        String value = dotenvService.get("JWT_SECRET");
+        String value = dataManager.getFromDotEnv("JWT_SECRET");
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("JWT_SECRET is not configured");
         }

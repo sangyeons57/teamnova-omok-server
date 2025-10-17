@@ -8,7 +8,9 @@ import java.util.Set;
 
 import teamnova.omok.core.nio.ClientSession;
 import teamnova.omok.core.nio.ClientSessions;
+import teamnova.omok.glue.data.MysqlService;
 import teamnova.omok.glue.game.PlayerResult;
+import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.store.GameSession;
 import teamnova.omok.modules.formula.FormulaGateway;
 import teamnova.omok.modules.formula.models.FormulaRequest;
@@ -28,11 +30,9 @@ public final class ScoreService {
     private static final double LOSS_RATIO_DIVISOR = 500.0;       // 패배시 소수점 내림(플레이어 점수 / 500)
     private static final double DISCONNECTED_PENALTY = 0.0;       // 명시된 값 없음 -> 기본 0 적용
 
-    private final MysqlService mysqlService;
     private final FormulaGateway.Handle formulaHandle;
 
-    public ScoreService(MysqlService mysqlService) {
-        this.mysqlService = Objects.requireNonNull(mysqlService, "mysqlService");
+    public ScoreService() {
         PreparedFormula prepared = FormulaGateway.pipeline()
                 .bootstrap(STAGE_REQUIREMENT_POINTS, STAGE_REQUIREMENT_WINS, INITIAL_BONUS_STAGE_LIMIT, DISCONNECTED_PENALTY)
                 .resolveOutcome(STAGE_REQUIREMENT_POINTS, STAGE_REQUIREMENT_WINS, INITIAL_BONUS_STAGE_LIMIT, LOSS_RATIO_DIVISOR)
@@ -42,32 +42,29 @@ public final class ScoreService {
         this.formulaHandle = FormulaGateway.wrapPrepared(prepared);
     }
 
-    public void applyGameResults(GameSession session) {
-        Objects.requireNonNull(session, "session");
+    public int calculateScoreDelta(GameSession session, String userId) {
         List<String> participants = session.getUserIds();
-        Set<String> disconnected = session.disconnectedUsersView();
+        PlayerResult result = session.outcomeFor(userId);
+        MatchOutcome outcome = mapOutcome(result);
+        boolean isDisconnected = session.disconnectedUsersView().contains(userId);
         Map<String, Integer> currentScores = loadCurrentScores(participants);
-        for (String userId : participants) {
-            PlayerResult result = session.outcomeFor(userId);
-            MatchOutcome outcome = mapOutcome(result);
-            boolean isDisconnected = disconnected.contains(userId);
 
-            int playerScore = currentScores.getOrDefault(userId, 0);
-            int opponentScore = selectOpponentScore(userId, participants, currentScores);
+        int playerScore = currentScores.getOrDefault(userId, 0);
+        int opponentScore = selectOpponentScore(userId, participants, currentScores);
 
-            ClientSession clientSession = ClientSessions.findAuthenticated(userId);
-            int streakValue = 0;
-            int totalWins = 0;
-            int totalLosses = 0;
-            int totalDraws = 0;
-            if (clientSession != null) {
-                streakValue = clientSession.registerOutcome(result);
-                totalWins = clientSession.totalWins();
-                totalLosses = clientSession.totalLosses();
-                totalDraws = clientSession.totalDraws();
-            }
+        ClientSession clientSession = ClientSessions.findAuthenticated(userId);
+        int streakValue = 0;
+        int totalWins = 0;
+        int totalLosses = 0;
+        int totalDraws = 0;
+        if (clientSession != null) {
+            streakValue = clientSession.registerOutcome(result);
+            totalWins = clientSession.totalWins();
+            totalLosses = clientSession.totalLosses();
+            totalDraws = clientSession.totalDraws();
+        }
 
-            FormulaRequest request = FormulaRequest.builder()
+        FormulaRequest request = FormulaRequest.builder()
                 .put(FormulaVariables.OUTCOME, outcome)
                 .put(FormulaVariables.DISCONNECTED, isDisconnected)
                 .put(FormulaVariables.PLAYER_SCORE, playerScore)
@@ -78,27 +75,13 @@ public final class ScoreService {
                 .put(FormulaVariables.TOTAL_DRAWS, totalDraws)
                 .build();
 
-            int delta = formulaHandle.evaluate(request).delta();
-            if (delta == 0) {
-                continue;
-            }
-            boolean success = mysqlService.adjustUserScore(userId, delta);
-            System.out.printf(
-                "[ScoreService] session=%s user=%s result=%s disconnected=%s delta=%d applied=%s%n",
-                session.getId(),
-                userId,
-                result,
-                isDisconnected,
-                delta,
-                success
-            );
-        }
+        return formulaHandle.evaluate(request).delta();
     }
 
     private Map<String, Integer> loadCurrentScores(List<String> userIds) {
         Map<String, Integer> scores = new HashMap<>();
         for (String userId : userIds) {
-            int score = mysqlService.getUserScore(userId, 0);
+            int score = DataManager.getInstance().getUserScore(userId, 0).score();
             scores.put(userId, score);
         }
         return scores;

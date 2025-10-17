@@ -2,7 +2,8 @@ package teamnova.omok.glue.rule;
 
 import java.util.*;
 
-import teamnova.omok.glue.service.MysqlService;
+import teamnova.omok.glue.data.MysqlService;
+import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.store.GameSession;
 
 /**
@@ -13,17 +14,24 @@ public class RuleManager {
     public static final int MIN_RULES = 1;
     public static final int MAX_RULES = 4;
     private static final int DEFAULT_SCORE = 1000;
+    private static RuleManager INSTANCE;
 
-    private final MysqlService mysqlService; // optional, may be null in tests
+    public static RuleManager Init(RuleRegistry registry) {
+        INSTANCE = new RuleManager(registry);
+        return INSTANCE;
+    }
+
+    public static RuleManager getInstance() {
+        if( INSTANCE == null) {
+            throw new IllegalStateException("RuleManager not initialized");
+        }
+        return INSTANCE;
+    }
+
     private final RuleRegistry registry;
     private final Random random = new Random();
 
-    public RuleManager(MysqlService mysqlService) {
-        this(mysqlService, RuleRegistry.getInstance());
-    }
-
-    RuleManager(MysqlService mysqlService, RuleRegistry registry) {
-        this.mysqlService = mysqlService;
+    private RuleManager(RuleRegistry registry) {
         this.registry = Objects.requireNonNull(registry, "registry");
         new RuleBootstrap().registerDefaults(this.registry);
     }
@@ -78,8 +86,8 @@ public class RuleManager {
             int score = DEFAULT_SCORE;
             if (knownScores != null && knownScores.containsKey(userId)) {
                 score = knownScores.get(userId);
-            } else if (mysqlService != null) {
-                score = mysqlService.getUserScore(userId, DEFAULT_SCORE);
+            } else {
+                score = DataManager.getInstance().getUserScore(userId, DEFAULT_SCORE).score();
             }
             resolved.put(userId, score);
         }

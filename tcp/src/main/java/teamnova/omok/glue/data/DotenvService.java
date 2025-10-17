@@ -1,4 +1,4 @@
-package teamnova.omok.glue.service;
+package teamnova.omok.glue.data;
 
 import java.io.IOException;
 import java.nio.file.Files;

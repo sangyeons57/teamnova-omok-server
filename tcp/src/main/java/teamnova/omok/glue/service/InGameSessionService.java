@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Map;
 
 import teamnova.omok.glue.rule.RuleManager;
+import teamnova.omok.modules.matching.models.MatchGroup;
 
 public class InGameSessionService {
     private final InGameSessionStore store;
@@ -124,7 +125,7 @@ public class InGameSessionService {
         return eventService.submitPostGameDecision(userId, requestId, decision);
     }
 
-    public void createFromGroup(NioReactorServer server, teamnova.omok.modules.matching.models.MatchGroup group) {
+    public void createFromGroup(NioReactorServer server, MatchGroup group) {
         attachServer(server);
         List<String> userIds = new ArrayList<>();
         group.tickets().forEach(t -> userIds.add(t.id()));
