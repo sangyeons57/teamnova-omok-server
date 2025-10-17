@@ -6,7 +6,7 @@ package teamnova.omok.modules.matching.models;
  */
 public class MatchingConfig {
     // Window expansion & time/credit weights
-    public int baseMatchingGap = 100;            // was BASE_MATCHING_GAP
+    public int baseMatchingGap = 150;            // was BASE_MATCHING_GAP (relaxed by +50)
     public int timeMatchingWeight = 10;          // was TIME_MATCHING_WEIGHT
     public int creditMatchingWeight = 50;        // was CREDIT_MATCHING_WEIGHT
 
