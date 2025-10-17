@@ -88,7 +88,7 @@ class TokenService {
      */
     public function refresh(string $refreshToken): array
     {
-        //이미 해신 된 상태를 전달하게 바꿔 씀
+        //이미 해시 된 상태를 전달하게 바꿔 씀
 
         if (!method_exists($this->refreshRepo, 'findByHash')) {
             throw new Exception('REFRESH_REPO_FIND_NOT_SUPPORTED');
@@ -111,7 +111,7 @@ class TokenService {
         if ($expiresAt <= $nowUtc) {
             // 방어적으로 revoke 시도 (멱등)
             if (method_exists($this->refreshRepo, 'revokeByHash')) {
-                $this->refreshRepo->revokeByHash($hash);
+                $this->refreshRepo->revokeByHash($refreshToken);;
             }
             throw new Exception('REFRESH_TOKEN_EXPIRED');
         }
@@ -120,7 +120,7 @@ class TokenService {
 
         // 회전: 기존 RT 즉시 비활성화
         if (method_exists($this->refreshRepo, 'revokeByHash')) {
-            $this->refreshRepo->revokeByHash($hash);
+            $this->refreshRepo->revokeByHash($refreshToken);
         } else {
             throw new Exception('REFRESH_REPO_REVOKE_NOT_SUPPORTED');
         }
