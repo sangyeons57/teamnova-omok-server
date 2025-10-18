@@ -2,7 +2,7 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Encodes a per-session notification indicating that a player has disconnected or left.

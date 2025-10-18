@@ -1,7 +1,7 @@
 package teamnova.omok.glue.service.dto;
 
-import teamnova.omok.glue.game.PostGameDecision;
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.model.PostGameDecision;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Captures the evaluation of a player's post-game decision.

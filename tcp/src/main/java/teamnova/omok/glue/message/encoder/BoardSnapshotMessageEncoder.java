@@ -4,8 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
-import teamnova.omok.glue.store.BoardStore;
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.model.BoardStore;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 public final class BoardSnapshotMessageEncoder {
     private BoardSnapshotMessageEncoder() { }

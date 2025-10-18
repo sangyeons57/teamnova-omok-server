@@ -4,11 +4,12 @@ import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
-import teamnova.omok.glue.state.game.manage.GameSessionStateContext;
-import teamnova.omok.glue.store.BoardStore;
-import teamnova.omok.glue.store.GameSession;
-import teamnova.omok.glue.store.Stone;
+import teamnova.omok.glue.game.session.model.BoardStore;
+import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.Stone;
 
 /**
  * Simplified Go-like capture rule: any individual stone that has no orthogonal liberty
@@ -29,7 +30,8 @@ public class GoCaptureRule implements Rule {
         if (context == null) return;
         GameSession session = context.getSession();
         GameSessionStateContext stateContext = context.stateContext();
-        if (session == null || stateContext == null) return;
+        GameSessionServices services = context.services();
+        if (session == null || stateContext == null || services == null) return;
 
         BoardStore board = session.getBoardStore();
         int w = board.width();
@@ -53,13 +55,13 @@ public class GoCaptureRule implements Rule {
         for (int i = 0; i < toRemove.length; i++) {
             if (toRemove[i]) {
                 int x = i % w; int y = i / w;
-                stateContext.boardService().setStone(board, x, y, Stone.EMPTY);
+                services.boardService().setStone(board, x, y, Stone.EMPTY);
                 removed++;
             }
         }
         if (removed > 0) {
             System.out.println("[RULE_LOG] GoCaptureRule removed " + removed + " stones (no liberties)");
-            byte[] snapshot = stateContext.boardService().snapshot(board);
+            byte[] snapshot = services.boardService().snapshot(board);
             stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(session, snapshot, System.currentTimeMillis()));
         }
     }

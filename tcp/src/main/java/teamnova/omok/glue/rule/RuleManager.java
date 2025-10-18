@@ -2,9 +2,8 @@ package teamnova.omok.glue.rule;
 
 import java.util.*;
 
-import teamnova.omok.glue.data.MysqlService;
 import teamnova.omok.glue.manager.DataManager;
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Selects and prepares rules for a GameSession once at creation time.

@@ -18,12 +18,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.message.decoder.StringDecoder;
 import teamnova.omok.glue.handler.register.FrameHandler;
-import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.core.nio.ClientSessions;
-import teamnova.omok.glue.data.DotenvService;
-import teamnova.omok.core.nio.ClientSession;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
+import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
+import teamnova.omok.glue.client.session.ClientSessionManager;
 
 public class AuthHandler implements FrameHandler {
     private static final String EXPECTED_ISSUER = "teamnova-omok";
@@ -45,10 +43,10 @@ public class AuthHandler implements FrameHandler {
     }
 
     @Override
-    public void handle(NioReactorServer server, ClientSession session, FramedMessage frame) {
+    public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
         String jwt = decoder.decode(frame.payload());
         if (jwt == null || jwt.isBlank()) {
-            session.clearAuthentication();
+            ClientSessionManager.getInstance().onAuthenticationCleared(session);
             System.err.println("JWT payload missing");
             sendResult(server, session, frame, false);
             return;
@@ -56,21 +54,20 @@ public class AuthHandler implements FrameHandler {
 
         try {
             JwtPayload payload = verify(jwt.trim());
-            session.markAuthenticated(payload.userId(), payload.role(), payload.scope());
-            // Enforce single active session per user
-            ClientSessions.onAuthenticated(server, session);
+            ClientSessionManager.getInstance()
+                .onAuthenticated(session, payload.userId(), payload.role(), payload.scope());
             sendResult(server, session, frame, true);
         } catch (JwtVerificationException e) {
-            session.clearAuthentication();
+            ClientSessionManager.getInstance().onAuthenticationCleared(session);
             System.err.println("JWT verification failed: " + e.getMessage());
             sendResult(server, session, frame, false);
         }
     }
 
-    private void sendResult(NioReactorServer server, ClientSession session, FramedMessage frame, boolean success) {
-        String message = success ? "1" : "0";
-        session.enqueueResponse(Type.lookup(frame.type()), frame.requestId(), message.getBytes(StandardCharsets.UTF_8));
-        server.enqueueSelectorTask(session::enableWriteInterest);
+    private void sendResult(NioReactorServer server, ClientSessionHandle session, FramedMessage frame, boolean success) {
+        ClientSessionManager.getInstance()
+            .clientPublisher(session)
+            .authResult(frame.requestId(), success);
     }
 
     private JwtPayload verify(String token) throws JwtVerificationException {
@@ -189,4 +186,3 @@ public class AuthHandler implements FrameHandler {
         }
     }
 }
-

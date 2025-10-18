@@ -12,10 +12,12 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
 import teamnova.omok.core.nio.codec.DecodeFrame;
 import teamnova.omok.glue.handler.dispatcher.Dispatcher;
 import teamnova.omok.glue.handler.register.HandlerRegistry;
-import teamnova.omok.glue.manager.MatchingManager;
+import teamnova.omok.glue.client.session.ClientSessionManager;
+import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 
 /**
  * NIO selector/reactor server that delegates business logic to worker threads.
@@ -48,7 +50,7 @@ public final class NioReactorServer implements Closeable {
                 long now = System.currentTimeMillis();
                 for (SelectionKey k : selector.keys()) {
                     Object att = k.attachment();
-                    if (att instanceof ClientSession s) {
+                    if (att instanceof ClientSessionHandle s) {
                         s.closeIfTimedOut(now);
                     }
                 }
@@ -96,7 +98,8 @@ public final class NioReactorServer implements Closeable {
             return;
         }
         client.configureBlocking(false);
-        ClientSession session = new ClientSession(client);
+        NioClientConnection connection = new NioClientConnection(client);
+        ClientSessionHandle session = ClientSessionManager.getInstance().registerConnection(connection, this);
         SelectionKey clientKey = client.register(selector, SelectionKey.OP_READ, session);
         session.attachKey(clientKey);
         try {
@@ -115,7 +118,7 @@ public final class NioReactorServer implements Closeable {
     }
 
     private void handleRead(SelectionKey key) {
-        ClientSession session = (ClientSession) key.attachment();
+        ClientSessionHandle session = (ClientSessionHandle) key.attachment();
         if (session == null) {
             return;
         }
@@ -140,7 +143,7 @@ public final class NioReactorServer implements Closeable {
     }
 
     private void handleWrite(SelectionKey key) {
-        ClientSession session = (ClientSession) key.attachment();
+        ClientSessionHandle session = (ClientSessionHandle) key.attachment();
         if (session == null) {
             return;
         }
@@ -172,7 +175,7 @@ public final class NioReactorServer implements Closeable {
         try {
             for (SelectionKey key : selector.keys()) {
                 Object attachment = key.attachment();
-                if (attachment instanceof ClientSession session) {
+                if (attachment instanceof ClientSessionHandle session) {
                     session.close();
                 }
                 key.cancel();

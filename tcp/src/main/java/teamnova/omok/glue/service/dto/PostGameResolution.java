@@ -2,7 +2,7 @@ package teamnova.omok.glue.service.dto;
 
 import java.util.List;
 
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Describes how a post-game stage concluded.

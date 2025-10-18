@@ -3,8 +3,8 @@ package teamnova.omok.glue.message.encoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import teamnova.omok.glue.game.PlayerResult;
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.model.PlayerResult;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Encodes the final per-player outcomes for a completed game session.

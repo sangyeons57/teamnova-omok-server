@@ -5,8 +5,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import teamnova.omok.core.nio.ClientSessions;
-import teamnova.omok.glue.handler.register.DefaultHandlerRegistry;
+
+import teamnova.omok.glue.client.session.ClientSessionManager;
 
 /**
  * Advances client state machines for authenticated sessions.
@@ -47,7 +47,7 @@ public final class UserSessionManager implements Closeable {
 
     private void tick() {
         long now = System.currentTimeMillis();
-        ClientSessions.forEachAuthenticated(session -> {
+        ClientSessionManager.getInstance().forEachAuthenticated(session -> {
             try {
                 session.processLifecycle(now);
             } catch (Exception ignored) {

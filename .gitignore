@@ -23,36 +23,6 @@ Thumbs.db
 .settings/
 
 # ==========================
-# Java / Gradle
-# ==========================
-# Compiled class files
-*.class
-
-# JVM crash logs
-hs_err_pid*
-replay_pid*
-*.hprof
-
-# Logs
-*.log
-
-# Gradle caches and build outputs
-.gradle/
-build/
-out/
-bin/
-
-# Packaged archives (built artifacts)
-*.jar
-*.war
-*.ear
-
-# Keep Gradle wrapper scripts and jar tracked
-!gradle/wrapper/gradle-wrapper.jar
-!gradlew
-!gradlew.bat
-
-# ==========================
 # PHP
 # ==========================
 # Dependencies (installed by Composer)

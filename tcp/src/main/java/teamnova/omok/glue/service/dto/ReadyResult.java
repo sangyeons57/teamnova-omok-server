@@ -1,7 +1,7 @@
 package teamnova.omok.glue.service.dto;
 
-import teamnova.omok.glue.service.TurnService;
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Aggregates the outcome of a ready-event evaluation for the requesting player.
@@ -11,7 +11,7 @@ public record ReadyResult(GameSession session,
                           boolean stateChanged,
                           boolean allReady,
                           boolean gameStartedNow,
-                          TurnService.TurnSnapshot firstTurn,
+                          GameTurnService.TurnSnapshot firstTurn,
                           String userId) {
 
     public static ReadyResult invalid(GameSession session, String userId) {

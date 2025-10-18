@@ -10,12 +10,13 @@ import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.model.BoardStore;
+import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.TurnStore;
 import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
-import teamnova.omok.glue.state.game.manage.GameSessionStateContext;
-import teamnova.omok.glue.store.BoardStore;
-import teamnova.omok.glue.store.GameSession;
-import teamnova.omok.glue.store.Stone;
-import teamnova.omok.glue.store.TurnStore;
 
 public class EveryFiveTurnBlockerRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
@@ -38,7 +39,8 @@ public class EveryFiveTurnBlockerRule implements Rule {
         System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule invoked");
         GameSession session = context.getSession();
         GameSessionStateContext stateContext = context.stateContext();
-        if (session == null || stateContext == null) {
+        GameSessionServices services = context.services();
+        if (session == null || stateContext == null || services == null) {
             return;
         }
         TurnStore turnStore = session.getTurnStore();
@@ -81,13 +83,13 @@ public class EveryFiveTurnBlockerRule implements Rule {
             int cellIndex = occupied.get(random.nextInt(occupied.size()));
             int x = cellIndex % width;
             int y = cellIndex / width;
-            stateContext.boardService().setStone(boardStore, x, y, Stone.BLOCKER);
+            services.boardService().setStone(boardStore, x, y, Stone.BLOCKER);
             mutated = true;
         }
 
         if (mutated) {
             System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule placed blockers for players present");
-            byte[] snapshot = stateContext.boardService().snapshot(boardStore);
+            byte[] snapshot = services.boardService().snapshot(boardStore);
             stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(
                 session,
                 snapshot,

@@ -3,6 +3,8 @@ package teamnova.omok.glue.manager;
 import java.io.Closeable;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.glue.service.ServiceManager;
 
 /**
@@ -31,7 +33,6 @@ public final class ServerLifecycleManager implements Closeable {
     public void start() {
         if (started.compareAndSet(false, true)) {
             services.start(nioManager.getServer());
-            gameSessionManager.start();
             matchingManager.start(nioManager.getServer());
             userSessionManager.start();
         }
@@ -50,13 +51,13 @@ public final class ServerLifecycleManager implements Closeable {
             matchingManager.stop();
         } finally {
             try {
-                gameSessionManager.stop();
+                userSessionManager.stop();
             } finally {
                 try {
-                    userSessionManager.stop();
+                    nioManager.close();
                 } finally {
                     try {
-                        nioManager.close();
+                        gameSessionManager.close();
                     } finally {
                         services.stop();
                     }

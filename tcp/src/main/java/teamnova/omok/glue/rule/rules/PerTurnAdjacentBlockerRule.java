@@ -7,12 +7,13 @@ import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
-import teamnova.omok.glue.state.game.manage.GameSessionStateContext;
-import teamnova.omok.glue.store.BoardStore;
-import teamnova.omok.glue.store.GameSession;
-import teamnova.omok.glue.store.Stone;
-import teamnova.omok.glue.store.TurnStore;
+import teamnova.omok.glue.game.session.model.BoardStore;
+import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.TurnStore;
 
 /**
  * Each turn, for each player that has at least one stone, spawn one BLOCKER
@@ -34,7 +35,8 @@ public class PerTurnAdjacentBlockerRule implements Rule {
         if (context == null) return;
         GameSession session = context.getSession();
         GameSessionStateContext stateContext = context.stateContext();
-        if (session == null || stateContext == null) return;
+        GameSessionServices services = context.services();
+        if (session == null || stateContext == null || services == null) return;
 
         TurnStore turn = session.getTurnStore();
         int completedTurns = Math.max(0, turn.getTurnNumber() - 1);
@@ -73,13 +75,13 @@ public class PerTurnAdjacentBlockerRule implements Rule {
             }
             if (!candidates.isEmpty()) {
                 int[] c = candidates.get(rnd.nextInt(candidates.size()));
-                stateContext.boardService().setStone(board, c[0], c[1], Stone.BLOCKER);
+                services.boardService().setStone(board, c[0], c[1], Stone.BLOCKER);
                 placed++;
             }
         }
         if (placed > 0) {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule placed " + placed + " blockers");
-            byte[] snapshot = stateContext.boardService().snapshot(board);
+            byte[] snapshot = services.boardService().snapshot(board);
             stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(session, snapshot, System.currentTimeMillis()));
         } else {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule no placement this turn");

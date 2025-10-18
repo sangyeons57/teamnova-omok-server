@@ -3,8 +3,8 @@ package teamnova.omok.glue.service.dto;
 import java.util.List;
 import java.util.Map;
 
-import teamnova.omok.glue.game.PostGameDecision;
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.model.PostGameDecision;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Broadcast payload capturing partial post-game decision progress.

@@ -1,6 +1,6 @@
 package teamnova.omok.glue.service.dto;
 
-import teamnova.omok.glue.store.GameSession;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Broadcast payload for prompting post-game decisions.

@@ -8,7 +8,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import teamnova.omok.core.nio.NioReactorServer;
-import teamnova.omok.glue.service.InGameSessionService;
+import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.modules.matching.MatchingGateway;
 import teamnova.omok.modules.matching.models.MatchResult;
 import teamnova.omok.modules.matching.models.MatchTicket;
@@ -21,10 +21,10 @@ public final class MatchingManager implements Closeable {
 
     private static MatchingManager INSTANCE;
 
-    public static MatchingManager Init(InGameSessionService inGameSessionService) {
+    public static MatchingManager Init(GameSessionManager gameSessionManager) {
         INSTANCE = new MatchingManager(
                 MatchingGateway.open(),
-                inGameSessionService,
+                gameSessionManager,
                 DEFAULT_INTERVAL_MILLIS
         );
         return INSTANCE;
@@ -38,17 +38,17 @@ public final class MatchingManager implements Closeable {
     }
 
     private final MatchingGateway.Handle matchingGateway;
-    private final InGameSessionService inGameSessionService;
+    private final GameSessionManager gameSessionManager;
     private final ScheduledExecutorService scheduler;
     private final long intervalMillis;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile NioReactorServer server;
 
     private MatchingManager(MatchingGateway.Handle matchingGateway,
-                           InGameSessionService inGameSessionService,
+                           GameSessionManager gameSessionManager,
                            long intervalMillis) {
         this.matchingGateway = Objects.requireNonNull(matchingGateway, "matchingGateway");
-        this.inGameSessionService = Objects.requireNonNull(inGameSessionService, "inGameSessionService");
+        this.gameSessionManager = Objects.requireNonNull(gameSessionManager, "gameSessionManager");
         this.intervalMillis = intervalMillis;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
@@ -74,7 +74,7 @@ public final class MatchingManager implements Closeable {
         try {
             MatchResult result = matchingGateway.tryMatchOnce();
             if (result instanceof MatchResult.Success success) {
-                inGameSessionService.createFromGroup(srv, success.group());
+                gameSessionManager.createFromGroup(srv, success.group());
             }
         } catch (Exception ignored) {
             // keep loop running even if one iteration fails

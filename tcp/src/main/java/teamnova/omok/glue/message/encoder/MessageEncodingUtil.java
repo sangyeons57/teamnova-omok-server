@@ -1,6 +1,6 @@
 package teamnova.omok.glue.message.encoder;
 
-import teamnova.omok.glue.service.TurnService;
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 
 final class MessageEncodingUtil {
     private MessageEncodingUtil() {}
@@ -21,7 +21,7 @@ final class MessageEncodingUtil {
         return sb.toString();
     }
 
-    static void appendTurn(StringBuilder sb, TurnService.TurnSnapshot turn) {
+    static void appendTurn(StringBuilder sb, GameTurnService.TurnSnapshot turn) {
         if (turn == null) {
             sb.append("null");
             return;
