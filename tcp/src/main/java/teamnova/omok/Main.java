@@ -20,8 +20,8 @@ public final class Main {
         int port = parsePort(args);
         int workerCount = Runtime.getRuntime().availableProcessors();
 
-        DataManager dataManager = DataManager.getInstance();
-        ClientSessionManager clientSessionManager = ClientSessionManager.getInstance();
+        DataManager dataManager = DataManager.Init();
+        ClientSessionManager clientSessionManager = ClientSessionManager.Init();
         RuleManager ruleManager = RuleManager.Init(RuleRegistry.getInstance());
         GameSessionManager gameSessionManager = GameSessionManager.Init(RuleManager.getInstance());
         MatchingManager matchingManager = MatchingManager.Init(gameSessionManager);
