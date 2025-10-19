@@ -75,7 +75,7 @@ public final class PostGameDecisionWaitingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         session.resetPostGameDecisions();
         long now = System.currentTimeMillis();
         long deadline = now + GameSession.POST_GAME_DECISION_DURATION_MILLIS;
@@ -86,7 +86,7 @@ public final class PostGameDecisionWaitingState implements BaseState {
     }
 
     private StateStep onUpdateInternal(GameSessionStateContext context, long now) {
-        if (allDecided(context.session())) {
+        if (allDecided(context.getSession())) {
             return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_RESOLVING.toStateName());
         }
         return StateStep.stay();
@@ -94,7 +94,7 @@ public final class PostGameDecisionWaitingState implements BaseState {
 
     private StateStep handleDecision(GameSessionStateContext context,
                                      PostGameDecisionEvent event) {
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         if (!session.containsUser(event.userId())) {
             context.pendingDecisionResult(PostGameDecisionResult.rejected(
                 session,
@@ -145,21 +145,21 @@ public final class PostGameDecisionWaitingState implements BaseState {
         if (context.postGameDecisionDeadline() == 0L) {
             return StateStep.stay();
         }
-        applyAutoLeaves(context.session());
+        applyAutoLeaves(context.getSession());
         context.clearPostGameDecisionDeadline();
-        context.pendingDecisionUpdate(snapshotUpdate(context.session()));
+        context.pendingDecisionUpdate(snapshotUpdate(context.getSession()));
         return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_RESOLVING.toStateName());
     }
 
     private StateStep handleReady(GameSessionStateContext context,
                                   ReadyEvent event) {
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         if (!session.containsUser(event.userId())) {
             context.pendingReadyResult(ReadyResult.invalid(session, event.userId()));
             return StateStep.stay();
         }
         GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(session.getTurnStore());
+            turnService.snapshot(context.getSession());
         context.pendingReadyResult(new ReadyResult(
             session,
             true,
@@ -174,7 +174,7 @@ public final class PostGameDecisionWaitingState implements BaseState {
 
     private StateStep handleMove(GameSessionStateContext context,
                                  MoveEvent event) {
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         context.pendingMoveResult(MoveResult.invalid(
             session,
             MoveStatus.GAME_FINISHED,
@@ -188,9 +188,9 @@ public final class PostGameDecisionWaitingState implements BaseState {
 
     private StateStep handleTurnTimeout(GameSessionStateContext context,
                                         TimeoutEvent event) {
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(session.getTurnStore());
+            turnService.snapshot(context.getSession());
         context.pendingTimeoutResult(
             TurnTimeoutResult.noop(session, snapshot)
         );

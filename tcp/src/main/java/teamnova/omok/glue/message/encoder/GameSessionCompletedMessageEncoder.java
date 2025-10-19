@@ -15,7 +15,7 @@ public final class GameSessionCompletedMessageEncoder {
     public static byte[] encode(GameSession session) {
         StringBuilder sb = new StringBuilder(256);
         sb.append('{')
-          .append("\"sessionId\":\"").append(session.getId()).append('\"')
+          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"startedAt\":").append(session.getGameStartedAt())
           .append(',')

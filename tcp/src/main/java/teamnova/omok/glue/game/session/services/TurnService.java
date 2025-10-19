@@ -5,9 +5,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.TurnAdvanceStrategy;
-import teamnova.omok.glue.game.session.model.TurnStore;
 import teamnova.omok.glue.game.session.model.vo.TurnCounters;
 import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
@@ -32,7 +32,7 @@ public class TurnService implements GameTurnService {
     }
 
     @Override
-    public TurnSnapshot start(TurnStore store, List<String> userOrder, long now) {
+    public TurnSnapshot start(GameSessionTurnAccess store, List<String> userOrder, long now) {
         requireStore(store);
         requirePlayers(userOrder);
         TurnOrder order = TurnOrder.of(userOrder);
@@ -44,7 +44,7 @@ public class TurnService implements GameTurnService {
     }
 
     @Override
-    public TurnSnapshot advanceSkippingDisconnected(TurnStore store,
+    public TurnSnapshot advanceSkippingDisconnected(GameSessionTurnAccess store,
                                                     Set<String> disconnectedUserIds,
                                                     long now) {
         requireStore(store);
@@ -66,20 +66,20 @@ public class TurnService implements GameTurnService {
     }
 
     @Override
-    public boolean isExpired(TurnStore store, long now) {
+    public boolean isExpired(GameSessionTurnAccess store, long now) {
         requireStore(store);
         return store.timing().isExpired(now);
     }
 
     @Override
-    public Integer currentPlayerIndex(TurnStore store) {
+    public Integer currentPlayerIndex(GameSessionTurnAccess store) {
         requireStore(store);
         int index = store.getCurrentPlayerIndex();
         return index >= 0 ? index : null;
     }
 
     @Override
-    public TurnSnapshot snapshot(TurnStore store) {
+    public TurnSnapshot snapshot(GameSessionTurnAccess store) {
         requireStore(store);
         TurnOrder order = store.order();
         int index = store.getCurrentPlayerIndex();
@@ -96,7 +96,7 @@ public class TurnService implements GameTurnService {
         );
     }
 
-    private TurnOrder ensureOrder(TurnStore store) {
+    private TurnOrder ensureOrder(GameSessionTurnAccess store) {
         TurnOrder order = store.order();
         if (order == null || order.size() == 0) {
             throw new IllegalStateException("Turn order has not been initialized");
@@ -110,7 +110,7 @@ public class TurnService implements GameTurnService {
         }
     }
 
-    private void requireStore(TurnStore store) {
+    private void requireStore(GameSessionTurnAccess store) {
         if (store == null) {
             throw new IllegalArgumentException("store must not be null");
         }

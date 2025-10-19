@@ -10,7 +10,7 @@ public final class ReadyStateMessageEncoder {
     public static byte[] encode(ReadyResult result) {
         StringBuilder sb = new StringBuilder(192);
         sb.append('{')
-          .append("\"sessionId\":\"").append(result.session().getId()).append('\"')
+          .append("\"sessionId\":\"").append(result.session().sessionId().asUuid()).append('\"')
           .append(',');
         if (result.userId() != null) {
             sb.append("\"userId\":\"").append(MessageEncodingUtil.escape(result.userId())).append('\"')

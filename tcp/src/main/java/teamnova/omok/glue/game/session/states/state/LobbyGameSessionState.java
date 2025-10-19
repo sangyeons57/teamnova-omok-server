@@ -44,7 +44,7 @@ public class LobbyGameSessionState implements BaseState {
 
     private StateStep handleReady(GameSessionStateContext context,
                                   ReadyEvent event) {
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         ReadyResult result;
         session.lock().lock();
         try {
@@ -60,11 +60,11 @@ public class LobbyGameSessionState implements BaseState {
                     startedNow = true;
                     session.markGameStarted(event.timestamp());
                     session.resetOutcomes();
-                    boardService.reset(session.getBoardStore());
+                    boardService.reset(context.getSession());
                     snapshot = turnService
-                        .start(session.getTurnStore(), session.getUserIds(), event.timestamp());
+                        .start(context.getSession(), session.getUserIds(), event.timestamp());
                 } else if (session.isGameStarted()) {
-                    snapshot = turnService.snapshot(session.getTurnStore());
+                    snapshot = turnService.snapshot(context.getSession());
                 }
                 result = new ReadyResult(
                     session,

@@ -7,7 +7,7 @@ import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRepository;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.rule.RuleManager;
 
 /**

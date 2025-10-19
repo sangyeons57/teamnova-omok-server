@@ -1,7 +1,7 @@
 package teamnova.omok.glue.game.session.services;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
-import teamnova.omok.glue.game.session.model.BoardStore;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 
 /**
@@ -9,37 +9,37 @@ import teamnova.omok.glue.game.session.model.Stone;
  */
 public class BoardService implements GameBoardService {
     @Override
-    public void reset(BoardStore store) {
+    public void reset(GameSessionBoardAccess store) {
         store.clear();
     }
 
     @Override
-    public boolean isWithinBounds(BoardStore store, int x, int y) {
-        return x >= 0 && x < store.width() && y >= 0 && y < store.height();
+    public boolean isWithinBounds(GameSessionBoardAccess store, int x, int y) {
+        return store.isWithinBounds(x, y);
     }
 
     @Override
-    public boolean isEmpty(BoardStore store, int x, int y) {
-        return stoneAt(store, x, y) == Stone.EMPTY;
+    public boolean isEmpty(GameSessionBoardAccess store, int x, int y) {
+        return store.isEmpty(x, y);
     }
 
     @Override
-    public Stone stoneAt(BoardStore store, int x, int y) {
-        return Stone.fromByte(store.get(linearIndex(store, x, y)));
+    public Stone stoneAt(GameSessionBoardAccess store, int x, int y) {
+        return store.stoneAt(x, y);
     }
 
     @Override
-    public void setStone(BoardStore store, int x, int y, Stone stone) {
-        store.set(linearIndex(store, x, y), stone.code());
+    public void setStone(GameSessionBoardAccess store, int x, int y, Stone stone) {
+        store.setStone(x, y, stone);
     }
 
     @Override
-    public byte[] snapshot(BoardStore store) {
+    public byte[] snapshot(GameSessionBoardAccess store) {
         return store.snapshot();
     }
 
     @Override
-    public boolean hasFiveInARow(BoardStore store, int x, int y, Stone stone) {
+    public boolean hasFiveInARow(GameSessionBoardAccess store, int x, int y, Stone stone) {
         if (stone == null || stone == Stone.EMPTY || stone.isBlocking()) {
             return false;
         }
@@ -63,16 +63,12 @@ public class BoardService implements GameBoardService {
         return false;
     }
 
-    private int linearIndex(BoardStore store, int x, int y) {
-        return y * store.width() + x;
-    }
-
-    private int countDirection(BoardStore store, int startX, int startY, int dx, int dy, Stone playerStone) {
+    private int countDirection(GameSessionBoardAccess store, int startX, int startY, int dx, int dy, Stone playerStone) {
         int count = 0;
         int x = startX + dx;
         int y = startY + dy;
         while (isWithinBounds(store, x, y)) {
-            Stone occupying = stoneAt(store, x, y);
+            Stone occupying = store.stoneAt(x, y);
             if (!occupying.countsForPlayerSequence(playerStone)) {
                 break;
             }

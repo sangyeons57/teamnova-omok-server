@@ -3,15 +3,16 @@ package teamnova.omok.glue.message.encoder;
 import java.nio.charset.StandardCharsets;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionLifecycleAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 
 public final class GameSessionStartedMessageEncoder {
     private GameSessionStartedMessageEncoder() {}
 
-    public static byte[] encode(GameSession session, GameTurnService.TurnSnapshot turn) {
+    public static byte[] encode(GameSessionLifecycleAccess session, GameTurnService.TurnSnapshot turn) {
         StringBuilder sb = new StringBuilder(256);
         sb.append('{')
-          .append("\"sessionId\":\"").append(session.getId()).append('\"')
+          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"startedAt\":").append(session.getGameStartedAt())
           .append(',')

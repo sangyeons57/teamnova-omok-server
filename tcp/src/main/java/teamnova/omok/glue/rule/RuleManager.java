@@ -60,13 +60,13 @@ public class RuleManager {
                                      int desiredRuleCount) {
         List<Rule> candidates = registry.eligibleRules(lowestScore);
         if (candidates.isEmpty() || desiredRuleCount <= 0) {
-            System.out.println("[RULE_LOG] No eligible rules for session " + session.getId());
+            System.out.println("[RULE_LOG] No eligible rules for session " + session.sessionId().asUuid());
             return RulesContext.fromRules(session, List.of(), lowestScore);
         }
         Collections.shuffle(candidates, random);
         int count = Math.min(Math.max(desiredRuleCount, 0), Math.min(candidates.size(), MAX_RULES));
         List<Rule> selected = new ArrayList<>(candidates.subList(0, count));
-        System.out.println("[RULE_LOG] Selected " + selected.size() + " rules for session " + session.getId()
+        System.out.println("[RULE_LOG] Selected " + selected.size() + " rules for session " + session.sessionId().asUuid()
             + " (lowestScore=" + lowestScore + ", desired=" + desiredRuleCount + ")");
         return RulesContext.fromRules(session, selected, lowestScore);
     }

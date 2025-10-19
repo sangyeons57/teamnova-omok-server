@@ -10,7 +10,7 @@ public final class TurnTimeoutMessageEncoder {
     public static byte[] encode(TurnTimeoutResult result) {
         StringBuilder sb = new StringBuilder(192);
         sb.append('{')
-          .append("\"sessionId\":\"").append(result.session().getId()).append('\"')
+          .append("\"sessionId\":\"").append(result.session().sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"timedOutUserId\":");
         if (result.previousPlayerId() == null) {

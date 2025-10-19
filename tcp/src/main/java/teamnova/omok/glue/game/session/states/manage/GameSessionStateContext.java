@@ -2,8 +2,8 @@ package teamnova.omok.glue.game.session.states.manage;
 
 import java.util.Objects;
 
+import teamnova.omok.glue.game.session.interfaces.session.*;
 import teamnova.omok.glue.game.session.model.GameSession;
-import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
@@ -37,8 +37,8 @@ public final class GameSessionStateContext implements StateContext {
         this.session = Objects.requireNonNull(session, "session");
     }
 
-    public GameSession session() {
-        return session;
+    public <T extends GameSessionAccessInterface> T getSession() {
+        return (T) session;
     }
 
     public void beginTurnCycle(TurnCycleContext context) {

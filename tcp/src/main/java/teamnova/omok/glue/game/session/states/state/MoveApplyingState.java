@@ -35,12 +35,7 @@ public final class MoveApplyingState implements BaseState {
         if (cycle == null) {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
-        boardService.setStone(
-            context.session().getBoardStore(),
-            cycle.x(),
-            cycle.y(),
-            cycle.stone()
-        );
+        boardService.setStone(context.getSession(), cycle.x(), cycle.y(), cycle.stone());
         return StateStep.transition(GameSessionStateType.OUTCOME_EVALUATING.toStateName());
     }
 }

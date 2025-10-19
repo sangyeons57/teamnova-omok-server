@@ -47,7 +47,7 @@ public class TurnWaitingState implements BaseState {
         if (context.activeTurnCycle() != null) {
             return StateStep.stay();
         }
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         session.lock().lock();
         try {
             TurnCycleContext cycleContext = new TurnCycleContext(
@@ -66,7 +66,7 @@ public class TurnWaitingState implements BaseState {
 
     private StateStep handleTimeout(GameSessionStateContext context,
                                     TimeoutEvent event) {
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         TurnTimeoutResult result;
 
         session.lock().lock();
@@ -75,18 +75,18 @@ public class TurnWaitingState implements BaseState {
                 result = TurnTimeoutResult.noop(session, null);
             } else {
                 GameTurnService.TurnSnapshot current =
-                    turnService.snapshot(session.getTurnStore());
+                    turnService.snapshot(context.getSession());
                 if (session.isGameFinished()) {
                     result = TurnTimeoutResult.noop(session, current);
                 } else if (current.turnNumber() != event.expectedTurnNumber()) {
                     result = TurnTimeoutResult.noop(session, current);
-                } else if (!turnService.isExpired(session.getTurnStore(), event.timestamp())) {
+                } else if (!turnService.isExpired(context.getSession(), event.timestamp())) {
                     result = TurnTimeoutResult.noop(session, current);
                 } else {
                     String previousPlayerId = current.currentPlayerId();
                     GameTurnService.TurnSnapshot next = turnService
                         .advanceSkippingDisconnected(
-                            session.getTurnStore(),
+                            context.getSession(),
                             session.disconnectedUsersView(),
                             event.timestamp()
                         );

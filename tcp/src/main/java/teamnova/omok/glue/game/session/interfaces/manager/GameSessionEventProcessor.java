@@ -1,4 +1,4 @@
-package teamnova.omok.glue.game.session.interfaces;
+package teamnova.omok.glue.game.session.interfaces.manager;
 
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.GameSession;

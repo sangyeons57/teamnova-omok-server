@@ -13,7 +13,7 @@ public final class PostGameDecisionUpdateMessageEncoder {
     public static byte[] encode(PostGameDecisionUpdate update) {
         StringBuilder sb = new StringBuilder(256);
         sb.append('{')
-          .append("\"sessionId\":\"").append(update.session().getId()).append('\"')
+          .append("\"sessionId\":\"").append(update.session().sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"decisions\":[");
         Map<String, PostGameDecision> decisions = update.decisions();

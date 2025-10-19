@@ -10,7 +10,7 @@ public final class StonePlacedMessageEncoder {
     public static byte[] encode(MoveResult result) {
         StringBuilder sb = new StringBuilder(224);
         sb.append('{')
-          .append("\"sessionId\":\"").append(result.session().getId()).append('\"')
+          .append("\"sessionId\":\"").append(result.session().sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"x\":").append(result.x())
           .append(',')

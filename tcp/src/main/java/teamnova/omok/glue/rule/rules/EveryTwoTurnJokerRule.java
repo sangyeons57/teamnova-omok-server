@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
+import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RulesContext;
-import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
-import teamnova.omok.glue.game.session.model.BoardStore;
-import teamnova.omok.glue.game.session.model.GameSession;
-import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.game.session.model.TurnStore;
 
 /**
  * Every two turns, spawn one JOKER stone at a random empty cell.
@@ -33,22 +33,21 @@ public class EveryTwoTurnJokerRule implements Rule {
     @Override
     public void invoke(RulesContext context) {
         if (context == null) return;
-        GameSession session = context.getSession();
         GameSessionStateContext stateContext = context.stateContext();
         GameSessionServices services = context.services();
-        if (session == null || stateContext == null || services == null) return;
+        if (stateContext == null || services == null) return;
 
-        TurnStore turn = session.getTurnStore();
+        GameSessionTurnAccess turn = context.getSession();
         int completedTurns = Math.max(0, turn.actionNumber() - 1);
         if (completedTurns <= 0 || completedTurns % 2 != 0) return;
 
-        BoardStore board = session.getBoardStore();
+        GameSessionBoardAccess board = context.getSession();
         int w = board.width();
         int h = board.height();
         List<Integer> empties = new ArrayList<>();
         int total = w * h;
         for (int i = 0; i < total; i++) {
-            if (Stone.fromByte(board.get(i)) == Stone.EMPTY) empties.add(i);
+            if (board.stoneAt(i % w, i / w) == Stone.EMPTY) empties.add(i);
         }
         if (empties.isEmpty()) {
             System.out.println("[RULE_LOG] EveryTwoTurnJokerRule no empty cell");
@@ -60,6 +59,6 @@ public class EveryTwoTurnJokerRule implements Rule {
         services.boardService().setStone(board, x, y, Stone.JOKER);
         System.out.println("[RULE_LOG] EveryTwoTurnJokerRule placed JOKER at (" + x + "," + y + ")");
         byte[] snapshot = services.boardService().snapshot(board);
-        stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(session, snapshot, System.currentTimeMillis()));
+        stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(context.getSession(), snapshot, System.currentTimeMillis()));
     }
 }

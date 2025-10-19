@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
@@ -95,7 +96,7 @@ public class GameStateHub {
 
     private void triggerRules(GameSessionStateType targetType) {
         if (targetType == null) return;
-        RulesContext rulesContext = context.session().getRulesContext();
+        RulesContext rulesContext = context.<GameSessionRuleAccess>getSession().getRulesContext();
         if (rulesContext == null) {
             return;
         }
@@ -111,12 +112,9 @@ public class GameStateHub {
     }
 
     public GameSession session() {
-        return context.session();
+        return context.getSession();
     }
 
-    public GameSessionStateContext context() {
-        return context;
-    }
 
     public void submit(BaseEvent event, Consumer<GameSessionStateContext> callback) {
         Objects.requireNonNull(event, "event");

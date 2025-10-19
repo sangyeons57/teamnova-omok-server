@@ -72,7 +72,7 @@ public final class MoveValidatingState implements BaseState {
         }
 
         GameTurnService.TurnSnapshot currentSnapshot =
-            turnService.snapshot(session.getTurnStore());
+            turnService.snapshot(context.getSession());
         cycle.snapshots().current(currentSnapshot);
 
         if (session.isGameFinished()) {
@@ -87,7 +87,7 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        if (!boardService.isWithinBounds(session.getBoardStore(), x, y)) {
+        if (!boardService.isWithinBounds(context.getSession(), x, y)) {
             invalidate(context, MoveResult.invalid(
                 session,
                 MoveStatus.OUT_OF_BOUNDS,
@@ -99,7 +99,7 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        Integer currentIndex = turnService.currentPlayerIndex(session.getTurnStore());
+        Integer currentIndex = turnService.currentPlayerIndex(context.getSession());
         if (currentIndex == null || currentIndex != playerIndex) {
             invalidate(context, MoveResult.invalid(
                 session,
@@ -112,7 +112,7 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        if (!boardService.isEmpty(session.getBoardStore(), x, y)) {
+        if (!boardService.isEmpty(context.getSession(), x, y)) {
             invalidate(context, MoveResult.invalid(
                 session,
                 MoveStatus.CELL_OCCUPIED,

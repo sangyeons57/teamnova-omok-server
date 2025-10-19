@@ -13,7 +13,7 @@ public final class GameSessionPlayerDisconnectedMessageEncoder {
     public static byte[] encode(GameSession session, String userId, String reason) {
         StringBuilder sb = new StringBuilder(128);
         sb.append('{')
-          .append("\"sessionId\":\"").append(session.getId()).append('\"')
+          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"userId\":\"").append(MessageEncodingUtil.escape(userId)).append('\"');
         if (reason != null && !reason.isBlank()) {

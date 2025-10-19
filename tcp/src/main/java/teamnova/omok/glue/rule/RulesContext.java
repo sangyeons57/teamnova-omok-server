@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import teamnova.omok.glue.game.session.interfaces.session.*;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
@@ -44,8 +45,8 @@ public class RulesContext {
         return new RulesContext(session, ids, lowestScore);
     }
 
-    public GameSession getSession() {
-        return session;
+    public <T extends GameSessionAccessInterface> T getSession() {
+        return (T)session;
     }
 
     public Object getData(String key) {

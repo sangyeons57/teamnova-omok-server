@@ -2,6 +2,8 @@ package teamnova.omok.glue.game.session.model.messages;
 
 import java.util.Objects;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
@@ -18,7 +20,11 @@ public final class BoardSnapshotUpdate {
         this.updatedAt = updatedAt;
     }
 
-    public GameSession session() {
+    public GameSessionParticipantsAccess getParticipantsAccess() {
+        return session;
+    }
+
+    public GameSessionBoardAccess getBoardAccess() {
         return session;
     }
 

@@ -1,4 +1,4 @@
-package teamnova.omok.glue.game.session.interfaces;
+package teamnova.omok.glue.game.session.interfaces.manager;
 
 import java.util.Optional;
 

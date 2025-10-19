@@ -3,6 +3,9 @@ package teamnova.omok.glue.rule.rules;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
@@ -10,10 +13,8 @@ import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
-import teamnova.omok.glue.game.session.model.BoardStore;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.game.session.model.TurnStore;
 
 /**
  * Each turn, for each player that has at least one stone, spawn one BLOCKER
@@ -33,30 +34,30 @@ public class PerTurnAdjacentBlockerRule implements Rule {
     @Override
     public void invoke(RulesContext context) {
         if (context == null) return;
-        GameSession session = context.getSession();
         GameSessionStateContext stateContext = context.stateContext();
         GameSessionServices services = context.services();
-        if (session == null || stateContext == null || services == null) return;
+        if (stateContext == null || services == null) return;
 
-        TurnStore turn = session.getTurnStore();
+        GameSessionTurnAccess turn = context.getSession();
         int completedTurns = Math.max(0, turn.actionNumber() - 1);
         if (completedTurns <= 0) return; // start after first move completes
 
-        BoardStore board = session.getBoardStore();
+        GameSessionBoardAccess board = context.getSession();
         int w = board.width();
         int h = board.height();
         int total = w * h;
 
         Map<Integer, List<Integer>> byPlayer = new HashMap<>();
         for (int i = 0; i < total; i++) {
-            Stone s = Stone.fromByte(board.get(i));
+            Stone s = board.stoneAt(i % w, i / w);
             if (!s.isPlayerStone()) continue;
             byPlayer.computeIfAbsent((int) s.code(), k -> new ArrayList<>()).add(i);
         }
 
+        GameSessionParticipantsAccess participants = context.getSession();
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         int placed = 0;
-        for (int p = 0; p < session.getUserIds().size(); p++) {
+        for (int p = 0; p < participants.getUserIds().size(); p++) {
             Stone ps = Stone.fromPlayerOrder(p);
             List<Integer> stones = byPlayer.get((int) ps.code());
             if (stones == null || stones.isEmpty()) continue;
@@ -69,7 +70,7 @@ public class PerTurnAdjacentBlockerRule implements Rule {
                 int nx = x + d[0];
                 int ny = y + d[1];
                 if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-                if (Stone.fromByte(board.get(ny * w + nx)) == Stone.EMPTY) {
+                if (board.stoneAt(nx, ny) == Stone.EMPTY) {
                     candidates.add(new int[]{nx, ny});
                 }
             }
@@ -82,7 +83,7 @@ public class PerTurnAdjacentBlockerRule implements Rule {
         if (placed > 0) {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule placed " + placed + " blockers");
             byte[] snapshot = services.boardService().snapshot(board);
-            stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(session, snapshot, System.currentTimeMillis()));
+            stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(context.getSession(), snapshot, System.currentTimeMillis()));
         } else {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule no placement this turn");
         }

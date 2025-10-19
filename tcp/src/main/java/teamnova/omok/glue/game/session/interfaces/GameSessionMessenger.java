@@ -2,6 +2,8 @@ package teamnova.omok.glue.game.session.interfaces;
 
 import java.util.List;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionLifecycleAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;

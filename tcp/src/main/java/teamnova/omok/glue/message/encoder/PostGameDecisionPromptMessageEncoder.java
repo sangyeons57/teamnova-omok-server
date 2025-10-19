@@ -10,7 +10,7 @@ public final class PostGameDecisionPromptMessageEncoder {
     public static byte[] encode(PostGameDecisionPrompt prompt) {
         StringBuilder sb = new StringBuilder(160);
         sb.append('{')
-          .append("\"sessionId\":\"").append(prompt.session().getId()).append('\"')
+          .append("\"sessionId\":\"").append(prompt.session().sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"deadlineAt\":").append(prompt.deadlineAt())
           .append(',')

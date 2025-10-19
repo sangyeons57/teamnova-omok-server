@@ -6,7 +6,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.dto.SessionSubmission;
@@ -107,7 +108,7 @@ public final class SessionEventService {
         try {
             if (session.isGameStarted() && !session.isGameFinished()) {
                 GameTurnService.TurnSnapshot current =
-                    deps.turnService().snapshot(session.getTurnStore());
+                    deps.turnService().snapshot(session);
                 shouldSubmit = current != null
                     && current.turnNumber() == expectedTurnNumber
                     && userId.equals(current.currentPlayerId());
@@ -252,7 +253,7 @@ public final class SessionEventService {
         if (result == null) {
             if (!session.isGameFinished()) {
                 GameTurnService.TurnSnapshot snapshot =
-                    deps.turnService().snapshot(session.getTurnStore());
+                    deps.turnService().snapshot(session);
                 if (snapshot != null) {
                     scheduleTurnTimeout(deps, timeoutConsumer, session, snapshot);
                 }
@@ -368,7 +369,7 @@ public final class SessionEventService {
 
     private static void scheduleTurnTimeout(GameSessionDependencies deps,
                                             TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
-                                            GameSession session,
+                                            GameSessionParticipantsAccess session,
                                             GameTurnService.TurnSnapshot turnSnapshot) {
         deps.turnTimeoutScheduler().schedule(session, turnSnapshot, timeoutConsumer);
     }

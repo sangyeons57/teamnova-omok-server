@@ -11,7 +11,7 @@ public final class MoveAckMessageEncoder {
     public static byte[] encode(MoveResult result) {
         StringBuilder sb = new StringBuilder(224);
         sb.append('{')
-          .append("\"sessionId\":\"").append(result.session().getId()).append('\"')
+          .append("\"sessionId\":\"").append(result.session().sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"status\":\"").append(result.status()).append('\"');
         sb.append(',')

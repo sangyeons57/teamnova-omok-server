@@ -1,14 +1,14 @@
 package teamnova.omok.glue.game.session.interfaces;
 
-import teamnova.omok.glue.game.session.model.BoardStore;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 
 public interface GameBoardService {
-    void reset(BoardStore store);
-    boolean isWithinBounds(BoardStore store, int x, int y);
-    boolean isEmpty(BoardStore store, int x, int y);
-    Stone stoneAt(BoardStore store, int x, int y);
-    void setStone(BoardStore store, int x, int y, Stone stone);
-    byte[] snapshot(BoardStore store);
-    boolean hasFiveInARow(BoardStore store, int x, int y, Stone stone);
+    void reset(GameSessionBoardAccess board);
+    boolean isWithinBounds(GameSessionBoardAccess board, int x, int y);
+    boolean isEmpty(GameSessionBoardAccess board, int x, int y);
+    Stone stoneAt(GameSessionBoardAccess board, int x, int y);
+    void setStone(GameSessionBoardAccess board, int x, int y, Stone stone);
+    byte[] snapshot(GameSessionBoardAccess board);
+    boolean hasFiveInARow(GameSessionBoardAccess board, int x, int y, Stone stone);
 }

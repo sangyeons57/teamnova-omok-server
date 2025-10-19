@@ -3,7 +3,6 @@ package teamnova.omok.glue.game.session.states.manage;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.game.session.model.TurnStore;
 
 /**
  * Mutable data shared across turn-processing phases.
@@ -27,7 +26,7 @@ public final class TurnCycleContext {
     }
 
     public GameSession session() {
-        return parent.session();
+        return parent.getSession();
     }
 
     public String userId() {

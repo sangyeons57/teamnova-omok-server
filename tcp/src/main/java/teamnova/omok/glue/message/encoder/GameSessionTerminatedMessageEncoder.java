@@ -11,7 +11,7 @@ public final class GameSessionTerminatedMessageEncoder {
     public static byte[] encode(GameSession session, List<String> disconnected) {
         StringBuilder sb = new StringBuilder(192);
         sb.append('{')
-          .append("\"sessionId\":\"").append(session.getId()).append('\"')
+          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"startedAt\":").append(session.getGameStartedAt())
           .append(',')

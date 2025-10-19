@@ -5,6 +5,7 @@ import java.util.List;
 import teamnova.omok.glue.client.session.services.ClientSessionDirectory;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.message.encoder.BoardSnapshotMessageEncoder;
@@ -67,7 +68,7 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
 
     @Override
     public void broadcastBoardSnapshot(BoardSnapshotUpdate update) {
-        directory.broadcast(update.session().getUserIds(), Type.BOARD_SNAPSHOT, BoardSnapshotMessageEncoder.encode(update));
+        directory.broadcast(update.getParticipantsAccess().getUserIds(), Type.BOARD_SNAPSHOT, BoardSnapshotMessageEncoder.encode(update));
     }
 
     @Override

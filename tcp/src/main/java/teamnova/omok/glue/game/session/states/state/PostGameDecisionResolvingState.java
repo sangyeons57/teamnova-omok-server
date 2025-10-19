@@ -3,6 +3,8 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.ArrayList;
 import java.util.List;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionPostGameAccess;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
@@ -26,16 +28,16 @@ public final class PostGameDecisionResolvingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        List<String> rematch = new ArrayList<>(context.session().rematchRequestsView());
-        List<String> disconnected = new ArrayList<>(context.session().disconnectedUsersView());
+        List<String> rematch = new ArrayList<>(context.<GameSessionPostGameAccess>getSession().rematchRequestsView());
+        List<String> disconnected = new ArrayList<>(context.<GameSessionParticipantsAccess>getSession().disconnectedUsersView());
         if (rematch.size() >= 2) {
             context.pendingPostGameResolution(
-                PostGameResolution.rematch(context.session(), rematch, disconnected)
+                PostGameResolution.rematch(context.getSession(), rematch, disconnected)
             );
             return StateStep.transition(GameSessionStateType.SESSION_REMATCH_PREPARING.toStateName());
         }
         context.pendingPostGameResolution(
-            PostGameResolution.terminate(context.session(), disconnected)
+            PostGameResolution.terminate(context.getSession(), disconnected)
         );
         return StateStep.transition(GameSessionStateType.SESSION_TERMINATING.toStateName());
     }

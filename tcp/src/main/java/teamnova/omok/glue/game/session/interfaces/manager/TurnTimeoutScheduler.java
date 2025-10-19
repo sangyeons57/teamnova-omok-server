@@ -1,10 +1,12 @@
-package teamnova.omok.glue.game.session.interfaces;
+package teamnova.omok.glue.game.session.interfaces.manager;
 
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 
 public interface TurnTimeoutScheduler {
-    void schedule(GameSession session,
+    void schedule(GameSessionParticipantsAccess session,
                   GameTurnService.TurnSnapshot turnSnapshot,
                   TurnTimeoutConsumer consumer);
     void cancel(GameSessionId sessionId);

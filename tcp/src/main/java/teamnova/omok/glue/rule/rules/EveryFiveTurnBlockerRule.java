@@ -6,17 +6,18 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
+import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RulesContext;
-import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.game.session.model.BoardStore;
-import teamnova.omok.glue.game.session.model.GameSession;
-import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.game.session.model.TurnStore;
-import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 
 public class EveryFiveTurnBlockerRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
@@ -37,13 +38,14 @@ public class EveryFiveTurnBlockerRule implements Rule {
             return;
         }
         System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule invoked");
-        GameSession session = context.getSession();
+        GameSessionRuleAccess ruleStore = context.getSession();
+
         GameSessionStateContext stateContext = context.stateContext();
         GameSessionServices services = context.services();
-        if (session == null || stateContext == null || services == null) {
+        if (ruleStore == null || stateContext == null || services == null) {
             return;
         }
-        TurnStore turnStore = session.getTurnStore();
+        GameSessionTurnAccess turnStore = context.getSession();
         int completedTurns = Math.max(0, turnStore.actionNumber() - 1);
         if (completedTurns <= 0 || completedTurns % 5 != 0) {
             return;
@@ -53,14 +55,16 @@ public class EveryFiveTurnBlockerRule implements Rule {
             return;
         }
 
-        BoardStore boardStore = session.getBoardStore();
+        GameSessionBoardAccess boardStore = context.getSession();
         int width = boardStore.width();
         int height = boardStore.height();
         int totalCells = width * height;
 
         Map<Integer, List<Integer>> stonesByPlayer = new ConcurrentHashMap<>();
         for (int index = 0; index < totalCells; index++) {
-            Stone stone = Stone.fromByte(boardStore.get(index));
+            int x = index % width;
+            int y = index / width;
+            Stone stone = boardStore.stoneAt(x, y);
             if (!stone.isPlayerStone()) {
                 continue;
             }
@@ -69,7 +73,8 @@ public class EveryFiveTurnBlockerRule implements Rule {
         }
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        List<String> userIds = session.getUserIds();
+        GameSessionParticipantsAccess participantsAccess = context.getSession();
+        List<String> userIds = participantsAccess.getUserIds();
         boolean mutated = false;
         for (int playerIndex = 0; playerIndex < userIds.size(); playerIndex++) {
             Stone playerStone = Stone.fromPlayerOrder(playerIndex);
@@ -91,7 +96,7 @@ public class EveryFiveTurnBlockerRule implements Rule {
             System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule placed blockers for players present");
             byte[] snapshot = services.boardService().snapshot(boardStore);
             stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(
-                session,
+                context.getSession(),
                 snapshot,
                 System.currentTimeMillis()
             ));

@@ -11,9 +11,9 @@ public final class GameSessionRematchStartedMessageEncoder {
     public static byte[] encode(GameSession previous, GameSession rematch, List<String> participants) {
         StringBuilder sb = new StringBuilder(192);
         sb.append('{')
-          .append("\"sessionId\":\"").append(previous.getId()).append('\"')
+          .append("\"sessionId\":\"").append(previous.sessionId().asUuid()).append('\"')
           .append(',')
-          .append("\"rematchSessionId\":\"").append(rematch.getId()).append('\"')
+          .append("\"rematchSessionId\":\"").append(rematch.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"participants\":[");
         for (int i = 0; i < participants.size(); i++) {

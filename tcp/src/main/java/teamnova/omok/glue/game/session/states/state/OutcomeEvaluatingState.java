@@ -6,6 +6,10 @@ import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionLifecycleAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionOutcomeAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
@@ -40,7 +44,7 @@ public final class OutcomeEvaluatingState implements BaseState {
     public <I extends StateContext> StateStep onEnter(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
         TurnCycleContext cycle = ctx.activeTurnCycle();
-        GameSession session = ctx.session();
+        GameSession session = ctx.getSession();
 
         return (cycle == null) ? noneCycleProcess(ctx, session) : cycleProcess(ctx, session,  cycle);
     }
@@ -88,7 +92,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         if (cycle.snapshots().current() != null) {
             turnCount = cycle.snapshots().current().turnNumber();
         } else {
-            turnCount = cycle.session().getTurnStore().actionNumber();
+            turnCount = context.<GameSessionTurnAccess>getSession().actionNumber();
         }
         cycle.session().lock().lock();
         try {
@@ -172,25 +176,25 @@ public final class OutcomeEvaluatingState implements BaseState {
     }
 
     private void finalizeSession(GameSessionStateContext context) {
-        GameSession session = context.session();
-        session.lock().lock();
+        GameSessionTurnAccess turnAccess = context.getSession();
+        turnAccess.lock().lock();
         try {
-            int turnCount = session.getTurnStore().actionNumber();
+            int turnCount = turnAccess.actionNumber();
             long now = System.currentTimeMillis();
-            session.markGameFinished(now, turnCount);
+            context.<GameSessionLifecycleAccess>getSession().markGameFinished(now, turnCount);
         } finally {
-            session.lock().unlock();
+            turnAccess.lock().unlock();
         }
-        context.pendingGameCompletion(new GameCompletionNotice(session));
+        context.pendingGameCompletion(new GameCompletionNotice(context.getSession()));
     }
 
     @Override
     public <I extends StateContext> void onExit(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
-        if (ctx.session().isGameFinished()) {
+        if (ctx.<GameSessionOutcomeAccess>getSession().isGameFinished()) {
             // Apply scores immediately when the game is confirmed finished
-            for (String userId : ctx.session().getUserIds()) {
-                int score = scoreService.calculateScoreDelta(ctx.session(), userId);
+            for (String userId : ctx.<GameSessionParticipantsAccess>getSession().getUserIds()) {
+                int score = scoreService.calculateScoreDelta(ctx.getSession(), userId);
                 DataManager.getInstance().adjustUserScore(userId, score);
             }
         }
@@ -201,12 +205,12 @@ public final class OutcomeEvaluatingState implements BaseState {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(stone, "stone");
 
-        GameSession session = context.session();
+        GameSession session = context.getSession();
         if (session.isGameFinished()) {
             return true;
         }
 
-        if (!boardService.hasFiveInARow(session.getBoardStore(), x, y, stone)) {
+        if (!boardService.hasFiveInARow(context.getSession(), x, y, stone)) {
             return false;
         }
 
@@ -224,7 +228,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         }
         System.out.printf(
                 "[OutcomeService] Game %s finished: winner=%s stone=%s position=(%d,%d)%n",
-                session.getId(),
+                session.sessionId().asUuid(),
                 userId,
                 stone,
                 x,
