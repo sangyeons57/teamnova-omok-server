@@ -9,7 +9,7 @@ import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
-import teamnova.omok.glue.service.dto.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -75,7 +75,7 @@ public class TurnWaitingState implements BaseState {
                 result = TurnTimeoutResult.noop(session, null);
             } else {
                 GameTurnService.TurnSnapshot current =
-                    turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                    turnService.snapshot(session.getTurnStore());
                 if (session.isGameFinished()) {
                     result = TurnTimeoutResult.noop(session, current);
                 } else if (current.turnNumber() != event.expectedTurnNumber()) {
@@ -87,7 +87,6 @@ public class TurnWaitingState implements BaseState {
                     GameTurnService.TurnSnapshot next = turnService
                         .advanceSkippingDisconnected(
                             session.getTurnStore(),
-                            session.getUserIds(),
                             session.disconnectedUsersView(),
                             event.timestamp()
                         );

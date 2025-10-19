@@ -8,7 +8,7 @@ import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.service.dto.ReadyResult;
+import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -29,11 +29,6 @@ public class LobbyGameSessionState implements BaseState {
     @Override
     public StateName name() {
         return GameSessionStateType.LOBBY.toStateName();
-    }
-
-    @Override
-    public <I extends StateContext> StateStep onEnter(I context) {
-        return StateStep.stay();
     }
 
     @Override
@@ -69,8 +64,7 @@ public class LobbyGameSessionState implements BaseState {
                     snapshot = turnService
                         .start(session.getTurnStore(), session.getUserIds(), event.timestamp());
                 } else if (session.isGameStarted()) {
-                    snapshot = turnService
-                        .snapshot(session.getTurnStore(), session.getUserIds());
+                    snapshot = turnService.snapshot(session.getTurnStore());
                 }
                 result = new ReadyResult(
                     session,

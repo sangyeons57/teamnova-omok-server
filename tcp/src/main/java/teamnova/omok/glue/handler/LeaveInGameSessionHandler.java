@@ -6,7 +6,6 @@ import teamnova.omok.glue.handler.register.FrameHandler;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.game.session.GameSessionManager;
-import teamnova.omok.glue.service.ServiceManager;
 
 public class LeaveInGameSessionHandler implements FrameHandler {
     @Override
@@ -15,7 +14,7 @@ public class LeaveInGameSessionHandler implements FrameHandler {
             return;
         }
         String userId = session.authenticatedUserId();
-        GameSessionManager gameSessionManager = ServiceManager.getInstance().getGameSessionManager();
+        GameSessionManager gameSessionManager = GameSessionManager.getInstance();
         ClientSessionManager manager = ClientSessionManager.getInstance();
 
         // Notify other users in the same session, if any

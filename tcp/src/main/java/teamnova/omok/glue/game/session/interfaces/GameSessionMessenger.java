@@ -4,13 +4,13 @@ import java.util.List;
 
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
-import teamnova.omok.glue.service.dto.MoveResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionPrompt;
-import teamnova.omok.glue.service.dto.PostGameDecisionResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionUpdate;
-import teamnova.omok.glue.service.dto.ReadyResult;
-import teamnova.omok.glue.service.dto.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
+import teamnova.omok.glue.game.session.model.result.ReadyResult;
+import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 
 public interface GameSessionMessenger {
     void broadcastJoin(GameSession session);

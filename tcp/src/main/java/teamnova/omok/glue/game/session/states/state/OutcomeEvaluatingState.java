@@ -8,8 +8,8 @@ import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.manager.DataManager;
-import teamnova.omok.glue.service.dto.GameCompletionNotice;
-import teamnova.omok.glue.service.dto.MoveResult;
+import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
@@ -88,7 +88,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         if (cycle.snapshots().current() != null) {
             turnCount = cycle.snapshots().current().turnNumber();
         } else {
-            turnCount = cycle.session().getTurnStore().getTurnNumber();
+            turnCount = cycle.session().getTurnStore().actionNumber();
         }
         cycle.session().lock().lock();
         try {
@@ -175,7 +175,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         GameSession session = context.session();
         session.lock().lock();
         try {
-            int turnCount = session.getTurnStore().getTurnNumber();
+            int turnCount = session.getTurnStore().actionNumber();
             long now = System.currentTimeMillis();
             session.markGameFinished(now, turnCount);
         } finally {

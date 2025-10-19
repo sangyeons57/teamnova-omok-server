@@ -8,9 +8,8 @@ import teamnova.omok.glue.handler.register.FrameHandler;
 import teamnova.omok.glue.message.decoder.StringDecoder;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
-import teamnova.omok.glue.service.dto.PostGameDecisionResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionStatus;
-import teamnova.omok.glue.service.ServiceManager;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionStatus;
 
 public class PostGameDecisionHandler implements FrameHandler {
     private final StringDecoder stringDecoder;
@@ -28,26 +27,25 @@ public class PostGameDecisionHandler implements FrameHandler {
         String raw = stringDecoder.decode(frame.payload());
         String trimmed = raw == null ? "" : raw.trim();
         if (trimmed.isEmpty()) {
-            respondImmediate(session, frame.requestId(), userId, PostGameDecisionStatus.INVALID_PAYLOAD);
+            respondImmediate(frame.requestId(), userId, PostGameDecisionStatus.INVALID_PAYLOAD);
             return;
         }
         PostGameDecision decision;
         try {
             decision = PostGameDecision.valueOf(trimmed.toUpperCase());
         } catch (IllegalArgumentException ex) {
-            respondImmediate(session, frame.requestId(), userId, PostGameDecisionStatus.INVALID_PAYLOAD);
+            respondImmediate(frame.requestId(), userId, PostGameDecisionStatus.INVALID_PAYLOAD);
             return;
         }
 
-        GameSessionManager gameSessionManager = ServiceManager.getInstance().getGameSessionManager();
+        GameSessionManager gameSessionManager = GameSessionManager.getInstance();
         boolean accepted = gameSessionManager.submitPostGameDecision(userId, frame.requestId(), decision);
         if (!accepted) {
-            respondImmediate(session, frame.requestId(), userId, PostGameDecisionStatus.SESSION_NOT_FOUND);
+            respondImmediate(frame.requestId(), userId, PostGameDecisionStatus.SESSION_NOT_FOUND);
         }
     }
 
-    private void respondImmediate(ClientSessionHandle session,
-                                  long requestId,
+    private void respondImmediate(long requestId,
                                   String userId,
                                   PostGameDecisionStatus status) {
         PostGameDecisionResult result = PostGameDecisionResult.rejected(null, userId, status);

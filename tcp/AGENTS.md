@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 - Runtime code lives in `src/main/java/teamnova/omok`. `core` owns networking (`NioReactorServer`, codecs), while `glue` orchestrates gameplay, handlers, and integration layers. Reusable engines (matching, rule, state machine) stay under `modules`.
 - The refactored client-session stack sits in `glue/client/session`: `model` contains the pure `ClientSession` data object, `interfaces` exposes `ClientSessionHandle`/`LifecycleListener`, `services` provides `ManagedClientSession`, directory, and lifecycle logic, and `states` wraps the state machine.
-- Game-session logic now lives in `glue/game/session`: `model` holds `GameSession`, board/turn stores, `services` groups orchestration (`InGameSessionService`, `SessionEventService`, coordinators), `states` contains the in-game state machine, and `interfaces` is reserved for future public contracts. External callers go through `GameSessionManager` in this package to interact with sessions.
+- Game-session logic now lives in `glue/game/session`: `model` holds `GameSession`, board/turn stores, `services` groups orchestration (`SessionEventService`, `GameSessionLifecycleService`, `GameSessionCreationService`, coordinators), `states` contains the in-game state machine, and `interfaces` is reserved for future public contracts. External callers go through `GameSessionManager` in this package to interact with sessions.
 - Tests mirror production packages under `src/test/java`; add new suites beside the code they cover. Shared fixtures belong in `src/test/java/teamnova/omok/support` (create if missing).
 - Assets such as `logback.xml` are in `src/main/resources`; build outputs collect in `build/` and should be ignored by Git.
 

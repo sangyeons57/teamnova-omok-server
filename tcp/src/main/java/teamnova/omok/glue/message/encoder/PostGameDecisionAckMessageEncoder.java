@@ -2,8 +2,8 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
-import teamnova.omok.glue.service.dto.PostGameDecisionResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionStatus;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionStatus;
 
 public final class PostGameDecisionAckMessageEncoder {
     private PostGameDecisionAckMessageEncoder() {}

@@ -11,9 +11,7 @@ import teamnova.omok.glue.manager.NioManager;
 import teamnova.omok.glue.manager.ServerLifecycleManager;
 import teamnova.omok.glue.manager.UserSessionManager;
 import teamnova.omok.glue.rule.RuleManager;
-import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RuleRegistry;
-import teamnova.omok.glue.service.ServiceManager;
 
 public final class Main {
     private static final int DEFAULT_PORT = 15015;
@@ -22,18 +20,16 @@ public final class Main {
         int port = parsePort(args);
         int workerCount = Runtime.getRuntime().availableProcessors();
 
-        DataManager.Init();
-        ClientSessionManager.Init();
-        RuleManager.Init(RuleRegistry.getInstance());
-        ServiceManager serviceManager = ServiceManager.Init(RuleManager.getInstance());
-        GameSessionManager gameSessionManager = serviceManager.getGameSessionManager();
+        DataManager dataManager = DataManager.getInstance();
+        ClientSessionManager clientSessionManager = ClientSessionManager.getInstance();
+        RuleManager ruleManager = RuleManager.Init(RuleRegistry.getInstance());
+        GameSessionManager gameSessionManager = GameSessionManager.Init(RuleManager.getInstance());
         MatchingManager matchingManager = MatchingManager.Init(gameSessionManager);
         UserSessionManager userSessionManager = UserSessionManager.Init();
 
         DefaultHandlerRegistry handlerRegistry = new DefaultHandlerRegistry();
         try (NioManager nioManager = new NioManager(port, workerCount, handlerRegistry);
              ServerLifecycleManager lifecycle = new ServerLifecycleManager(
-                 serviceManager,
                  nioManager,
                  gameSessionManager,
                  matchingManager,

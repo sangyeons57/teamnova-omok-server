@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import teamnova.omok.glue.game.session.model.PostGameDecision;
-import teamnova.omok.glue.service.dto.PostGameDecisionUpdate;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 
 public final class PostGameDecisionUpdateMessageEncoder {
     private PostGameDecisionUpdateMessageEncoder() {}

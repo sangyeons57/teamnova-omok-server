@@ -1,4 +1,4 @@
-package teamnova.omok.glue.service.dto;
+package teamnova.omok.glue.game.session.model.messages;
 
 import java.util.List;
 import java.util.Map;

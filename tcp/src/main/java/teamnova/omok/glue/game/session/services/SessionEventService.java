@@ -5,15 +5,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import teamnova.omok.glue.game.session.model.PostGameDecision;
-import teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler;
-import teamnova.omok.glue.game.session.interfaces.GameSessionEventProcessor;
-import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
-import teamnova.omok.glue.game.session.interfaces.GameSessionRepository;
-import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.dto.SessionSubmission;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.game.session.states.GameStateHub;
@@ -25,103 +20,155 @@ import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
-import teamnova.omok.glue.service.dto.GameCompletionNotice;
-import teamnova.omok.glue.service.dto.MoveResult;
-import teamnova.omok.glue.service.dto.MoveStatus;
-import teamnova.omok.glue.service.dto.PostGameDecisionPrompt;
-import teamnova.omok.glue.service.dto.PostGameDecisionResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionStatus;
-import teamnova.omok.glue.service.dto.PostGameDecisionUpdate;
-import teamnova.omok.glue.service.dto.PostGameResolution;
-import teamnova.omok.glue.service.dto.ReadyResult;
-import teamnova.omok.glue.service.dto.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.result.MoveStatus;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionStatus;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
+import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
+import teamnova.omok.glue.game.session.model.result.ReadyResult;
+import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 
 /**
- * Handles state-machine event submission, completion processing, and associated side effects.
+ * Stateless utilities for submitting session events and coordinating side effects.
  */
-public final class SessionEventService implements GameSessionEventProcessor, TurnTimeoutScheduler.TurnTimeoutConsumer {
-    private final GameSessionRepository repository;
-    private final GameSessionRuntime runtime;
-    private final GameTurnService turnService;
-    private final GameSessionMessenger publisher;
-    private final TurnTimeoutScheduler timeoutCoordinator;
-    private final DecisionTimeoutScheduler decisionTimeoutCoordinator;
-    private final teamnova.omok.glue.rule.RuleManager ruleManager;
+public final class SessionEventService {
 
-    public SessionEventService(GameSessionRepository repository,
-                        GameSessionRuntime runtime,
-                        GameTurnService turnService,
-                        GameSessionMessenger publisher,
-                        TurnTimeoutScheduler timeoutCoordinator,
-                        DecisionTimeoutScheduler decisionTimeoutCoordinator,
-                        teamnova.omok.glue.rule.RuleManager ruleManager) {
-        this.repository = Objects.requireNonNull(repository, "repository");
-        this.runtime = Objects.requireNonNull(runtime, "runtime");
-        this.turnService = Objects.requireNonNull(turnService, "turnService");
-        this.publisher = Objects.requireNonNull(publisher, "publisher");
-        this.timeoutCoordinator = Objects.requireNonNull(timeoutCoordinator, "timeoutCoordinator");
-        this.decisionTimeoutCoordinator = Objects.requireNonNull(decisionTimeoutCoordinator, "decisionTimeoutCoordinator");
-        this.ruleManager = Objects.requireNonNull(ruleManager, "ruleManager");
+    private SessionEventService() {
     }
 
-    @Override
-    public boolean submitReady(String userId, long requestId) {
-        return withSession(userId, ctx -> {
-            ReadyEvent event = new ReadyEvent(userId, ctx.timestamp(), requestId);
-            ctx.manager().submit(event, stateCtx -> handleReadyCompletion(ctx.manager(), stateCtx, event));
+    public static boolean submitReady(GameSessionDependencies deps,
+                                      TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                      String userId,
+                                      long requestId) {
+        Objects.requireNonNull(deps, "deps");
+        Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
+        Objects.requireNonNull(userId, "userId");
+        return withSession(deps, userId, submission -> {
+            ReadyEvent event = new ReadyEvent(userId, submission.timestamp(), requestId);
+            submission.manager().submit(event,
+                ctx -> handleReadyCompletion(deps, timeoutConsumer, submission.manager(), ctx, event));
         });
     }
 
-    @Override
-    public boolean submitMove(String userId, long requestId, int x, int y) {
-        return withSession(userId, ctx -> {
-            MoveEvent event = new MoveEvent(userId, x, y, ctx.timestamp(), requestId);
-            ctx.manager().submit(event, stateCtx -> handleMoveCompletion(ctx.manager(), stateCtx, event));
+    public static boolean submitMove(GameSessionDependencies deps,
+                                     TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                     String userId,
+                                     long requestId,
+                                     int x,
+                                     int y) {
+        Objects.requireNonNull(deps, "deps");
+        Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
+        Objects.requireNonNull(userId, "userId");
+        return withSession(deps, userId, submission -> {
+            MoveEvent event = new MoveEvent(userId, x, y, submission.timestamp(), requestId);
+            submission.manager().submit(event,
+                ctx -> handleMoveCompletion(deps, timeoutConsumer, submission.manager(), ctx, event));
         });
     }
 
-    @Override
-    public boolean submitPostGameDecision(String userId, long requestId, PostGameDecision decision) {
+    public static boolean submitPostGameDecision(GameSessionDependencies deps,
+                                                 TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                                 String userId,
+                                                 long requestId,
+                                                 PostGameDecision decision) {
+        Objects.requireNonNull(deps, "deps");
+        Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
+        Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(decision, "decision");
-        return withSession(userId, ctx -> {
-            PostGameDecisionEvent event = new PostGameDecisionEvent(userId, decision, ctx.timestamp(), requestId);
-            ctx.manager().submit(event, stateCtx -> handlePostGameDecisionCompletion(ctx.manager(), stateCtx, event));
+        return withSession(deps, userId, submission -> {
+            PostGameDecisionEvent event = new PostGameDecisionEvent(userId, decision, submission.timestamp(), requestId);
+            submission.manager().submit(event,
+                ctx -> handlePostGameDecisionCompletion(deps, timeoutConsumer, submission.manager(), ctx, event));
         });
     }
 
-    @Override
-    public void cancelAllTimers(GameSessionId sessionId) {
-        timeoutCoordinator.cancel(sessionId);
-        decisionTimeoutCoordinator.cancel(sessionId);
-        runtime.remove(sessionId);
+    public static void cancelAllTimers(GameSessionDependencies deps, GameSessionId sessionId) {
+        Objects.requireNonNull(deps, "deps");
+        Objects.requireNonNull(sessionId, "sessionId");
+        deps.turnTimeoutScheduler().cancel(sessionId);
+        deps.decisionTimeoutScheduler().cancel(sessionId);
     }
 
-    GameTurnService.TurnSnapshot turnSnapshot(GameSession session) {
-        return turnService.snapshot(session.getTurnStore(), session.getUserIds());
+    public static void skipTurnForDisconnected(GameSessionDependencies deps,
+                                               TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                               GameSession session,
+                                               String userId,
+                                               int expectedTurnNumber) {
+        Objects.requireNonNull(deps, "deps");
+        Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
+        Objects.requireNonNull(session, "session");
+        Objects.requireNonNull(userId, "userId");
+        boolean shouldSubmit = false;
+        session.lock().lock();
+        try {
+            if (session.isGameStarted() && !session.isGameFinished()) {
+                GameTurnService.TurnSnapshot current =
+                    deps.turnService().snapshot(session.getTurnStore());
+                shouldSubmit = current != null
+                    && current.turnNumber() == expectedTurnNumber
+                    && userId.equals(current.currentPlayerId());
+            }
+        } finally {
+            session.lock().unlock();
+        }
+        if (!shouldSubmit) {
+            return;
+        }
+        deps.turnTimeoutScheduler().cancel(session.sessionId());
+        GameStateHub manager = deps.runtime().ensure(session);
+        long now = System.currentTimeMillis();
+        TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
+        manager.submit(event, ctx -> handleTimeoutCompletion(deps, timeoutConsumer, session, manager, ctx, event));
     }
 
-    boolean isTurnExpired(GameSession session, long now) {
-        return turnService.isExpired(session.getTurnStore(), now);
+    public static void handleScheduledTimeout(GameSessionDependencies deps,
+                                              TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                              GameSessionId sessionId,
+                                              int expectedTurnNumber) {
+        Objects.requireNonNull(deps, "deps");
+        Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
+        Objects.requireNonNull(sessionId, "sessionId");
+        if (!deps.turnTimeoutScheduler().validate(sessionId, expectedTurnNumber)) {
+            return;
+        }
+        Optional<GameSession> optionalSession = deps.repository().findById(sessionId);
+        if (optionalSession.isEmpty()) {
+            return;
+        }
+        GameSession session = optionalSession.get();
+        GameStateHub manager = deps.runtime().ensure(session);
+        deps.turnTimeoutScheduler().clearIfMatches(sessionId, expectedTurnNumber);
+        long now = System.currentTimeMillis();
+        TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
+        manager.submit(event, ctx -> handleTimeoutCompletion(deps, timeoutConsumer, session, manager, ctx, event));
     }
 
-    private boolean withSession(String userId, Consumer<SessionSubmission> consumer) {
+    private static boolean withSession(GameSessionDependencies deps,
+                                       String userId,
+                                       Consumer<SessionSubmission> consumer) {
+        Objects.requireNonNull(deps, "deps");
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(consumer, "consumer");
-        Optional<GameSession> optionalSession = repository.findByUserId(userId);
+        Optional<GameSession> optionalSession = deps.repository().findByUserId(userId);
         if (optionalSession.isEmpty()) {
             return false;
         }
         GameSession session = optionalSession.get();
-        GameStateHub manager = runtime.ensure(session);
+        GameStateHub manager = deps.runtime().ensure(session);
         long now = System.currentTimeMillis();
         consumer.accept(new SessionSubmission(session, manager, now));
         return true;
     }
 
-    private void handleReadyCompletion(GameStateHub manager,
-                                       GameSessionStateContext ctx,
-                                       ReadyEvent event) {
+    private static void handleReadyCompletion(GameSessionDependencies deps,
+                                              TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                              GameStateHub manager,
+                                              GameSessionStateContext ctx,
+                                              ReadyEvent event) {
         ReadyResult result = ctx.consumePendingReadyResult();
         if (result == null) {
             String message;
@@ -135,32 +182,34 @@ public final class SessionEventService implements GameSessionEventProcessor, Tur
             } else {
                 message = "INVALID_STATE";
             }
-            publisher.respondError(event.userId(), Type.READY_IN_GAME_SESSION, event.requestId(), message);
-            drainPostGameSideEffects(manager, ctx);
+            deps.messenger().respondError(event.userId(), Type.READY_IN_GAME_SESSION, event.requestId(), message);
+            drainPostGameSideEffects(deps, timeoutConsumer, ctx);
             return;
         }
         if (!result.validUser()) {
-            publisher.respondError(event.userId(), Type.READY_IN_GAME_SESSION, event.requestId(), "INVALID_PLAYER");
-            drainPostGameSideEffects(manager, ctx);
+            deps.messenger().respondError(event.userId(), Type.READY_IN_GAME_SESSION, event.requestId(), "INVALID_PLAYER");
+            drainPostGameSideEffects(deps, timeoutConsumer, ctx);
             return;
         }
-        publisher.respondReady(event.userId(), event.requestId(), result);
+        deps.messenger().respondReady(event.userId(), event.requestId(), result);
         if (result.stateChanged()) {
-            publisher.broadcastReady(result);
+            deps.messenger().broadcastReady(result);
         }
         if (result.gameStartedNow() && result.firstTurn() != null) {
-            publisher.broadcastGameStart(result.session(), result.firstTurn());
-            scheduleTurnTimeout(result.session(), result.firstTurn());
+            deps.messenger().broadcastGameStart(result.session(), result.firstTurn());
+            scheduleTurnTimeout(deps, timeoutConsumer, result.session(), result.firstTurn());
         }
         if (manager.currentType() == GameSessionStateType.COMPLETED) {
-            cancelAllTimers(result.session().sessionId());
+            cancelAllTimers(deps, result.session().sessionId());
         }
-        drainPostGameSideEffects(manager, ctx);
+        drainPostGameSideEffects(deps, timeoutConsumer, ctx);
     }
 
-    private void handleMoveCompletion(GameStateHub manager,
-                                      GameSessionStateContext ctx,
-                                      MoveEvent event) {
+    private static void handleMoveCompletion(GameSessionDependencies deps,
+                                             TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                             GameStateHub manager,
+                                             GameSessionStateContext ctx,
+                                             MoveEvent event) {
         MoveResult result = ctx.consumePendingMoveResult();
         if (result == null) {
             GameSession session = manager.session();
@@ -174,196 +223,168 @@ public final class SessionEventService implements GameSessionEventProcessor, Tur
             } else {
                 message = "TURN_IN_PROGRESS";
             }
-            publisher.respondError(event.userId(), Type.PLACE_STONE, event.requestId(), message);
-            drainPostGameSideEffects(manager, ctx);
+            deps.messenger().respondError(event.userId(), Type.PLACE_STONE, event.requestId(), message);
+            drainPostGameSideEffects(deps, timeoutConsumer, ctx);
             return;
         }
-        publisher.respondMove(event.userId(), event.requestId(), result);
+        deps.messenger().respondMove(event.userId(), event.requestId(), result);
         if (result.status() == MoveStatus.SUCCESS) {
-            publisher.broadcastStonePlaced(result);
+            deps.messenger().broadcastStonePlaced(result);
             if (result.turnSnapshot() != null && manager.currentType() == GameSessionStateType.TURN_WAITING) {
-                scheduleTurnTimeout(result.session(), result.turnSnapshot());
+                scheduleTurnTimeout(deps, timeoutConsumer, result.session(), result.turnSnapshot());
             } else if (result.turnSnapshot() == null) {
-            timeoutCoordinator.cancel(result.session().sessionId());
+                deps.turnTimeoutScheduler().cancel(result.session().sessionId());
             }
         }
         if (manager.currentType() == GameSessionStateType.COMPLETED) {
-            cancelAllTimers(result.session().sessionId());
+            cancelAllTimers(deps, result.session().sessionId());
         }
-        drainPostGameSideEffects(manager, ctx);
+        drainPostGameSideEffects(deps, timeoutConsumer, ctx);
     }
 
-    private void handleTimeoutCompletion(GameSession session,
-                                         GameStateHub manager,
-                                         GameSessionStateContext ctx,
-                                         TimeoutEvent event) {
+    private static void handleTimeoutCompletion(GameSessionDependencies deps,
+                                                TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                                GameSession session,
+                                                GameStateHub manager,
+                                                GameSessionStateContext ctx,
+                                                TimeoutEvent event) {
         TurnTimeoutResult result = ctx.consumePendingTimeoutResult();
         if (result == null) {
             if (!session.isGameFinished()) {
-                GameTurnService.TurnSnapshot snapshot = turnService.snapshot(session.getTurnStore(), session.getUserIds());
+                GameTurnService.TurnSnapshot snapshot =
+                    deps.turnService().snapshot(session.getTurnStore());
                 if (snapshot != null) {
-                    scheduleTurnTimeout(session, snapshot);
+                    scheduleTurnTimeout(deps, timeoutConsumer, session, snapshot);
                 }
             }
-            drainPostGameSideEffects(manager, ctx);
+            drainPostGameSideEffects(deps, timeoutConsumer, ctx);
             return;
         }
         boolean waiting = manager.currentType() == GameSessionStateType.TURN_WAITING;
         if (result.timedOut()) {
-            publisher.broadcastTurnTimeout(session, result);
+            deps.messenger().broadcastTurnTimeout(session, result);
             if (result.nextTurn() != null && waiting) {
-                scheduleTurnTimeout(session, result.nextTurn());
+                scheduleTurnTimeout(deps, timeoutConsumer, session, result.nextTurn());
             }
         } else if (result.currentTurn() != null && waiting) {
-            scheduleTurnTimeout(session, result.currentTurn());
+            scheduleTurnTimeout(deps, timeoutConsumer, session, result.currentTurn());
         }
         if (manager.currentType() == GameSessionStateType.COMPLETED) {
-            cancelAllTimers(session.sessionId());
+            cancelAllTimers(deps, session.sessionId());
         }
-        drainPostGameSideEffects(manager, ctx);
+        drainPostGameSideEffects(deps, timeoutConsumer, ctx);
     }
 
-    @Override
-    public void onTimeout(GameSessionId sessionId, int expectedTurnNumber) {
-        handleScheduledTimeout(sessionId, expectedTurnNumber);
-    }
-
-    private void handleScheduledTimeout(GameSessionId sessionId, int expectedTurnNumber) {
-        if (!timeoutCoordinator.validate(sessionId, expectedTurnNumber)) {
-            return;
-        }
-        Optional<GameSession> optionalSession = repository.findById(sessionId);
+    private static void handleDecisionTimeout(GameSessionDependencies deps,
+                                              TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                              GameSessionId sessionId) {
+        Optional<GameSession> optionalSession = deps.repository().findById(sessionId);
         if (optionalSession.isEmpty()) {
             return;
         }
         GameSession session = optionalSession.get();
-        GameStateHub manager = runtime.ensure(session);
-        timeoutCoordinator.clearIfMatches(sessionId, expectedTurnNumber);
-        long now = System.currentTimeMillis();
-        TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
-        manager.submit(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
-    }
-
-    @Override
-    public void skipTurnForDisconnected(GameSession session, String userId, int expectedTurnNumber) {
-        Objects.requireNonNull(session, "session");
-        Objects.requireNonNull(userId, "userId");
-        boolean shouldSubmit = false;
-        session.lock().lock();
-        try {
-            if (session.isGameStarted() && !session.isGameFinished()) {
-                GameTurnService.TurnSnapshot current =
-                    turnService.snapshot(session.getTurnStore(), session.getUserIds());
-                shouldSubmit = current != null
-                    && current.turnNumber() == expectedTurnNumber
-                    && userId.equals(current.currentPlayerId());
-            }
-        } finally {
-            session.lock().unlock();
-        }
-        if (!shouldSubmit) {
-            return;
-        }
-        timeoutCoordinator.cancel(session.sessionId());
-        GameStateHub manager = runtime.ensure(session);
-        long now = System.currentTimeMillis();
-        TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
-        manager.submit(event, ctx -> handleTimeoutCompletion(session, manager, ctx, event));
-    }
-
-    private void handleDecisionTimeout(GameSessionId sessionId) {
-        Optional<GameSession> optionalSession = repository.findById(sessionId);
-        if (optionalSession.isEmpty()) {
-            return;
-        }
-        GameSession session = optionalSession.get();
-        GameStateHub manager = runtime.ensure(session);
+        GameStateHub manager = deps.runtime().ensure(session);
         long now = System.currentTimeMillis();
         DecisionTimeoutEvent event = new DecisionTimeoutEvent(now);
-        manager.submit(event, ctx -> handleDecisionTimeoutCompletion(manager, ctx));
+        manager.submit(event, ctx -> handleDecisionTimeoutCompletion(deps, timeoutConsumer, ctx));
     }
 
-    private void handleDecisionTimeoutCompletion(GameStateHub manager,
-                                                 GameSessionStateContext ctx) {
-        drainPostGameSideEffects(manager, ctx);
-    }
-
-    private void handlePostGameDecisionCompletion(GameStateHub manager,
-                                                  GameSessionStateContext ctx,
-                                                  PostGameDecisionEvent event) {
+    private static void handlePostGameDecisionCompletion(GameSessionDependencies deps,
+                                                         TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                                         GameStateHub manager,
+                                                         GameSessionStateContext ctx,
+                                                         PostGameDecisionEvent event) {
         PostGameDecisionResult result = ctx.consumePendingDecisionResult();
         if (result == null) {
             result = PostGameDecisionResult.rejected(manager.session(), event.userId(),
                 PostGameDecisionStatus.SESSION_CLOSED);
         }
-        publisher.respondPostGameDecision(event.userId(), event.requestId(), result);
-        drainPostGameSideEffects(manager, ctx);
+        deps.messenger().respondPostGameDecision(event.userId(), event.requestId(), result);
+        drainPostGameSideEffects(deps, timeoutConsumer,ctx);
     }
 
-    private void drainPostGameSideEffects(GameStateHub manager,
-                                          GameSessionStateContext ctx) {
+    private static void drainPostGameSideEffects(GameSessionDependencies deps,
+                                                 TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                                 GameSessionStateContext ctx) {
         BoardSnapshotUpdate boardUpdate = ctx.consumePendingBoardSnapshot();
         if (boardUpdate != null) {
-            publisher.broadcastBoardSnapshot(boardUpdate);
+            deps.messenger().broadcastBoardSnapshot(boardUpdate);
         }
         GameCompletionNotice completion = ctx.consumePendingGameCompletion();
         if (completion != null) {
-            publisher.broadcastGameCompleted(completion.session());
+            deps.messenger().broadcastGameCompleted(completion.session());
         }
         PostGameDecisionPrompt prompt = ctx.consumePendingDecisionPrompt();
         if (prompt != null) {
-            publisher.broadcastPostGamePrompt(prompt);
-            scheduleDecisionTimeout(prompt.session(), prompt.deadlineAt());
+            deps.messenger().broadcastPostGamePrompt(prompt);
+            scheduleDecisionTimeout(deps, timeoutConsumer, prompt.session(), prompt.deadlineAt());
         }
         PostGameDecisionUpdate update = ctx.consumePendingDecisionUpdate();
         if (update != null) {
-            publisher.broadcastPostGameDecisionUpdate(update);
+            deps.messenger().broadcastPostGameDecisionUpdate(update);
         }
         PostGameResolution resolution = ctx.consumePendingPostGameResolution();
         if (resolution != null) {
-            handlePostGameResolution(resolution);
+            handlePostGameResolution(deps, timeoutConsumer, resolution);
         }
     }
 
-    private void handlePostGameResolution(PostGameResolution resolution) {
+    private static void handlePostGameResolution(GameSessionDependencies deps,
+                                                 TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                                 PostGameResolution resolution) {
         GameSession session = resolution.session();
-        cancelAllTimers(session.sessionId());
+        cancelAllTimers(deps, session.sessionId());
         if (resolution.type() == PostGameResolution.ResolutionType.REMATCH) {
-            handleRematchResolution(resolution);
+            handleRematchResolution(deps, resolution);
         } else {
-            handleSessionTermination(session, resolution.disconnected());
+            handleSessionTermination(deps, session, resolution.disconnected());
         }
     }
 
-    private void handleRematchResolution(PostGameResolution resolution) {
+    private static void handleRematchResolution(GameSessionDependencies deps,
+                                                PostGameResolution resolution) {
         GameSession oldSession = resolution.session();
         List<String> participants = resolution.rematchParticipants();
         if (participants.size() < 2) {
-            handleSessionTermination(oldSession, resolution.disconnected());
+            handleSessionTermination(deps, oldSession, resolution.disconnected());
             return;
         }
         GameSession newSession = new GameSession(participants);
-        newSession.setRulesContext(ruleManager.prepareRules(newSession));
-        repository.save(newSession);
-        runtime.ensure(newSession);
-        publisher.broadcastRematchStarted(oldSession, newSession, participants);
-        publisher.broadcastJoin(newSession);
-        publisher.broadcastSessionTerminated(oldSession, resolution.disconnected());
-        repository.removeById(oldSession.sessionId()).ifPresent(runtime::remove);
+        newSession.setRulesContext(deps.ruleManager().prepareRules(newSession));
+        deps.repository().save(newSession);
+        deps.runtime().ensure(newSession);
+        deps.messenger().broadcastRematchStarted(oldSession, newSession, participants);
+        deps.messenger().broadcastJoin(newSession);
+        deps.messenger().broadcastSessionTerminated(oldSession, resolution.disconnected());
+        deps.repository().removeById(oldSession.sessionId()).ifPresent(deps.runtime()::remove);
     }
 
-    private void handleSessionTermination(GameSession session, List<String> disconnected) {
-        publisher.broadcastSessionTerminated(session, disconnected);
-        repository.removeById(session.sessionId()).ifPresent(runtime::remove);
+    private static void handleSessionTermination(GameSessionDependencies deps,
+                                                 GameSession session,
+                                                 List<String> disconnected) {
+        deps.messenger().broadcastSessionTerminated(session, disconnected);
+        deps.repository().removeById(session.sessionId()).ifPresent(deps.runtime()::remove);
     }
 
-    private void scheduleTurnTimeout(GameSession session, GameTurnService.TurnSnapshot turnSnapshot) {
-        timeoutCoordinator.schedule(session, turnSnapshot, this);
+    private static void scheduleTurnTimeout(GameSessionDependencies deps,
+                                            TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                            GameSession session,
+                                            GameTurnService.TurnSnapshot turnSnapshot) {
+        deps.turnTimeoutScheduler().schedule(session, turnSnapshot, timeoutConsumer);
     }
 
-    private void scheduleDecisionTimeout(GameSession session, long deadlineAt) {
+    private static void scheduleDecisionTimeout(GameSessionDependencies deps,
+                                                TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                                GameSession session,
+                                                long deadlineAt) {
         GameSessionId sessionId = session.sessionId();
-        decisionTimeoutCoordinator.schedule(sessionId, deadlineAt, () -> handleDecisionTimeout(sessionId));
+        deps.decisionTimeoutScheduler().schedule(sessionId, deadlineAt,
+            () -> handleDecisionTimeout(deps, timeoutConsumer, sessionId));
     }
 
+    private static void handleDecisionTimeoutCompletion(GameSessionDependencies deps,
+                                                        TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
+                                                        GameSessionStateContext ctx) {
+        drainPostGameSideEffects(deps, timeoutConsumer, ctx);
+    }
 }

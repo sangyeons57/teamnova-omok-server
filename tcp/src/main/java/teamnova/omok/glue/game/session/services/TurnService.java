@@ -1,78 +1,107 @@
 package teamnova.omok.glue.game.session.services;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.TurnAdvanceStrategy;
 import teamnova.omok.glue.game.session.model.TurnStore;
+import teamnova.omok.glue.game.session.model.vo.TurnCounters;
+import teamnova.omok.glue.game.session.model.vo.TurnOrder;
+import teamnova.omok.glue.game.session.model.vo.TurnTiming;
 
 /**
  * Handles turn sequencing logic for in-game sessions.
  */
 public class TurnService implements GameTurnService {
     private final long durationMillis;
+    private final TurnAdvanceStrategy advanceStrategy;
 
     public TurnService(long durationMillis) {
+        this(durationMillis, new SequentialTurnAdvanceStrategy());
+    }
+
+    public TurnService(long durationMillis, TurnAdvanceStrategy advanceStrategy) {
         if (durationMillis <= 0) {
             throw new IllegalArgumentException("durationMillis must be positive");
         }
         this.durationMillis = durationMillis;
+        this.advanceStrategy = Objects.requireNonNull(advanceStrategy, "advanceStrategy");
     }
 
     @Override
     public TurnSnapshot start(TurnStore store, List<String> userOrder, long now) {
+        requireStore(store);
         requirePlayers(userOrder);
+        TurnOrder order = TurnOrder.of(userOrder);
+        store.order(order);
         store.setCurrentPlayerIndex(0);
-        store.setTurnNumber(1);
-        store.setTurnStartAt(now);
-        store.setTurnEndAt(now + durationMillis);
-        return snapshot(store, userOrder);
+        store.counters(TurnCounters.first());
+        store.timing(TurnTiming.of(now, now + durationMillis));
+        return snapshot(store);
     }
 
     @Override
     public TurnSnapshot advanceSkippingDisconnected(TurnStore store,
-                                                    List<String> userOrder,
                                                     Set<String> disconnectedUserIds,
                                                     long now) {
-        requirePlayers(userOrder);
-        Set<String> skip = (disconnectedUserIds == null) ? Collections.emptySet() : disconnectedUserIds;
-        int total = userOrder.size();
+        requireStore(store);
+        TurnOrder order = ensureOrder(store);
         int current = Math.max(-1, store.getCurrentPlayerIndex());
-        int checked = 0;
-        int nextIndex = current;
-        while (checked < total) {
-            nextIndex = (nextIndex + 1) % total;
-            String candidate = userOrder.get(nextIndex);
-            if (!skip.contains(candidate)) {
-                store.setCurrentPlayerIndex(nextIndex);
-                updateTurnTiming(store, now);
-                return snapshot(store, userOrder);
-            }
-            checked++;
+        Optional<TurnAdvanceStrategy.Result> candidate =
+            advanceStrategy.next(order, current, disconnectedUserIds);
+        if (candidate.isEmpty()) {
+            store.setCurrentPlayerIndex(-1);
+            store.counters(store.counters().advanceWithoutActive());
+            store.timing(TurnTiming.of(now, now + durationMillis));
+            return snapshot(store);
         }
-        store.setCurrentPlayerIndex(-1);
-        updateTurnTiming(store, now);
-        return snapshot(store, userOrder);
+        TurnAdvanceStrategy.Result result = candidate.get();
+        store.setCurrentPlayerIndex(result.nextIndex());
+        store.counters(store.counters().advance(result.wrapped(), order.size()));
+        store.timing(TurnTiming.of(now, now + durationMillis));
+        return snapshot(store);
     }
 
     @Override
     public boolean isExpired(TurnStore store, long now) {
-        return store.getTurnEndAt() > 0 && now >= store.getTurnEndAt();
+        requireStore(store);
+        return store.timing().isExpired(now);
     }
 
     @Override
     public Integer currentPlayerIndex(TurnStore store) {
+        requireStore(store);
         int index = store.getCurrentPlayerIndex();
         return index >= 0 ? index : null;
     }
 
     @Override
-    public TurnSnapshot snapshot(TurnStore store, List<String> userOrder) {
-        requirePlayers(userOrder);
+    public TurnSnapshot snapshot(TurnStore store) {
+        requireStore(store);
+        TurnOrder order = store.order();
         int index = store.getCurrentPlayerIndex();
-        String playerId = (index >= 0 && index < userOrder.size()) ? userOrder.get(index) : null;
-        return new TurnSnapshot(index, playerId, store.getTurnNumber(), store.getTurnStartAt(), store.getTurnEndAt());
+        String playerId = null;
+        if (order != null && index >= 0 && index < order.size()) {
+            playerId = order.userIdAt(index);
+        }
+        return new TurnSnapshot(
+            index,
+            playerId,
+            store.counters(),
+            store.timing(),
+            order
+        );
+    }
+
+    private TurnOrder ensureOrder(TurnStore store) {
+        TurnOrder order = store.order();
+        if (order == null || order.size() == 0) {
+            throw new IllegalStateException("Turn order has not been initialized");
+        }
+        return order;
     }
 
     private void requirePlayers(List<String> userOrder) {
@@ -81,9 +110,9 @@ public class TurnService implements GameTurnService {
         }
     }
 
-    private void updateTurnTiming(TurnStore store, long now) {
-        store.setTurnNumber(Math.max(1, store.getTurnNumber() + 1));
-        store.setTurnStartAt(now);
-        store.setTurnEndAt(now + durationMillis);
+    private void requireStore(TurnStore store) {
+        if (store == null) {
+            throw new IllegalArgumentException("store must not be null");
+        }
     }
 }

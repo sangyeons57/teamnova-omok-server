@@ -9,8 +9,8 @@ import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
-import teamnova.omok.glue.service.dto.MoveResult;
-import teamnova.omok.glue.service.dto.MoveStatus;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.result.MoveStatus;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -59,8 +59,6 @@ public final class MoveValidatingState implements BaseState {
             ));
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
-        cycle.playerIndex(playerIndex);
-
         if (!session.isGameStarted()) {
             invalidate(context, MoveResult.invalid(
                 session,
@@ -74,7 +72,7 @@ public final class MoveValidatingState implements BaseState {
         }
 
         GameTurnService.TurnSnapshot currentSnapshot =
-            turnService.snapshot(session.getTurnStore(), session.getUserIds());
+            turnService.snapshot(session.getTurnStore());
         cycle.snapshots().current(currentSnapshot);
 
         if (session.isGameFinished()) {

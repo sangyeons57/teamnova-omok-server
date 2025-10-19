@@ -13,7 +13,6 @@ import teamnova.omok.glue.handler.LeaveMatchHandler;
 import teamnova.omok.glue.handler.PostGameDecisionHandler;
 import teamnova.omok.glue.handler.PlaceStoneHandler;
 import teamnova.omok.glue.handler.ReadyInGameSessionHandler;
-import teamnova.omok.glue.service.ServiceManager;
 
 import java.util.function.Supplier;
 
@@ -24,7 +23,7 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
     private final HelloWorldDecoder helloWorldDecoder;
     private final StringDecoder stringDecoder;
 
-    private Dispatcher dispatcher;;
+    private Dispatcher dispatcher;
 
     public DefaultHandlerRegistry() {
         this.helloWorldDecoder = new HelloWorldDecoder();

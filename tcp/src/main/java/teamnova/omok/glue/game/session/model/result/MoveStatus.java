@@ -1,4 +1,4 @@
-package teamnova.omok.glue.service.dto;
+package teamnova.omok.glue.game.session.model.result;
 
 /**
  * Movement validation outcome used during in-game turn processing.

@@ -6,7 +6,7 @@ import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
-import teamnova.omok.glue.service.dto.MoveResult;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -39,7 +39,6 @@ public final class TurnFinalizingState implements BaseState {
         GameTurnService.TurnSnapshot nextSnapshot = turnService
             .advanceSkippingDisconnected(
                 context.session().getTurnStore(),
-                context.session().getUserIds(),
                 context.session().disconnectedUsersView(),
                 cycle.now()
             );

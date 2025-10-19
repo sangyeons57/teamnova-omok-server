@@ -5,25 +5,21 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import teamnova.omok.glue.game.session.GameSessionManager;
-import teamnova.omok.glue.service.ServiceManager;
 
 /**
  * Top-level coordinator that wires managers together and drives the process lifecycle.
  */
 public final class ServerLifecycleManager implements Closeable {
-    private final ServiceManager services;
     private final NioManager nioManager;
     private final GameSessionManager gameSessionManager;
     private final MatchingManager matchingManager;
     private final UserSessionManager userSessionManager;
     private final AtomicBoolean started = new AtomicBoolean(false);
 
-    public ServerLifecycleManager(ServiceManager services,
-                                  NioManager nioManager,
+    public ServerLifecycleManager( NioManager nioManager,
                                   GameSessionManager gameSessionManager,
                                   MatchingManager matchingManager,
                                   UserSessionManager userSessionManager) {
-        this.services = Objects.requireNonNull(services, "services");
         this.nioManager = Objects.requireNonNull(nioManager, "nioManager");
         this.gameSessionManager = Objects.requireNonNull(gameSessionManager, "gameSessionManager");
         this.matchingManager = Objects.requireNonNull(matchingManager, "matchingManager");
@@ -32,7 +28,6 @@ public final class ServerLifecycleManager implements Closeable {
 
     public void start() {
         if (started.compareAndSet(false, true)) {
-            services.start(nioManager.getServer());
             matchingManager.start(nioManager.getServer());
             userSessionManager.start();
         }
@@ -56,11 +51,7 @@ public final class ServerLifecycleManager implements Closeable {
                 try {
                     nioManager.close();
                 } finally {
-                    try {
-                        gameSessionManager.close();
-                    } finally {
-                        services.stop();
-                    }
+                    gameSessionManager.close();
                 }
             }
         }

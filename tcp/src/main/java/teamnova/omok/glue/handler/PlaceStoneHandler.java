@@ -7,7 +7,6 @@ import teamnova.omok.glue.message.decoder.StringDecoder;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.game.session.GameSessionManager;
-import teamnova.omok.glue.service.ServiceManager;
 
 public class PlaceStoneHandler implements FrameHandler {
     private final StringDecoder stringDecoder;
@@ -38,7 +37,7 @@ public class PlaceStoneHandler implements FrameHandler {
             return;
         }
 
-        GameSessionManager gameSessionManager = ServiceManager.getInstance().getGameSessionManager();
+        GameSessionManager gameSessionManager = GameSessionManager.getInstance();
         boolean accepted = gameSessionManager.submitMove(userId, frame.requestId(), x, y);
         if (!accepted) {
             respondError(session, frame, "SESSION_NOT_FOUND");

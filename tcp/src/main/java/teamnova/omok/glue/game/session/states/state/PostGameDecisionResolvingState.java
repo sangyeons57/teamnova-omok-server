@@ -3,7 +3,7 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.ArrayList;
 import java.util.List;
 
-import teamnova.omok.glue.service.dto.PostGameResolution;
+import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;

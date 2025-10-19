@@ -7,7 +7,6 @@ import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.game.session.GameSessionManager;
-import teamnova.omok.glue.service.ServiceManager;
 
 public class ReadyInGameSessionHandler implements FrameHandler {
     @Override
@@ -16,7 +15,7 @@ public class ReadyInGameSessionHandler implements FrameHandler {
             return;
         }
         String userId = session.authenticatedUserId();
-        GameSessionManager gameSessionManager = ServiceManager.getInstance().getGameSessionManager();
+        GameSessionManager gameSessionManager = GameSessionManager.getInstance();
 
         boolean accepted = gameSessionManager.submitReady(userId, frame.requestId());
         if (!accepted) {

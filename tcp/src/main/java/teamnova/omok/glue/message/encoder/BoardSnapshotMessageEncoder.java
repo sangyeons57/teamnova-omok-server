@@ -3,7 +3,7 @@ package teamnova.omok.glue.message.encoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.BoardStore;
 import teamnova.omok.glue.game.session.model.GameSession;
 

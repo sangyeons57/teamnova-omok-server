@@ -4,15 +4,15 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.rule.RulesContext;
-import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
-import teamnova.omok.glue.service.dto.GameCompletionNotice;
-import teamnova.omok.glue.service.dto.MoveResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionPrompt;
-import teamnova.omok.glue.service.dto.PostGameDecisionResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionUpdate;
-import teamnova.omok.glue.service.dto.PostGameResolution;
-import teamnova.omok.glue.service.dto.ReadyResult;
-import teamnova.omok.glue.service.dto.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
+import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
+import teamnova.omok.glue.game.session.model.result.ReadyResult;
+import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 
 /**
@@ -39,10 +39,6 @@ public final class GameSessionStateContext implements StateContext {
 
     public GameSession session() {
         return session;
-    }
-
-    public RulesContext rulesContext() {
-        return session.getRulesContext();
     }
 
     public void beginTurnCycle(TurnCycleContext context) {

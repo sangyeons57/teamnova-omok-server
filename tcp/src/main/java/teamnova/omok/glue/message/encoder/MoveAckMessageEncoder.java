@@ -2,8 +2,8 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
-import teamnova.omok.glue.service.dto.MoveResult;
-import teamnova.omok.glue.service.dto.MoveStatus;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.result.MoveStatus;
 
 public final class MoveAckMessageEncoder {
     private MoveAckMessageEncoder() {}
@@ -28,7 +28,7 @@ public final class MoveAckMessageEncoder {
           .append("\"turn\":");
         MessageEncodingUtil.appendTurn(sb, result.turnSnapshot());
         sb.append('}');
-        System.out.println(sb.toString());
+        System.out.println(sb);
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 }

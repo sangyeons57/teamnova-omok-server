@@ -2,7 +2,7 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
-import teamnova.omok.glue.service.dto.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 
 public final class TurnTimeoutMessageEncoder {
     private TurnTimeoutMessageEncoder() {}

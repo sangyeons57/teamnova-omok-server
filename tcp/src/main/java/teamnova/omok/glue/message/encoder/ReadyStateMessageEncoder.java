@@ -2,7 +2,7 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
-import teamnova.omok.glue.service.dto.ReadyResult;
+import teamnova.omok.glue.game.session.model.result.ReadyResult;
 
 public final class ReadyStateMessageEncoder {
     private ReadyStateMessageEncoder() {}

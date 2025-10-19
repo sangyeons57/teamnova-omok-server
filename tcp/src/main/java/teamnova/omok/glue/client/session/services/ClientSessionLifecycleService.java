@@ -3,8 +3,8 @@ package teamnova.omok.glue.client.session.services;
 import java.util.Objects;
 
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
+import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.glue.manager.MatchingManager;
-import teamnova.omok.glue.service.ServiceManager;
 
 /**
  * Encapsulates authentication and lifecycle transitions for managed client sessions.
@@ -63,8 +63,7 @@ public final class ClientSessionLifecycleService {
 
     private void notifyGameDisconnect(String userId) {
         try {
-            ServiceManager.getInstance()
-                .getGameSessionManager()
+            GameSessionManager.getInstance()
                 .handleClientDisconnected(userId);
         } catch (Throwable ignore) {
             // swallow to avoid cascading disconnect failures

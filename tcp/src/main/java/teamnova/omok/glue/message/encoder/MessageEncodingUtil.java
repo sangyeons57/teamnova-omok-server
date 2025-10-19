@@ -29,6 +29,12 @@ final class MessageEncodingUtil {
         sb.append('{')
           .append("\"number\":").append(turn.turnNumber())
           .append(',')
+          .append("\"round\":").append(turn.roundNumber())
+          .append(',')
+          .append("\"position\":").append(turn.positionInRound())
+          .append(',')
+          .append("\"playerIndex\":").append(turn.currentPlayerIndex())
+          .append(',')
           .append("\"currentPlayerId\":");
         if (turn.currentPlayerId() == null) {
             sb.append("null");

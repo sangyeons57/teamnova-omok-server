@@ -1,4 +1,4 @@
-package teamnova.omok.glue.service.dto;
+package teamnova.omok.glue.game.session.model.result;
 
 /**
  * Result codes for post-game decisions.

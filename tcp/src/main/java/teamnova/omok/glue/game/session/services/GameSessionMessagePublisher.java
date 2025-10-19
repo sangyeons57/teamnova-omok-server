@@ -22,13 +22,13 @@ import teamnova.omok.glue.message.encoder.PostGameDecisionUpdateMessageEncoder;
 import teamnova.omok.glue.message.encoder.ReadyStateMessageEncoder;
 import teamnova.omok.glue.message.encoder.StonePlacedMessageEncoder;
 import teamnova.omok.glue.message.encoder.TurnTimeoutMessageEncoder;
-import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
-import teamnova.omok.glue.service.dto.MoveResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionPrompt;
-import teamnova.omok.glue.service.dto.PostGameDecisionResult;
-import teamnova.omok.glue.service.dto.PostGameDecisionUpdate;
-import teamnova.omok.glue.service.dto.ReadyResult;
-import teamnova.omok.glue.service.dto.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
+import teamnova.omok.glue.game.session.model.result.ReadyResult;
+import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 
 /**
  * Encodes/dispatches messages that relate to in-game session events.

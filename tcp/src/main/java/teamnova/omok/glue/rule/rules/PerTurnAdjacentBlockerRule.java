@@ -9,7 +9,7 @@ import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.BoardStore;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
@@ -39,7 +39,7 @@ public class PerTurnAdjacentBlockerRule implements Rule {
         if (session == null || stateContext == null || services == null) return;
 
         TurnStore turn = session.getTurnStore();
-        int completedTurns = Math.max(0, turn.getTurnNumber() - 1);
+        int completedTurns = Math.max(0, turn.actionNumber() - 1);
         if (completedTurns <= 0) return; // start after first move completes
 
         BoardStore board = session.getBoardStore();

@@ -2,7 +2,7 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
-import teamnova.omok.glue.service.dto.PostGameDecisionPrompt;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 
 public final class PostGameDecisionPromptMessageEncoder {
     private PostGameDecisionPromptMessageEncoder() {}

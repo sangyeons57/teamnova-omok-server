@@ -15,9 +15,8 @@ public final class TurnCycleContext {
     private final int y;
     private final long now;
 
-    private int playerIndex = -1;
     private Stone stone;
-    private TurnServiceSnapshotWrapper snapshots = new TurnServiceSnapshotWrapper();
+    private final TurnServiceSnapshotWrapper snapshots = new TurnServiceSnapshotWrapper();
 
     public TurnCycleContext(GameSessionStateContext parent, String userId, int x, int y, long now) {
         this.parent = parent;
@@ -27,16 +26,8 @@ public final class TurnCycleContext {
         this.now = now;
     }
 
-    GameSessionStateContext parent() {
-        return parent;
-    }
-
     public GameSession session() {
         return parent.session();
-    }
-
-    public TurnStore turnStore() {
-        return parent.session().getTurnStore();
     }
 
     public String userId() {
@@ -53,14 +44,6 @@ public final class TurnCycleContext {
 
     public long now() {
         return now;
-    }
-
-    public int playerIndex() {
-        return playerIndex;
-    }
-
-    public void playerIndex(int playerIndex) {
-        this.playerIndex = playerIndex;
     }
 
     public Stone stone() {

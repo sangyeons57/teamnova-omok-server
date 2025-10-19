@@ -10,22 +10,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.client.session.ClientSessionManager;
+import teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
+import teamnova.omok.glue.game.session.interfaces.GameSessionEventProcessor;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameSessionOperations;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRepository;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.GameSessionEventProcessor;
 import teamnova.omok.glue.game.session.interfaces.TurnTimeoutScheduler;
-import teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
-import teamnova.omok.glue.game.session.services.BoardService;
-import teamnova.omok.glue.game.session.services.InGameSessionService;
-import teamnova.omok.glue.game.session.repository.InMemoryGameSessionRepository;
+import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.game.session.repository.GameStateHubRegistry;
+import teamnova.omok.glue.game.session.repository.InMemoryGameSessionRepository;
+import teamnova.omok.glue.game.session.services.BoardService;
+import teamnova.omok.glue.game.session.services.GameSessionCreationService;
+import teamnova.omok.glue.game.session.services.GameSessionDependencies;
+import teamnova.omok.glue.game.session.services.GameSessionLifecycleService;
 import teamnova.omok.glue.game.session.services.ScoreService;
 import teamnova.omok.glue.game.session.services.SessionEventService;
 import teamnova.omok.glue.game.session.services.TurnService;
@@ -37,7 +40,10 @@ import teamnova.omok.modules.matching.models.MatchGroup;
 /**
  * Central facade coordinating game session lifecycle and dependencies.
  */
-public final class GameSessionManager implements Closeable {
+public final class GameSessionManager implements Closeable,
+                                                 GameSessionOperations,
+                                                 GameSessionEventProcessor,
+                                                 TurnTimeoutScheduler.TurnTimeoutConsumer {
     private static final long DEFAULT_TICK_MILLIS = 20L;
 
     private static GameSessionManager INSTANCE;
@@ -62,8 +68,7 @@ public final class GameSessionManager implements Closeable {
     private final DecisionTimeoutScheduler decisionTimeoutScheduler;
     private final TurnTimeoutScheduler turnTimeoutScheduler;
     private final GameSessionMessenger messenger;
-    private final GameSessionEventProcessor eventProcessor;
-    private final GameSessionOperations operations;
+    private final GameSessionDependencies dependencies;
     private final ScheduledExecutorService scheduler;
     private final AtomicBoolean ticking = new AtomicBoolean(false);
 
@@ -77,21 +82,13 @@ public final class GameSessionManager implements Closeable {
         this.turnTimeoutScheduler = new TurnTimeoutCoordinator();
         this.decisionTimeoutScheduler = new DecisionTimeoutCoordinator();
         this.messenger = ClientSessionManager.getInstance().gamePublisher();
-        this.eventProcessor = new SessionEventService(
+        this.dependencies = new GameSessionDependencies(
             repository,
             runtime,
             turnService,
             messenger,
             turnTimeoutScheduler,
             decisionTimeoutScheduler,
-            ruleManager
-        );
-        this.operations = new InGameSessionService(
-            repository,
-            runtime,
-            turnService,
-            messenger,
-            eventProcessor,
             ruleManager
         );
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -104,7 +101,7 @@ public final class GameSessionManager implements Closeable {
 
     public void start(NioReactorServer server) {
         Objects.requireNonNull(server, "server");
-        operations.attachServer(server);
+        attachServer(server);
         startTicker();
     }
 
@@ -126,38 +123,69 @@ public final class GameSessionManager implements Closeable {
     }
 
     public Optional<GameSession> findSession(String userId) {
-        return operations.findByUser(userId);
+        return findByUser(userId);
     }
 
     public void leaveSession(String userId) {
-        operations.leaveByUser(userId);
+        leaveByUser(userId);
     }
 
+    @Override
     public void handleClientDisconnected(String userId) {
-        operations.handleClientDisconnected(userId);
+        GameSessionLifecycleService.handleClientDisconnected(dependencies, this, userId);
     }
 
+    @Override
     public boolean submitReady(String userId, long requestId) {
-        return operations.submitReady(userId, requestId);
+        return SessionEventService.submitReady(dependencies, this, userId, requestId);
     }
 
+    @Override
     public boolean submitMove(String userId, long requestId, int x, int y) {
-        return operations.submitMove(userId, requestId, x, y);
+        return SessionEventService.submitMove(dependencies, this, userId, requestId, x, y);
     }
 
+    @Override
     public boolean submitPostGameDecision(String userId, long requestId, PostGameDecision decision) {
-        return operations.submitPostGameDecision(userId, requestId, decision);
+        return SessionEventService.submitPostGameDecision(dependencies, this, userId, requestId, decision);
     }
 
+    @Override
+    public void cancelAllTimers(GameSessionId sessionId) {
+        SessionEventService.cancelAllTimers(dependencies, sessionId);
+    }
+
+    @Override
+    public void skipTurnForDisconnected(GameSession session, String userId, int expectedTurnNumber) {
+        SessionEventService.skipTurnForDisconnected(dependencies, this, session, userId, expectedTurnNumber);
+    }
+
+    @Override
     public void createFromGroup(NioReactorServer server, MatchGroup group) {
-        operations.createFromGroup(server, group);
+        Objects.requireNonNull(server, "server");
+        GameSessionCreationService.createFromGroup(dependencies, group);
     }
 
-    public GameSessionMessenger messenger() { return messenger; }
-    public GameSessionEventProcessor eventProcessor() { return eventProcessor; }
-    public GameBoardService boardService() { return boardService; }
-    public GameTurnService turnService() { return turnService; }
-    public GameScoreService scoreService() { return scoreService; }
+    @Override
+    public void attachServer(NioReactorServer server) {
+        Objects.requireNonNull(server, "server");
+    }
+
+    @Override
+    public Optional<GameSession> findByUser(String userId) {
+        Objects.requireNonNull(userId, "userId");
+        return dependencies.repository().findByUserId(userId);
+    }
+
+    @Override
+    public void leaveByUser(String userId) {
+        GameSessionLifecycleService.leaveByUser(dependencies, userId);
+    }
+
+    @Override
+    public void onTimeout(GameSessionId sessionId, int expectedTurnNumber) {
+        SessionEventService.handleScheduledTimeout(dependencies, this, sessionId, expectedTurnNumber);
+    }
 
     @Override
     public void close() {

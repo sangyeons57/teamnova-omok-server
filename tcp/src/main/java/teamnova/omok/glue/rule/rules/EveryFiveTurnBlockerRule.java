@@ -16,7 +16,7 @@ import teamnova.omok.glue.game.session.model.BoardStore;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.TurnStore;
-import teamnova.omok.glue.service.dto.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 
 public class EveryFiveTurnBlockerRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
@@ -44,7 +44,7 @@ public class EveryFiveTurnBlockerRule implements Rule {
             return;
         }
         TurnStore turnStore = session.getTurnStore();
-        int completedTurns = Math.max(0, turnStore.getTurnNumber() - 1);
+        int completedTurns = Math.max(0, turnStore.actionNumber() - 1);
         if (completedTurns <= 0 || completedTurns % 5 != 0) {
             return;
         }
