@@ -2,24 +2,33 @@ package teamnova.omok.glue.game.session.states.manage;
 
 import java.util.Objects;
 
-import teamnova.omok.glue.game.session.interfaces.session.*;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionLifecycleAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionOutcomeAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionPostGameAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 
 /**
- * Shared context passed to game session state implementations.
+ * Shared context passed to game session state implementations. Holds mutable
+ * state while delegating behavioral logic to {@link GameSessionStateContextService}.
  */
 public final class GameSessionStateContext implements StateContext {
     private final GameSession session;
+    private final GameSessionAccess access;
 
     private TurnCycleContext activeTurnCycle;
     private MoveResult pendingMoveResult;
@@ -35,127 +44,174 @@ public final class GameSessionStateContext implements StateContext {
 
     public GameSessionStateContext(GameSession session) {
         this.session = Objects.requireNonNull(session, "session");
+        this.access = session;
     }
 
-    public <T extends GameSessionAccessInterface> T getSession() {
-        return (T) session;
+    public GameSession session() {
+        return session;
     }
 
-    public void beginTurnCycle(TurnCycleContext context) {
-        if (this.activeTurnCycle != null) {
-            throw new IllegalStateException("Turn cycle already in progress");
-        }
-        this.activeTurnCycle = context;
-        this.pendingMoveResult = null;
+    public GameSessionBoardAccess board() {
+        return access;
     }
 
-    public TurnCycleContext activeTurnCycle() {
+    public GameSessionTurnAccess turns() {
+        return access;
+    }
+
+    public GameSessionParticipantsAccess participants() {
+        return access;
+    }
+
+    public GameSessionOutcomeAccess outcomes() {
+        return access;
+    }
+
+    public GameSessionPostGameAccess postGame() {
+        return access;
+    }
+
+    public GameSessionLifecycleAccess lifecycle() {
+        return access;
+    }
+
+    public GameSessionRuleAccess rules() {
+        return access;
+    }
+
+    public GameSessionAccess view() {
+        return access;
+    }
+
+    TurnCycleContext getActiveTurnCycle() {
         return activeTurnCycle;
     }
 
-    public void clearTurnCycle() {
+    void setActiveTurnCycle(TurnCycleContext context) {
+        this.activeTurnCycle = context;
+    }
+
+    void clearActiveTurnCycle() {
         this.activeTurnCycle = null;
     }
 
-    public void pendingMoveResult(MoveResult result) {
+    MoveResult getPendingMoveResult() {
+        return pendingMoveResult;
+    }
+
+    void setPendingMoveResult(MoveResult result) {
         this.pendingMoveResult = result;
     }
 
-    public MoveResult consumePendingMoveResult() {
-        MoveResult result = this.pendingMoveResult;
+    void clearPendingMoveResult() {
         this.pendingMoveResult = null;
-        return result;
     }
 
-    public void pendingReadyResult(ReadyResult result) {
+    ReadyResult getPendingReadyResult() {
+        return pendingReadyResult;
+    }
+
+    void setPendingReadyResult(ReadyResult result) {
         this.pendingReadyResult = result;
     }
 
-    public ReadyResult consumePendingReadyResult() {
-        ReadyResult result = this.pendingReadyResult;
+    void clearPendingReadyResult() {
         this.pendingReadyResult = null;
-        return result;
     }
 
-    public void pendingTimeoutResult(TurnTimeoutResult result) {
+    TurnTimeoutResult getPendingTimeoutResult() {
+        return pendingTimeoutResult;
+    }
+
+    void setPendingTimeoutResult(TurnTimeoutResult result) {
         this.pendingTimeoutResult = result;
     }
 
-    public TurnTimeoutResult consumePendingTimeoutResult() {
-        TurnTimeoutResult result = this.pendingTimeoutResult;
+    void clearPendingTimeoutResult() {
         this.pendingTimeoutResult = null;
-        return result;
     }
 
-    public void pendingDecisionResult(PostGameDecisionResult result) {
+    PostGameDecisionResult getPendingDecisionResult() {
+        return pendingDecisionResult;
+    }
+
+    void setPendingDecisionResult(PostGameDecisionResult result) {
         this.pendingDecisionResult = result;
     }
 
-    public PostGameDecisionResult consumePendingDecisionResult() {
-        PostGameDecisionResult result = this.pendingDecisionResult;
+    void clearPendingDecisionResult() {
         this.pendingDecisionResult = null;
-        return result;
     }
 
-    public void pendingDecisionUpdate(PostGameDecisionUpdate update) {
+    PostGameDecisionUpdate getPendingDecisionUpdate() {
+        return pendingDecisionUpdate;
+    }
+
+    void setPendingDecisionUpdate(PostGameDecisionUpdate update) {
         this.pendingDecisionUpdate = update;
     }
 
-    public PostGameDecisionUpdate consumePendingDecisionUpdate() {
-        PostGameDecisionUpdate update = this.pendingDecisionUpdate;
+    void clearPendingDecisionUpdate() {
         this.pendingDecisionUpdate = null;
-        return update;
     }
 
-    public void pendingDecisionPrompt(PostGameDecisionPrompt prompt) {
+    PostGameDecisionPrompt getPendingDecisionPrompt() {
+        return pendingDecisionPrompt;
+    }
+
+    void setPendingDecisionPrompt(PostGameDecisionPrompt prompt) {
         this.pendingDecisionPrompt = prompt;
     }
 
-    public PostGameDecisionPrompt consumePendingDecisionPrompt() {
-        PostGameDecisionPrompt prompt = this.pendingDecisionPrompt;
+    void clearPendingDecisionPrompt() {
         this.pendingDecisionPrompt = null;
-        return prompt;
     }
 
-    public void pendingPostGameResolution(PostGameResolution resolution) {
+    PostGameResolution getPendingPostGameResolution() {
+        return pendingPostGameResolution;
+    }
+
+    void setPendingPostGameResolution(PostGameResolution resolution) {
         this.pendingPostGameResolution = resolution;
     }
 
-    public PostGameResolution consumePendingPostGameResolution() {
-        PostGameResolution resolution = this.pendingPostGameResolution;
+    void clearPendingPostGameResolution() {
         this.pendingPostGameResolution = null;
-        return resolution;
     }
 
-    public void postGameDecisionDeadline(long deadline) {
-        this.postGameDecisionDeadline = deadline;
-    }
-
-    public long postGameDecisionDeadline() {
+    long getPostGameDecisionDeadline() {
         return postGameDecisionDeadline;
     }
 
-    public void clearPostGameDecisionDeadline() {
+    void setPostGameDecisionDeadline(long deadline) {
+        this.postGameDecisionDeadline = deadline;
+    }
+
+    void clearPostGameDecisionDeadline() {
         this.postGameDecisionDeadline = 0L;
     }
 
-    public void pendingGameCompletion(GameCompletionNotice notice) {
+    GameCompletionNotice getPendingGameCompletion() {
+        return pendingGameCompletion;
+    }
+
+    void setPendingGameCompletion(GameCompletionNotice notice) {
         this.pendingGameCompletion = notice;
     }
 
-    public GameCompletionNotice consumePendingGameCompletion() {
-        GameCompletionNotice notice = this.pendingGameCompletion;
+    void clearPendingGameCompletion() {
         this.pendingGameCompletion = null;
-        return notice;
     }
 
-    public void pendingBoardSnapshot(BoardSnapshotUpdate update) {
+    BoardSnapshotUpdate getPendingBoardSnapshot() {
+        return pendingBoardSnapshot;
+    }
+
+    void setPendingBoardSnapshot(BoardSnapshotUpdate update) {
         this.pendingBoardSnapshot = update;
     }
 
-    public BoardSnapshotUpdate consumePendingBoardSnapshot() {
-        BoardSnapshotUpdate update = this.pendingBoardSnapshot;
+    void clearPendingBoardSnapshot() {
         this.pendingBoardSnapshot = null;
-        return update;
     }
 }

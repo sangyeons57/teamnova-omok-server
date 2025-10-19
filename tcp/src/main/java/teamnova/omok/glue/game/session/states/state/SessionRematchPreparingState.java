@@ -1,6 +1,9 @@
 package teamnova.omok.glue.game.session.states.state;
 
+import java.util.Objects;
+
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -11,6 +14,11 @@ import teamnova.omok.modules.state_machine.models.StateStep;
  * Finalizes the current session before rematch participants move to a new session.
  */
 public final class SessionRematchPreparingState implements BaseState {
+    private final GameSessionStateContextService contextService;
+
+    public SessionRematchPreparingState(GameSessionStateContextService contextService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
+    }
     @Override
     public StateName name() {
         return GameSessionStateType.SESSION_REMATCH_PREPARING.toStateName();
@@ -22,7 +30,7 @@ public final class SessionRematchPreparingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        context.clearPostGameDecisionDeadline();
+        contextService.postGame().clearDecisionDeadline(context);
         return StateStep.transition(GameSessionStateType.COMPLETED.toStateName());
     }
 }

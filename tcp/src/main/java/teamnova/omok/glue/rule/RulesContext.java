@@ -10,6 +10,7 @@ import teamnova.omok.glue.game.session.interfaces.session.*;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 
 public class RulesContext {
@@ -20,6 +21,7 @@ public class RulesContext {
 
     private volatile GameSessionStateContext stateContext;
     private volatile GameSessionServices services;
+    private volatile GameSessionStateContextService contextService;
 
     private RulesContext(GameSession session,
                          List<RuleId> ruleIds,
@@ -75,6 +77,14 @@ public class RulesContext {
 
     public void attachServices(GameSessionServices services) {
         this.services = services;
+    }
+
+    public void attachContextService(GameSessionStateContextService contextService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
+    }
+
+    public GameSessionStateContextService contextService() {
+        return Objects.requireNonNull(contextService, "contextService not attached");
     }
 
     // With simplified rules, we ignore the specific state and always allow activation when any rule exists.

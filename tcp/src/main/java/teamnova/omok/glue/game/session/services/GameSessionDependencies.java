@@ -8,6 +8,7 @@ import teamnova.omok.glue.game.session.interfaces.GameSessionRepository;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.rule.RuleManager;
 
 /**
@@ -20,7 +21,8 @@ public record GameSessionDependencies(
     GameSessionMessenger messenger,
     TurnTimeoutScheduler turnTimeoutScheduler,
     DecisionTimeoutScheduler decisionTimeoutScheduler,
-    RuleManager ruleManager
+    RuleManager ruleManager,
+    GameSessionStateContextService contextService
 ) {
     public GameSessionDependencies {
         Objects.requireNonNull(repository, "repository");
@@ -30,5 +32,6 @@ public record GameSessionDependencies(
         Objects.requireNonNull(turnTimeoutScheduler, "turnTimeoutScheduler");
         Objects.requireNonNull(decisionTimeoutScheduler, "decisionTimeoutScheduler");
         Objects.requireNonNull(ruleManager, "ruleManager");
+        Objects.requireNonNull(contextService, "contextService");
     }
 }

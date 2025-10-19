@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
@@ -16,8 +17,11 @@ import teamnova.omok.modules.state_machine.models.StateStep;
  */
 public final class MoveApplyingState implements BaseState {
     private final GameBoardService boardService;
+    private final GameSessionStateContextService contextService;
 
-    public MoveApplyingState(GameBoardService boardService) {
+    public MoveApplyingState(GameSessionStateContextService contextService,
+                             GameBoardService boardService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.boardService = Objects.requireNonNull(boardService, "boardService");
     }
     @Override
@@ -31,11 +35,11 @@ public final class MoveApplyingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        TurnCycleContext cycle = context.activeTurnCycle();
+        TurnCycleContext cycle = contextService.turn().activeTurnCycle(context);
         if (cycle == null) {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
-        boardService.setStone(context.getSession(), cycle.x(), cycle.y(), cycle.stone());
+        boardService.setStone(context.board(), cycle.x(), cycle.y(), cycle.stone());
         return StateStep.transition(GameSessionStateType.OUTCOME_EVALUATING.toStateName());
     }
 }

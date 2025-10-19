@@ -6,11 +6,12 @@ import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
+import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -22,8 +23,12 @@ import teamnova.omok.modules.state_machine.models.StateStep;
 public final class MoveValidatingState implements BaseState {
     private final GameBoardService boardService;
     private final GameTurnService turnService;
+    private final GameSessionStateContextService contextService;
 
-    public MoveValidatingState(GameBoardService boardService, GameTurnService turnService) {
+    public MoveValidatingState(GameSessionStateContextService contextService,
+                               GameBoardService boardService,
+                               GameTurnService turnService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.boardService = Objects.requireNonNull(boardService, "boardService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
     }
@@ -38,7 +43,7 @@ public final class MoveValidatingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        TurnCycleContext cycle = context.activeTurnCycle();
+        TurnCycleContext cycle = contextService.turn().activeTurnCycle(context);
         if (cycle == null) {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
@@ -47,7 +52,7 @@ public final class MoveValidatingState implements BaseState {
         int x = cycle.x();
         int y = cycle.y();
 
-        int playerIndex = session.playerIndexOf(userId);
+        int playerIndex = context.participants().playerIndexOf(userId);
         if (playerIndex < 0) {
             invalidate(context, MoveResult.invalid(
                 session,
@@ -59,7 +64,7 @@ public final class MoveValidatingState implements BaseState {
             ));
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
-        if (!session.isGameStarted()) {
+        if (!context.lifecycle().isGameStarted()) {
             invalidate(context, MoveResult.invalid(
                 session,
                 MoveStatus.GAME_NOT_STARTED,
@@ -72,10 +77,10 @@ public final class MoveValidatingState implements BaseState {
         }
 
         GameTurnService.TurnSnapshot currentSnapshot =
-            turnService.snapshot(context.getSession());
+            turnService.snapshot(context.turns());
         cycle.snapshots().current(currentSnapshot);
 
-        if (session.isGameFinished()) {
+        if (context.outcomes().isGameFinished()) {
             invalidate(context, MoveResult.invalid(
                 session,
                 MoveStatus.GAME_FINISHED,
@@ -87,7 +92,7 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        if (!boardService.isWithinBounds(context.getSession(), x, y)) {
+        if (!boardService.isWithinBounds(context.board(), x, y)) {
             invalidate(context, MoveResult.invalid(
                 session,
                 MoveStatus.OUT_OF_BOUNDS,
@@ -99,7 +104,7 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        Integer currentIndex = turnService.currentPlayerIndex(context.getSession());
+        Integer currentIndex = turnService.currentPlayerIndex(context.turns());
         if (currentIndex == null || currentIndex != playerIndex) {
             invalidate(context, MoveResult.invalid(
                 session,
@@ -112,7 +117,7 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        if (!boardService.isEmpty(context.getSession(), x, y)) {
+        if (!boardService.isEmpty(context.board(), x, y)) {
             invalidate(context, MoveResult.invalid(
                 session,
                 MoveStatus.CELL_OCCUPIED,
@@ -130,7 +135,7 @@ public final class MoveValidatingState implements BaseState {
     }
 
     private void invalidate(GameSessionStateContext context, MoveResult result) {
-        context.pendingMoveResult(result);
-        context.clearTurnCycle();
+        contextService.turn().queueMoveResult(context, result);
+        contextService.turn().clearTurnCycle(context);
     }
 }

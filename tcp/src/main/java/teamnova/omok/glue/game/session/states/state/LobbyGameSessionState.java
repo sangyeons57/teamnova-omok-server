@@ -5,10 +5,11 @@ import java.util.Objects;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -19,10 +20,14 @@ import teamnova.omok.modules.state_machine.models.StateStep;
  * Handles lobby behaviour prior to the game starting.
  */
 public class LobbyGameSessionState implements BaseState {
+    private final GameSessionStateContextService contextService;
     private final GameBoardService boardService;
     private final GameTurnService turnService;
 
-    public LobbyGameSessionState(GameBoardService boardService, GameTurnService turnService) {
+    public LobbyGameSessionState(GameSessionStateContextService contextService,
+                                 GameBoardService boardService,
+                                 GameTurnService turnService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.boardService = Objects.requireNonNull(boardService, "boardService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
     }
@@ -44,27 +49,27 @@ public class LobbyGameSessionState implements BaseState {
 
     private StateStep handleReady(GameSessionStateContext context,
                                   ReadyEvent event) {
-        GameSession session = context.getSession();
+        GameSession session = context.session();
         ReadyResult result;
         session.lock().lock();
         try {
-            int playerIndex = session.playerIndexOf(event.userId());
+            int playerIndex = context.participants().playerIndexOf(event.userId());
             if (playerIndex < 0) {
                 result = ReadyResult.invalid(session, event.userId());
             } else {
-                boolean changed = session.markReady(event.userId());
-                boolean allReady = session.allReady();
+                boolean changed = context.participants().markReady(event.userId());
+                boolean allReady = context.participants().allReady();
                 boolean startedNow = false;
                 GameTurnService.TurnSnapshot snapshot = null;
-                if (allReady && !session.isGameStarted()) {
+                if (allReady && !context.lifecycle().isGameStarted()) {
                     startedNow = true;
-                    session.markGameStarted(event.timestamp());
-                    session.resetOutcomes();
-                    boardService.reset(context.getSession());
+                    context.lifecycle().markGameStarted(event.timestamp());
+                    context.outcomes().resetOutcomes();
+                    boardService.reset(context.board());
                     snapshot = turnService
-                        .start(context.getSession(), session.getUserIds(), event.timestamp());
-                } else if (session.isGameStarted()) {
-                    snapshot = turnService.snapshot(context.getSession());
+                        .start(context.turns(), context.participants().getUserIds(), event.timestamp());
+                } else if (context.lifecycle().isGameStarted()) {
+                    snapshot = turnService.snapshot(context.turns());
                 }
                 result = new ReadyResult(
                     session,
@@ -80,7 +85,7 @@ public class LobbyGameSessionState implements BaseState {
             session.lock().unlock();
         }
 
-        context.pendingReadyResult(result);
+        contextService.turn().queueReadyResult(context, result);
         if (!result.validUser()) {
             return StateStep.stay();
         }

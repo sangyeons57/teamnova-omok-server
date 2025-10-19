@@ -6,19 +6,16 @@ import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionLifecycleAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionOutcomeAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
+import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PlayerResult;
-import teamnova.omok.glue.manager.DataManager;
+import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
-import teamnova.omok.glue.game.session.model.GameSession;
-import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -30,8 +27,12 @@ import teamnova.omok.modules.state_machine.models.StateStep;
 public final class OutcomeEvaluatingState implements BaseState {
     private final GameBoardService boardService;
     private final GameScoreService scoreService;
+    private final GameSessionStateContextService contextService;
 
-    public OutcomeEvaluatingState(GameBoardService boardService, GameScoreService scoreService) {
+    public OutcomeEvaluatingState(GameSessionStateContextService contextService,
+                                  GameBoardService boardService,
+                                  GameScoreService scoreService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.boardService = Objects.requireNonNull(boardService, "boardService");
         this.scoreService = Objects.requireNonNull(scoreService, "scoreService");
     }
@@ -43,19 +44,18 @@ public final class OutcomeEvaluatingState implements BaseState {
     @Override
     public <I extends StateContext> StateStep onEnter(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
-        TurnCycleContext cycle = ctx.activeTurnCycle();
-        GameSession session = ctx.getSession();
-
-        return (cycle == null) ? noneCycleProcess(ctx, session) : cycleProcess(ctx, session,  cycle);
+        TurnCycleContext cycle = contextService.turn().activeTurnCycle(ctx);
+        return (cycle == null) ? noneCycleProcess(ctx) : cycleProcess(ctx, cycle);
     }
 
-    private StateStep noneCycleProcess(GameSessionStateContext context, GameSession session) {
+    private StateStep noneCycleProcess(GameSessionStateContext context) {
+        GameSession session = context.session();
         // Unify end conditions: (decided + disconnected == total) OR (connected <= 1)
-        if (shouldFinalizeNow(session)) {
-            if (connectedCount(session) <= 1) {
-                applySoloOrNoneOutcome(session);
+        if (shouldFinalizeNow(context)) {
+            if (connectedCount(context) <= 1) {
+                applySoloOrNoneOutcome(context);
             } else {
-                applyDisconnectedAsLoss(session);
+                applyDisconnectedAsLoss(context);
             }
             finalizeSession(context);
             return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());
@@ -63,7 +63,8 @@ public final class OutcomeEvaluatingState implements BaseState {
         return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
     }
 
-    private StateStep cycleProcess(GameSessionStateContext context, GameSession session, TurnCycleContext cycle) {
+    private StateStep cycleProcess(GameSessionStateContext context, TurnCycleContext cycle) {
+        GameSession session = context.session();
         // 1) Normal win condition (e.g., five-in-a-row) still takes precedence
         boolean finished = handleStonePlaced(context, cycle.userId(), cycle.x(), cycle.y(), cycle.stone());
         if (finished) {
@@ -72,14 +73,14 @@ public final class OutcomeEvaluatingState implements BaseState {
         }
 
         // 2) Unified finalize path after a non-finishing move
-        if (shouldFinalizeNow(session)) {
-            if (connectedCount(session) <= 1) {
-                applySoloOrNoneOutcome(session);
+        if (shouldFinalizeNow(context)) {
+            if (connectedCount(context) <= 1) {
+                applySoloOrNoneOutcome(context);
             } else {
-                applyDisconnectedAsLoss(session);
+                applyDisconnectedAsLoss(context);
             }
             finalizeSession(context);
-            context.clearTurnCycle();
+            contextService.turn().clearTurnCycle(context);
             return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());
         }
 
@@ -92,7 +93,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         if (cycle.snapshots().current() != null) {
             turnCount = cycle.snapshots().current().turnNumber();
         } else {
-            turnCount = context.<GameSessionTurnAccess>getSession().actionNumber();
+            turnCount = context.turns().actionNumber();
         }
         cycle.session().lock().lock();
         try {
@@ -100,7 +101,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         } finally {
             cycle.session().lock().unlock();
         }
-        context.pendingMoveResult(MoveResult.success(
+        contextService.turn().queueMoveResult(context, MoveResult.success(
                 cycle.session(),
                 cycle.stone(),
                 null,
@@ -108,48 +109,48 @@ public final class OutcomeEvaluatingState implements BaseState {
                 cycle.x(),
                 cycle.y()
         ));
-        context.pendingGameCompletion(new GameCompletionNotice(cycle.session()));
-        context.clearTurnCycle();
+        contextService.postGame().queueGameCompletion(context, new GameCompletionNotice(cycle.session()));
+        contextService.turn().clearTurnCycle(context);
     }
 
-    private boolean shouldFinalizeNow(GameSession session) {
-        if (!session.isGameStarted() || session.isGameFinished()) {
+    private boolean shouldFinalizeNow(GameSessionStateContext context) {
+        if (!context.lifecycle().isGameStarted() || context.outcomes().isGameFinished()) {
             return false;
         }
-        int total = session.getUserIds().size();
-        int disconnectedSize = session.disconnectedUsersView().size();
+        int total = context.participants().getUserIds().size();
+        int disconnectedSize = context.participants().disconnectedUsersView().size();
         int connected = total - disconnectedSize;
         if (connected <= 1) {
             return true; // Special termination path
         }
-        int decided = (int) session.getUserIds().stream()
-                .map(session::outcomeFor)
+        int decided = (int) context.participants().getUserIds().stream()
+                .map(context.outcomes()::outcomeFor)
                 .filter(r -> r != null && r != PlayerResult.PENDING)
                 .count();
 
         return decided + disconnectedSize >= total;
     }
 
-    private int connectedCount(GameSession session) {
-        List<String> participants = session.getUserIds();
-        Set<String> disconnected = session.disconnectedUsersView();
+    private int connectedCount(GameSessionStateContext context) {
+        List<String> participants = context.participants().getUserIds();
+        Set<String> disconnected = context.participants().disconnectedUsersView();
         return participants.size() - disconnected.size();
     }
 
 
-    private void applyDisconnectedAsLoss(GameSession session) {
-        Set<String> disconnected = session.disconnectedUsersView();
+    private void applyDisconnectedAsLoss(GameSessionStateContext context) {
+        Set<String> disconnected = context.participants().disconnectedUsersView();
         for (String uid : disconnected) {
-            PlayerResult r = session.outcomeFor(uid);
+            PlayerResult r = context.outcomes().outcomeFor(uid);
             if (r == null || r == PlayerResult.PENDING) {
-                session.updateOutcome(uid, PlayerResult.LOSS);
+                context.outcomes().updateOutcome(uid, PlayerResult.LOSS);
             }
         }
     }
 
-    private void applySoloOrNoneOutcome(GameSession session) {
-        List<String> participants = session.getUserIds();
-        Set<String> disconnected = session.disconnectedUsersView();
+    private void applySoloOrNoneOutcome(GameSessionStateContext context) {
+        List<String> participants = context.participants().getUserIds();
+        Set<String> disconnected = context.participants().disconnectedUsersView();
         int connected = participants.size() - disconnected.size();
         if (connected == 1) {
             String winner = null;
@@ -160,41 +161,42 @@ public final class OutcomeEvaluatingState implements BaseState {
                 }
             }
             if (winner != null) {
-                session.updateOutcome(winner, PlayerResult.WIN);
+                context.outcomes().updateOutcome(winner, PlayerResult.WIN);
             }
             for (String uid : participants) {
                 if (!uid.equals(winner)) {
-                    session.updateOutcome(uid, PlayerResult.LOSS);
+                    context.outcomes().updateOutcome(uid, PlayerResult.LOSS);
                 }
             }
         } else {
             // No connected players
             for (String uid : participants) {
-                session.updateOutcome(uid, PlayerResult.LOSS);
+                context.outcomes().updateOutcome(uid, PlayerResult.LOSS);
             }
         }
     }
 
     private void finalizeSession(GameSessionStateContext context) {
-        GameSessionTurnAccess turnAccess = context.getSession();
-        turnAccess.lock().lock();
+        GameSession session = context.session();
+        session.lock().lock();
         try {
-            int turnCount = turnAccess.actionNumber();
+            int turnCount = context.turns().actionNumber();
             long now = System.currentTimeMillis();
-            context.<GameSessionLifecycleAccess>getSession().markGameFinished(now, turnCount);
+            context.lifecycle().markGameFinished(now, turnCount);
         } finally {
-            turnAccess.lock().unlock();
+            session.lock().unlock();
         }
-        context.pendingGameCompletion(new GameCompletionNotice(context.getSession()));
+        contextService.postGame().queueGameCompletion(context, new GameCompletionNotice(session));
     }
 
     @Override
     public <I extends StateContext> void onExit(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
-        if (ctx.<GameSessionOutcomeAccess>getSession().isGameFinished()) {
+        GameSession session = ctx.session();
+        if (ctx.outcomes().isGameFinished()) {
             // Apply scores immediately when the game is confirmed finished
-            for (String userId : ctx.<GameSessionParticipantsAccess>getSession().getUserIds()) {
-                int score = scoreService.calculateScoreDelta(ctx.getSession(), userId);
+            for (String userId : ctx.participants().getUserIds()) {
+                int score = scoreService.calculateScoreDelta(session, userId);
                 DataManager.getInstance().adjustUserScore(userId, score);
             }
         }
@@ -205,25 +207,25 @@ public final class OutcomeEvaluatingState implements BaseState {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(stone, "stone");
 
-        GameSession session = context.getSession();
-        if (session.isGameFinished()) {
+        GameSession session = context.session();
+        if (context.outcomes().isGameFinished()) {
             return true;
         }
 
-        if (!boardService.hasFiveInARow(context.getSession(), x, y, stone)) {
+        if (!boardService.hasFiveInARow(context.board(), x, y, stone)) {
             return false;
         }
 
-        for (String disconnectedId : session.disconnectedUsersView()) {
+        for (String disconnectedId : context.participants().disconnectedUsersView()) {
             if (!disconnectedId.equals(userId)) {
-                session.updateOutcome(disconnectedId, PlayerResult.LOSS);
+                context.outcomes().updateOutcome(disconnectedId, PlayerResult.LOSS);
             }
         }
-        session.updateOutcome(userId, PlayerResult.WIN);
-        List<String> userIds = session.getUserIds();
+        context.outcomes().updateOutcome(userId, PlayerResult.WIN);
+        List<String> userIds = context.participants().getUserIds();
         for (String uid : userIds) {
             if (!uid.equals(userId)) {
-                session.updateOutcome(uid, PlayerResult.LOSS);
+                context.outcomes().updateOutcome(uid, PlayerResult.LOSS);
             }
         }
         System.out.printf(

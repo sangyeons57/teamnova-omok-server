@@ -6,7 +6,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
@@ -37,11 +36,11 @@ public class EveryTwoTurnJokerRule implements Rule {
         GameSessionServices services = context.services();
         if (stateContext == null || services == null) return;
 
-        GameSessionTurnAccess turn = context.getSession();
+        GameSessionTurnAccess turn = stateContext.turns();
         int completedTurns = Math.max(0, turn.actionNumber() - 1);
         if (completedTurns <= 0 || completedTurns % 2 != 0) return;
 
-        GameSessionBoardAccess board = context.getSession();
+        GameSessionBoardAccess board = stateContext.board();
         int w = board.width();
         int h = board.height();
         List<Integer> empties = new ArrayList<>();
@@ -59,6 +58,6 @@ public class EveryTwoTurnJokerRule implements Rule {
         services.boardService().setStone(board, x, y, Stone.JOKER);
         System.out.println("[RULE_LOG] EveryTwoTurnJokerRule placed JOKER at (" + x + "," + y + ")");
         byte[] snapshot = services.boardService().snapshot(board);
-        stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(context.getSession(), snapshot, System.currentTimeMillis()));
+        context.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
     }
 }

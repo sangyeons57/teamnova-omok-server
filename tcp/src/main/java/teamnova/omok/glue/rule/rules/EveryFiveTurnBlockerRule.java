@@ -8,7 +8,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
@@ -38,14 +37,12 @@ public class EveryFiveTurnBlockerRule implements Rule {
             return;
         }
         System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule invoked");
-        GameSessionRuleAccess ruleStore = context.getSession();
-
         GameSessionStateContext stateContext = context.stateContext();
         GameSessionServices services = context.services();
-        if (ruleStore == null || stateContext == null || services == null) {
+        if (stateContext == null || services == null) {
             return;
         }
-        GameSessionTurnAccess turnStore = context.getSession();
+        GameSessionTurnAccess turnStore = stateContext.turns();
         int completedTurns = Math.max(0, turnStore.actionNumber() - 1);
         if (completedTurns <= 0 || completedTurns % 5 != 0) {
             return;
@@ -55,7 +52,7 @@ public class EveryFiveTurnBlockerRule implements Rule {
             return;
         }
 
-        GameSessionBoardAccess boardStore = context.getSession();
+        GameSessionBoardAccess boardStore = stateContext.board();
         int width = boardStore.width();
         int height = boardStore.height();
         int totalCells = width * height;
@@ -73,7 +70,7 @@ public class EveryFiveTurnBlockerRule implements Rule {
         }
 
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        GameSessionParticipantsAccess participantsAccess = context.getSession();
+        GameSessionParticipantsAccess participantsAccess = stateContext.participants();
         List<String> userIds = participantsAccess.getUserIds();
         boolean mutated = false;
         for (int playerIndex = 0; playerIndex < userIds.size(); playerIndex++) {
@@ -95,8 +92,8 @@ public class EveryFiveTurnBlockerRule implements Rule {
         if (mutated) {
             System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule placed blockers for players present");
             byte[] snapshot = services.boardService().snapshot(boardStore);
-            stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(
-                context.getSession(),
+            context.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(
+                stateContext.session(),
                 snapshot,
                 System.currentTimeMillis()
             ));

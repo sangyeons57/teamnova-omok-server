@@ -5,15 +5,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.states.event.DecisionTimeoutEvent;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.PostGameDecisionEvent;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
 import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
@@ -33,9 +34,12 @@ import teamnova.omok.modules.state_machine.models.StateStep;
  * Collects rematch/leave decisions from players after a game has finished.
  */
 public final class PostGameDecisionWaitingState implements BaseState {
+    private final GameSessionStateContextService contextService;
     private final GameTurnService turnService;
 
-    public PostGameDecisionWaitingState(GameTurnService turnService) {
+    public PostGameDecisionWaitingState(GameSessionStateContextService contextService,
+                                        GameTurnService turnService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
     }
     @Override
@@ -75,18 +79,18 @@ public final class PostGameDecisionWaitingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        GameSession session = context.getSession();
-        session.resetPostGameDecisions();
+        GameSession session = context.session();
+        context.postGame().resetPostGameDecisions();
         long now = System.currentTimeMillis();
         long deadline = now + GameSession.POST_GAME_DECISION_DURATION_MILLIS;
-        context.postGameDecisionDeadline(deadline);
-        context.pendingDecisionPrompt(new PostGameDecisionPrompt(session, deadline));
-        context.pendingDecisionUpdate(snapshotUpdate(session));
+        contextService.postGame().setDecisionDeadline(context, deadline);
+        contextService.postGame().queueDecisionPrompt(context, new PostGameDecisionPrompt(session, deadline));
+        contextService.postGame().queueDecisionUpdate(context, snapshotUpdate(context));
         return StateStep.stay();
     }
 
     private StateStep onUpdateInternal(GameSessionStateContext context, long now) {
-        if (allDecided(context.getSession())) {
+        if (allDecided(context)) {
             return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_RESOLVING.toStateName());
         }
         return StateStep.stay();
@@ -94,47 +98,47 @@ public final class PostGameDecisionWaitingState implements BaseState {
 
     private StateStep handleDecision(GameSessionStateContext context,
                                      PostGameDecisionEvent event) {
-        GameSession session = context.getSession();
-        if (!session.containsUser(event.userId())) {
-            context.pendingDecisionResult(PostGameDecisionResult.rejected(
+        GameSession session = context.session();
+        if (!context.participants().containsUser(event.userId())) {
+            contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 session,
                 event.userId(),
                 PostGameDecisionStatus.INVALID_PLAYER
             ));
             return StateStep.stay();
         }
-        long deadline = context.postGameDecisionDeadline();
+        long deadline = contextService.postGame().decisionDeadline(context);
         long now = System.currentTimeMillis();
         if (deadline > 0 && now > deadline) {
-            context.pendingDecisionResult(PostGameDecisionResult.rejected(
+            contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 session,
                 event.userId(),
                 PostGameDecisionStatus.TIME_WINDOW_CLOSED
             ));
             return StateStep.stay();
         }
-        if (session.hasPostGameDecision(event.userId())) {
-            context.pendingDecisionResult(PostGameDecisionResult.rejected(
+        if (context.postGame().hasPostGameDecision(event.userId())) {
+            contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 session,
                 event.userId(),
                 PostGameDecisionStatus.ALREADY_DECIDED
             ));
             return StateStep.stay();
         }
-        boolean recorded = session.recordPostGameDecision(event.userId(), event.decision());
+        boolean recorded = context.postGame().recordPostGameDecision(event.userId(), event.decision());
         if (!recorded) {
-            context.pendingDecisionResult(PostGameDecisionResult.rejected(
+            contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 session,
                 event.userId(),
                 PostGameDecisionStatus.ALREADY_DECIDED
             ));
             return StateStep.stay();
         }
-        context.pendingDecisionResult(
+        contextService.postGame().queueDecisionResult(context,
             PostGameDecisionResult.accepted(session, event.userId(), event.decision())
         );
-        context.pendingDecisionUpdate(snapshotUpdate(session));
-        if (allDecided(session)) {
+        contextService.postGame().queueDecisionUpdate(context, snapshotUpdate(context));
+        if (allDecided(context)) {
             return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_RESOLVING.toStateName());
         }
         return StateStep.stay();
@@ -142,25 +146,26 @@ public final class PostGameDecisionWaitingState implements BaseState {
 
     private StateStep handleDecisionTimeout(GameSessionStateContext context,
                                             DecisionTimeoutEvent event) {
-        if (context.postGameDecisionDeadline() == 0L) {
+        if (contextService.postGame().decisionDeadline(context) == 0L) {
             return StateStep.stay();
         }
-        applyAutoLeaves(context.getSession());
-        context.clearPostGameDecisionDeadline();
-        context.pendingDecisionUpdate(snapshotUpdate(context.getSession()));
+        GameSession session = context.session();
+        applyAutoLeaves(context);
+        contextService.postGame().clearDecisionDeadline(context);
+        contextService.postGame().queueDecisionUpdate(context, snapshotUpdate(context));
         return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_RESOLVING.toStateName());
     }
 
     private StateStep handleReady(GameSessionStateContext context,
                                   ReadyEvent event) {
-        GameSession session = context.getSession();
-        if (!session.containsUser(event.userId())) {
-            context.pendingReadyResult(ReadyResult.invalid(session, event.userId()));
+        GameSession session = context.session();
+        if (!context.participants().containsUser(event.userId())) {
+            contextService.turn().queueReadyResult(context, ReadyResult.invalid(session, event.userId()));
             return StateStep.stay();
         }
         GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(context.getSession());
-        context.pendingReadyResult(new ReadyResult(
+            turnService.snapshot(context.turns());
+        contextService.turn().queueReadyResult(context, new ReadyResult(
             session,
             true,
             false,
@@ -174,8 +179,8 @@ public final class PostGameDecisionWaitingState implements BaseState {
 
     private StateStep handleMove(GameSessionStateContext context,
                                  MoveEvent event) {
-        GameSession session = context.getSession();
-        context.pendingMoveResult(MoveResult.invalid(
+        GameSession session = context.session();
+        contextService.turn().queueMoveResult(context, MoveResult.invalid(
             session,
             MoveStatus.GAME_FINISHED,
             null,
@@ -188,31 +193,32 @@ public final class PostGameDecisionWaitingState implements BaseState {
 
     private StateStep handleTurnTimeout(GameSessionStateContext context,
                                         TimeoutEvent event) {
-        GameSession session = context.getSession();
+        GameSession session = context.session();
         GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(context.getSession());
-        context.pendingTimeoutResult(
+            turnService.snapshot(context.turns());
+        contextService.turn().queueTimeoutResult(context,
             TurnTimeoutResult.noop(session, snapshot)
         );
         return StateStep.stay();
     }
 
-    private boolean allDecided(GameSession session) {
-        return session.postGameDecisionsView().size() >= session.getUserIds().size();
+    private boolean allDecided(GameSessionStateContext context) {
+        return context.postGame().postGameDecisionsView().size() >= context.participants().getUserIds().size();
     }
 
-    private void applyAutoLeaves(GameSession session) {
-        for (String userId : session.getUserIds()) {
-            if (!session.hasPostGameDecision(userId)) {
-                session.recordPostGameDecision(userId, PostGameDecision.LEAVE);
+    private void applyAutoLeaves(GameSessionStateContext context) {
+        for (String userId : context.participants().getUserIds()) {
+            if (!context.postGame().hasPostGameDecision(userId)) {
+                context.postGame().recordPostGameDecision(userId, PostGameDecision.LEAVE);
             }
         }
     }
 
-    private PostGameDecisionUpdate snapshotUpdate(GameSession session) {
-        Map<String, PostGameDecision> decisions = session.postGameDecisionsView();
+    private PostGameDecisionUpdate snapshotUpdate(GameSessionStateContext context) {
+        GameSession session = context.session();
+        Map<String, PostGameDecision> decisions = context.postGame().postGameDecisionsView();
         List<String> remaining = new ArrayList<>();
-        for (String userId : session.getUserIds()) {
+        for (String userId : context.participants().getUserIds()) {
             if (!decisions.containsKey(userId)) {
                 remaining.add(userId);
             }

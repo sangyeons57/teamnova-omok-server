@@ -11,6 +11,7 @@ import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.game.session.states.GameStateHub;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 
 /**
  * GameStateHub 인스턴스를 생성·보관하고 주기 처리까지 담당한다.
@@ -20,20 +21,23 @@ public final class GameStateHubRegistry implements GameSessionRuntime {
     private final GameBoardService boardService;
     private final GameTurnService turnService;
     private final GameScoreService scoreService;
+    private final GameSessionStateContextService contextService;
 
     public GameStateHubRegistry(GameBoardService boardService,
                                 GameTurnService turnService,
-                                GameScoreService scoreService) {
+                                GameScoreService scoreService,
+                                GameSessionStateContextService contextService) {
         this.boardService = boardService;
         this.turnService = turnService;
         this.scoreService = scoreService;
+        this.contextService = contextService;
     }
 
     @Override
     public GameStateHub ensure(GameSession session) {
         return managersById.computeIfAbsent(
             session.sessionId(),
-            id -> new GameStateHub(session, boardService, turnService, scoreService)
+            id -> new GameStateHub(session, boardService, turnService, scoreService, contextService)
         );
     }
 

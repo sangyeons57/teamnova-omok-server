@@ -26,7 +26,7 @@ public final class TurnCycleContext {
     }
 
     public GameSession session() {
-        return parent.getSession();
+        return parent.session();
     }
 
     public String userId() {

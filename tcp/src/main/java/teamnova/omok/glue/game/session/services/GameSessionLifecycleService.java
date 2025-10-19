@@ -13,11 +13,14 @@ public final class GameSessionLifecycleService {
     private GameSessionLifecycleService() {
     }
 
-    public static void leaveByUser(GameSessionDependencies deps, String userId) {
+    public static void leaveByUser(GameSessionDependencies deps,
+                                   SessionEventService events,
+                                   String userId) {
         Objects.requireNonNull(deps, "deps");
+        Objects.requireNonNull(events, "events");
         Objects.requireNonNull(userId, "userId");
         deps.repository().findByUserId(userId).ifPresent(session -> {
-            SessionEventService.cancelAllTimers(deps, session.sessionId());
+            events.cancelAllTimers(session.sessionId());
             boolean newlyDisconnected;
             session.lock().lock();
             try {
@@ -33,9 +36,11 @@ public final class GameSessionLifecycleService {
     }
 
     public static void handleClientDisconnected(GameSessionDependencies deps,
+                                                SessionEventService events,
                                                 TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
                                                 String userId) {
         Objects.requireNonNull(deps, "deps");
+        Objects.requireNonNull(events, "events");
         Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
         Objects.requireNonNull(userId, "userId");
         deps.repository().findByUserId(userId).ifPresent(session -> {
@@ -60,7 +65,7 @@ public final class GameSessionLifecycleService {
                 deps.messenger().broadcastPlayerDisconnected(session, userId, "DISCONNECTED");
             }
             if (shouldSkip && expectedTurn > 0) {
-                SessionEventService.skipTurnForDisconnected(deps, timeoutConsumer, session, userId, expectedTurn);
+                events.skipTurnForDisconnected(session, userId, expectedTurn, timeoutConsumer);
             }
         });
     }

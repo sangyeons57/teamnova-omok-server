@@ -3,14 +3,13 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.PostGameDecisionEvent;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
 import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
@@ -28,9 +27,12 @@ import teamnova.omok.modules.state_machine.models.StateStep;
  * Terminal state once the session has concluded.
  */
 public class CompletedGameSessionState implements BaseState {
+    private final GameSessionStateContextService contextService;
     private final GameTurnService turnService;
 
-    public CompletedGameSessionState(GameTurnService turnService) {
+    public CompletedGameSessionState(GameSessionStateContextService contextService,
+                                     GameTurnService turnService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
     }
     @Override
@@ -58,16 +60,16 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handleReady(GameSessionStateContext context,
                                   ReadyEvent event) {
-        GameSessionParticipantsAccess session = context.getSession();
-        if (!session.containsUser(event.userId())) {
-            context.pendingReadyResult(ReadyResult.invalid(context.getSession(), event.userId()));
+        GameSession session = context.session();
+        if (!context.participants().containsUser(event.userId())) {
+            contextService.turn().queueReadyResult(context, ReadyResult.invalid(session, event.userId()));
             return StateStep.stay();
         }
-        boolean allReady = session.allReady();
+        boolean allReady = context.participants().allReady();
         GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(context.<GameSessionTurnAccess>getSession());
+            turnService.snapshot(context.turns());
         ReadyResult result = new ReadyResult(
-            context.getSession(),
+            session,
             true,
             false,
             allReady,
@@ -75,15 +77,16 @@ public class CompletedGameSessionState implements BaseState {
             snapshot,
             event.userId()
         );
-        context.pendingReadyResult(result);
+        contextService.turn().queueReadyResult(context, result);
         return StateStep.stay();
     }
 
     private StateStep handleMove(GameSessionStateContext context,
                                  MoveEvent event) {
-        GameSession session = context.getSession();
-        if (session.playerIndexOf(event.userId()) < 0) {
-            context.pendingMoveResult(
+        GameSession session = context.session();
+        if (context.participants().playerIndexOf(event.userId()) < 0) {
+            contextService.turn().queueMoveResult(
+                context,
                 MoveResult.invalid(
                     session,
                     MoveStatus.INVALID_PLAYER,
@@ -96,8 +99,8 @@ public class CompletedGameSessionState implements BaseState {
             return StateStep.stay();
         }
         GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(context.getSession());
-        context.pendingMoveResult(MoveResult.invalid(
+            turnService.snapshot(context.turns());
+        contextService.turn().queueMoveResult(context, MoveResult.invalid(
             session,
             MoveStatus.GAME_FINISHED,
             snapshot,
@@ -110,10 +113,10 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handleTimeout(GameSessionStateContext context,
                                     TimeoutEvent event) {
-        GameSession session = context.getSession();
+        GameSession session = context.session();
         GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(context.getSession());
-        context.pendingTimeoutResult(
+            turnService.snapshot(context.turns());
+        contextService.turn().queueTimeoutResult(context,
             TurnTimeoutResult.noop(session, snapshot)
         );
         return StateStep.stay();
@@ -121,8 +124,8 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handlePostGameDecision(GameSessionStateContext context,
                                              PostGameDecisionEvent event) {
-        GameSession session = context.getSession();
-        context.pendingDecisionResult(
+        GameSession session = context.session();
+        contextService.postGame().queueDecisionResult(context,
             PostGameDecisionResult.rejected(
                 session,
                 event.userId(),

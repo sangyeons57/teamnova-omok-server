@@ -13,7 +13,6 @@ import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
 
 /**
@@ -38,11 +37,11 @@ public class PerTurnAdjacentBlockerRule implements Rule {
         GameSessionServices services = context.services();
         if (stateContext == null || services == null) return;
 
-        GameSessionTurnAccess turn = context.getSession();
+        GameSessionTurnAccess turn = stateContext.turns();
         int completedTurns = Math.max(0, turn.actionNumber() - 1);
         if (completedTurns <= 0) return; // start after first move completes
 
-        GameSessionBoardAccess board = context.getSession();
+        GameSessionBoardAccess board = stateContext.board();
         int w = board.width();
         int h = board.height();
         int total = w * h;
@@ -54,7 +53,7 @@ public class PerTurnAdjacentBlockerRule implements Rule {
             byPlayer.computeIfAbsent((int) s.code(), k -> new ArrayList<>()).add(i);
         }
 
-        GameSessionParticipantsAccess participants = context.getSession();
+        GameSessionParticipantsAccess participants = stateContext.participants();
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         int placed = 0;
         for (int p = 0; p < participants.getUserIds().size(); p++) {
@@ -83,7 +82,7 @@ public class PerTurnAdjacentBlockerRule implements Rule {
         if (placed > 0) {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule placed " + placed + " blockers");
             byte[] snapshot = services.boardService().snapshot(board);
-            stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(context.getSession(), snapshot, System.currentTimeMillis()));
+            context.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
         } else {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule no placement this turn");
         }

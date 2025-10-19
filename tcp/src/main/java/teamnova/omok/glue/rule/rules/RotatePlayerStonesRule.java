@@ -8,7 +8,6 @@ import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
 
 /**
@@ -30,7 +29,7 @@ public class RotatePlayerStonesRule implements Rule {
         GameSessionServices services = context.services();
         if (stateContext == null || services == null) return;
 
-        GameSessionBoardAccess board = context.getSession();
+        GameSessionBoardAccess board = stateContext.board();
         int w = board.width();
         int h = board.height();
         int changed = 0;
@@ -51,7 +50,7 @@ public class RotatePlayerStonesRule implements Rule {
         if (changed > 0) {
             System.out.println("[RULE_LOG] RotatePlayerStonesRule rotated " + changed + " stones");
             byte[] snapshot = services.boardService().snapshot(board);
-            stateContext.pendingBoardSnapshot(new BoardSnapshotUpdate(context.getSession(), snapshot, System.currentTimeMillis()));
+            context.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
         }
     }
 }

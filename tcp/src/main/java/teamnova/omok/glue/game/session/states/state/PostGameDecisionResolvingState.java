@@ -2,11 +2,11 @@ package teamnova.omok.glue.game.session.states.state;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionPostGameAccess;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -17,6 +17,11 @@ import teamnova.omok.modules.state_machine.models.StateStep;
  * Aggregates post-game decisions and chooses the next terminal path.
  */
 public final class PostGameDecisionResolvingState implements BaseState {
+    private final GameSessionStateContextService contextService;
+
+    public PostGameDecisionResolvingState(GameSessionStateContextService contextService) {
+        this.contextService = Objects.requireNonNull(contextService, "contextService");
+    }
     @Override
     public StateName name() {
         return GameSessionStateType.POST_GAME_DECISION_RESOLVING.toStateName();
@@ -28,16 +33,18 @@ public final class PostGameDecisionResolvingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        List<String> rematch = new ArrayList<>(context.<GameSessionPostGameAccess>getSession().rematchRequestsView());
-        List<String> disconnected = new ArrayList<>(context.<GameSessionParticipantsAccess>getSession().disconnectedUsersView());
+        List<String> rematch = new ArrayList<>(context.postGame().rematchRequestsView());
+        List<String> disconnected = new ArrayList<>(context.participants().disconnectedUsersView());
         if (rematch.size() >= 2) {
-            context.pendingPostGameResolution(
-                PostGameResolution.rematch(context.getSession(), rematch, disconnected)
+            contextService.postGame().queuePostGameResolution(
+                context,
+                PostGameResolution.rematch(context.session(), rematch, disconnected)
             );
             return StateStep.transition(GameSessionStateType.SESSION_REMATCH_PREPARING.toStateName());
         }
-        context.pendingPostGameResolution(
-            PostGameResolution.terminate(context.getSession(), disconnected)
+        contextService.postGame().queuePostGameResolution(
+            context,
+            PostGameResolution.terminate(context.session(), disconnected)
         );
         return StateStep.transition(GameSessionStateType.SESSION_TERMINATING.toStateName());
     }

@@ -25,15 +25,10 @@ import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.game.session.repository.GameStateHubRegistry;
 import teamnova.omok.glue.game.session.repository.InMemoryGameSessionRepository;
-import teamnova.omok.glue.game.session.services.BoardService;
-import teamnova.omok.glue.game.session.services.GameSessionCreationService;
-import teamnova.omok.glue.game.session.services.GameSessionDependencies;
-import teamnova.omok.glue.game.session.services.GameSessionLifecycleService;
-import teamnova.omok.glue.game.session.services.ScoreService;
-import teamnova.omok.glue.game.session.services.SessionEventService;
-import teamnova.omok.glue.game.session.services.TurnService;
+import teamnova.omok.glue.game.session.services.*;
 import teamnova.omok.glue.game.session.services.coordinator.DecisionTimeoutCoordinator;
 import teamnova.omok.glue.game.session.services.coordinator.TurnTimeoutCoordinator;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.rule.RuleManager;
 import teamnova.omok.modules.matching.models.MatchGroup;
 
@@ -60,37 +55,38 @@ public final class GameSessionManager implements Closeable,
         return INSTANCE;
     }
 
-    private final GameBoardService boardService;
-    private final GameTurnService turnService;
-    private final GameScoreService scoreService;
-    private final GameSessionRepository repository;
     private final GameSessionRuntime runtime;
-    private final DecisionTimeoutScheduler decisionTimeoutScheduler;
-    private final TurnTimeoutScheduler turnTimeoutScheduler;
-    private final GameSessionMessenger messenger;
     private final GameSessionDependencies dependencies;
+    private final SessionEventService eventService;
     private final ScheduledExecutorService scheduler;
     private final AtomicBoolean ticking = new AtomicBoolean(false);
 
     private GameSessionManager(RuleManager ruleManager) {
         Objects.requireNonNull(ruleManager, "ruleManager");
-        this.boardService = new BoardService();
-        this.turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
-        this.scoreService = new ScoreService();
-        this.repository = new InMemoryGameSessionRepository();
-        this.runtime = new GameStateHubRegistry(boardService, turnService, scoreService);
-        this.turnTimeoutScheduler = new TurnTimeoutCoordinator();
-        this.decisionTimeoutScheduler = new DecisionTimeoutCoordinator();
-        this.messenger = ClientSessionManager.getInstance().gamePublisher();
+
+        InMemoryGameSessionRepository repository = new InMemoryGameSessionRepository();
+
+        BoardService boardService = new BoardService();
+        TurnService turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
+        ScoreService scoreService = new ScoreService();
+
+        TurnTimeoutCoordinator turnTimeoutScheduler = new TurnTimeoutCoordinator();
+        DecisionTimeoutCoordinator decisionTimeoutScheduler = new DecisionTimeoutCoordinator();
+
+
+        GameSessionStateContextService contextService = new GameSessionStateContextService();
+        this.runtime = new GameStateHubRegistry(boardService, turnService, scoreService, contextService);
         this.dependencies = new GameSessionDependencies(
             repository,
             runtime,
             turnService,
-            messenger,
+            ClientSessionManager.getInstance().gamePublisher(),
             turnTimeoutScheduler,
             decisionTimeoutScheduler,
-            ruleManager
+            ruleManager,
+            contextService
         );
+        this.eventService = new SessionEventService(dependencies);
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r);
             t.setName("game-session-ticker");
@@ -132,32 +128,32 @@ public final class GameSessionManager implements Closeable,
 
     @Override
     public void handleClientDisconnected(String userId) {
-        GameSessionLifecycleService.handleClientDisconnected(dependencies, this, userId);
+        GameSessionLifecycleService.handleClientDisconnected(dependencies, eventService, this, userId);
     }
 
     @Override
     public boolean submitReady(String userId, long requestId) {
-        return SessionEventService.submitReady(dependencies, this, userId, requestId);
+        return eventService.submitReady(this, userId, requestId);
     }
 
     @Override
     public boolean submitMove(String userId, long requestId, int x, int y) {
-        return SessionEventService.submitMove(dependencies, this, userId, requestId, x, y);
+        return eventService.submitMove(this, userId, requestId, x, y);
     }
 
     @Override
     public boolean submitPostGameDecision(String userId, long requestId, PostGameDecision decision) {
-        return SessionEventService.submitPostGameDecision(dependencies, this, userId, requestId, decision);
+        return eventService.submitPostGameDecision(this, userId, requestId, decision);
     }
 
     @Override
     public void cancelAllTimers(GameSessionId sessionId) {
-        SessionEventService.cancelAllTimers(dependencies, sessionId);
+        eventService.cancelAllTimers(sessionId);
     }
 
     @Override
     public void skipTurnForDisconnected(GameSession session, String userId, int expectedTurnNumber) {
-        SessionEventService.skipTurnForDisconnected(dependencies, this, session, userId, expectedTurnNumber);
+        eventService.skipTurnForDisconnected(session, userId, expectedTurnNumber, this);
     }
 
     @Override
@@ -179,12 +175,12 @@ public final class GameSessionManager implements Closeable,
 
     @Override
     public void leaveByUser(String userId) {
-        GameSessionLifecycleService.leaveByUser(dependencies, userId);
+        GameSessionLifecycleService.leaveByUser(dependencies, eventService, userId);
     }
 
     @Override
     public void onTimeout(GameSessionId sessionId, int expectedTurnNumber) {
-        SessionEventService.handleScheduledTimeout(dependencies, this, sessionId, expectedTurnNumber);
+        eventService.handleScheduledTimeout(sessionId, expectedTurnNumber, this);
     }
 
     @Override

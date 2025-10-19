@@ -7,10 +7,10 @@ import java.util.function.Consumer;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.state.CompletedGameSessionState;
 import teamnova.omok.glue.game.session.states.state.LobbyGameSessionState;
@@ -36,20 +36,24 @@ public class GameStateHub {
 
     private final Handle stateMachine;
     private final GameSessionStateContext context;
+    private final GameSessionStateContextService contextService;
     private final GameSessionServices services;
     private GameSessionStateType currentType;
 
     public GameStateHub(GameSession session,
                         GameBoardService boardService,
                         GameTurnService turnService,
-                        GameScoreService scoreService) {
+                        GameScoreService scoreService,
+                        GameSessionStateContextService contextService) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(boardService, "boardService");
         Objects.requireNonNull(turnService, "turnService");
         Objects.requireNonNull(scoreService, "scoreService");
+        Objects.requireNonNull(contextService, "contextService");
 
         this.services = new GameSessionServices(boardService, turnService, scoreService);
         this.context = new GameSessionStateContext(session);
+        this.contextService = contextService;
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.onTransition(this::handleTransition);
         // Register signal listener to trigger rules on TurnFinalizing enter only
@@ -63,17 +67,17 @@ public class GameStateHub {
             }
         });
 
-        registerState(new LobbyGameSessionState(services.boardService(), services.turnService()));
-        registerState(new TurnWaitingState(services.turnService()));
-        registerState(new MoveValidatingState(services.boardService(), services.turnService()));
-        registerState(new MoveApplyingState(services.boardService()));
-        registerState(new OutcomeEvaluatingState(services.boardService(), services.scoreService()));
-        registerState(new TurnFinalizingState(services.turnService()));
-        registerState(new PostGameDecisionWaitingState(services.turnService()));
-        registerState(new PostGameDecisionResolvingState());
-        registerState(new SessionRematchPreparingState());
-        registerState(new SessionTerminatingState());
-        registerState(new CompletedGameSessionState(services.turnService()));
+        registerState(new LobbyGameSessionState(contextService, services.boardService(), services.turnService()));
+        registerState(new TurnWaitingState(contextService, services.turnService()));
+        registerState(new MoveValidatingState(contextService, services.boardService(), services.turnService()));
+        registerState(new MoveApplyingState(contextService, services.boardService()));
+        registerState(new OutcomeEvaluatingState(contextService, services.boardService(), services.scoreService()));
+        registerState(new TurnFinalizingState(contextService, services.turnService()));
+        registerState(new PostGameDecisionWaitingState(contextService, services.turnService()));
+        registerState(new PostGameDecisionResolvingState(contextService));
+        registerState(new SessionRematchPreparingState(contextService));
+        registerState(new SessionTerminatingState(contextService));
+        registerState(new CompletedGameSessionState(contextService, services.turnService()));
 
         this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
     }
@@ -96,11 +100,12 @@ public class GameStateHub {
 
     private void triggerRules(GameSessionStateType targetType) {
         if (targetType == null) return;
-        RulesContext rulesContext = context.<GameSessionRuleAccess>getSession().getRulesContext();
+        RulesContext rulesContext = context.session().getRulesContext();
         if (rulesContext == null) {
             return;
         }
         rulesContext.attachServices(services);
+        rulesContext.attachContextService(contextService);
         rulesContext.attachStateContext(context);
         if (rulesContext.setCurrentRuleByGameState(targetType)) {
             rulesContext.activateCurrentRule();
@@ -112,7 +117,7 @@ public class GameStateHub {
     }
 
     public GameSession session() {
-        return context.getSession();
+        return context.session();
     }
 
 
