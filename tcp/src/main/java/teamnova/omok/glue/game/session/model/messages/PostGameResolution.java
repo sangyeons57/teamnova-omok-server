@@ -2,14 +2,10 @@ package teamnova.omok.glue.game.session.model.messages;
 
 import java.util.List;
 
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
-
 /**
  * Describes how a post-game stage concluded.
  */
-public record PostGameResolution(GameSessionAccess session,
-                                 ResolutionType type,
+public record PostGameResolution(ResolutionType type,
                                  List<String> rematchParticipants,
                                  List<String> disconnected) {
 
@@ -18,19 +14,15 @@ public record PostGameResolution(GameSessionAccess session,
         TERMINATE
     }
 
-    public static PostGameResolution rematch(GameSessionAccess session,
-                                             List<String> participants,
+    public static PostGameResolution rematch(List<String> participants,
                                              List<String> disconnected) {
-        return new PostGameResolution(session,
-            ResolutionType.REMATCH,
+        return new PostGameResolution(ResolutionType.REMATCH,
             List.copyOf(participants),
             List.copyOf(disconnected));
     }
 
-    public static PostGameResolution terminate(GameSessionAccess session,
-                                               List<String> disconnected) {
-        return new PostGameResolution(session,
-            ResolutionType.TERMINATE,
+    public static PostGameResolution terminate(List<String> disconnected) {
+        return new PostGameResolution(ResolutionType.TERMINATE,
             List.of(),
             List.copyOf(disconnected));
     }

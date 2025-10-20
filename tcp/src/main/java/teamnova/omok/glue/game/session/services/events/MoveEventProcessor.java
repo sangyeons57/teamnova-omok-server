@@ -41,9 +41,9 @@ public final class MoveEventProcessor {
         Objects.requireNonNull(ctx, "ctx");
         Objects.requireNonNull(event, "event");
         GameSessionStateContextService contextService = deps.contextService();
+        GameSessionAccess session = manager.session();
         MoveResult result = contextService.turn().consumeMoveResult(ctx);
         if (result == null) {
-            GameSessionAccess session = manager.session();
             String message;
             if (!session.containsUser(event.userId())) {
                 message = "INVALID_PLAYER";
@@ -58,17 +58,17 @@ public final class MoveEventProcessor {
             postGameProcessor.drainSideEffects(ctx, timeoutConsumer);
             return;
         }
-        deps.messenger().respondMove(event.userId(), event.requestId(), result);
+        deps.messenger().respondMove(event.userId(), event.requestId(), session, result);
         if (result.status() == MoveStatus.SUCCESS) {
-            deps.messenger().broadcastStonePlaced(result);
+            deps.messenger().broadcastStonePlaced(session, result);
             if (result.turnSnapshot() != null && manager.currentType() == GameSessionStateType.TURN_WAITING) {
-                timeoutProcessor.scheduleTurnTimeout(result.session(), result.turnSnapshot(), timeoutConsumer);
+                timeoutProcessor.scheduleTurnTimeout(session, result.turnSnapshot(), timeoutConsumer);
             } else if (result.turnSnapshot() == null) {
-                deps.turnTimeoutScheduler().cancel(result.session().sessionId());
+                deps.turnTimeoutScheduler().cancel(session.sessionId());
             }
         }
         if (manager.currentType() == GameSessionStateType.COMPLETED) {
-            timeoutProcessor.cancelAllTimers(result.session().sessionId());
+            timeoutProcessor.cancelAllTimers(session.sessionId());
         }
         postGameProcessor.drainSideEffects(ctx, timeoutConsumer);
     }

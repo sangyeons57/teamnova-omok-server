@@ -4,16 +4,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 
 public final class PostGameDecisionUpdateMessageEncoder {
     private PostGameDecisionUpdateMessageEncoder() {}
 
-    public static byte[] encode(PostGameDecisionUpdate update) {
+    public static byte[] encode(GameSessionAccess session, PostGameDecisionUpdate update) {
         StringBuilder sb = new StringBuilder(256);
         sb.append('{')
-          .append("\"sessionId\":\"").append(update.session().sessionId().asUuid()).append('\"')
+          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"decisions\":[");
         Map<String, PostGameDecision> decisions = update.decisions();

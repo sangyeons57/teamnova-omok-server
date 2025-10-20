@@ -63,14 +63,13 @@ public class CompletedGameSessionState implements BaseState {
                                   ReadyEvent event) {
         GameSessionAccess session = context.session();
         if (!context.participants().containsUser(event.userId())) {
-            contextService.turn().queueReadyResult(context, ReadyResult.invalid(session, event.userId()));
+            contextService.turn().queueReadyResult(context, ReadyResult.invalid(event.userId()));
             return StateStep.stay();
         }
         boolean allReady = context.participants().allReady();
         GameTurnService.TurnSnapshot snapshot =
             turnService.snapshot(context.turns());
         ReadyResult result = new ReadyResult(
-            session,
             true,
             false,
             allReady,
@@ -89,7 +88,6 @@ public class CompletedGameSessionState implements BaseState {
             contextService.turn().queueMoveResult(
                 context,
                 MoveResult.invalid(
-                    session,
                     MoveStatus.INVALID_PLAYER,
                     null,
                     event.userId(),
@@ -102,7 +100,6 @@ public class CompletedGameSessionState implements BaseState {
         GameTurnService.TurnSnapshot snapshot =
             turnService.snapshot(context.turns());
         contextService.turn().queueMoveResult(context, MoveResult.invalid(
-            session,
             MoveStatus.GAME_FINISHED,
             snapshot,
             event.userId(),
@@ -118,7 +115,7 @@ public class CompletedGameSessionState implements BaseState {
         GameTurnService.TurnSnapshot snapshot =
             turnService.snapshot(context.turns());
         contextService.turn().queueTimeoutResult(context,
-            TurnTimeoutResult.noop(session, snapshot)
+            TurnTimeoutResult.noop(snapshot)
         );
         return StateStep.stay();
     }
@@ -128,7 +125,6 @@ public class CompletedGameSessionState implements BaseState {
         GameSessionAccess session = context.session();
         contextService.postGame().queueDecisionResult(context,
             PostGameDecisionResult.rejected(
-                session,
                 event.userId(),
                 PostGameDecisionStatus.SESSION_CLOSED
             )

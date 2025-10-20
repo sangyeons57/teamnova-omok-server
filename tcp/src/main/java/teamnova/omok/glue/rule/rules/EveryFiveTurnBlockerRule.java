@@ -107,7 +107,6 @@ public class EveryFiveTurnBlockerRule implements Rule {
             System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule placed blockers for players present");
             byte[] snapshot = services.boardService().snapshot(boardStore);
             runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(
-                stateContext.session(),
                 snapshot,
                 System.currentTimeMillis()
             ));

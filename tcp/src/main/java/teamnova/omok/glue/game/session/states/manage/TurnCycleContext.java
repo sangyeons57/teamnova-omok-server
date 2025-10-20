@@ -2,14 +2,13 @@ package teamnova.omok.glue.game.session.states.manage;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
 
 /**
  * Mutable data shared across turn-processing phases.
  */
 public final class TurnCycleContext {
-    private final GameSessionStateContext parent;
+    private final GameSessionAccess session;
     private final String userId;
     private final int x;
     private final int y;
@@ -18,8 +17,8 @@ public final class TurnCycleContext {
     private Stone stone;
     private final TurnServiceSnapshotWrapper snapshots = new TurnServiceSnapshotWrapper();
 
-    public TurnCycleContext(GameSessionStateContext parent, String userId, int x, int y, long now) {
-        this.parent = parent;
+    public TurnCycleContext(GameSessionAccess session, String userId, int x, int y, long now) {
+        this.session = session;
         this.userId = userId;
         this.x = x;
         this.y = y;
@@ -27,7 +26,7 @@ public final class TurnCycleContext {
     }
 
     public GameSessionAccess session() {
-        return parent.session();
+        return session;
     }
 
     public String userId() {

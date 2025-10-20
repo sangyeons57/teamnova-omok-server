@@ -52,7 +52,7 @@ public class PerTurnAdjacentBlockerRule implements Rule {
         if (view == null) {
             view = RuleTurnStateView.capture(stateContext, services.turnService());
         }
-        GameTurnService.TurnSnapshot snapshot = view != null ? view.resolvedSnapshot() : null;
+        GameTurnService.TurnSnapshot turnSnapshot = view != null ? view.resolvedSnapshot() : null;
 
         GameSessionTurnAccess turn = stateContext.turns();
         int completedTurns = Math.max(0, turn.actionNumber() - 1);
@@ -92,8 +92,8 @@ public class PerTurnAdjacentBlockerRule implements Rule {
             }
             if (!candidates.isEmpty()) {
                 int[] c = candidates.get(rnd.nextInt(candidates.size()));
-                StonePlacementMetadata metadata = snapshot != null
-                    ? StonePlacementMetadata.forRule(snapshot, -1, null)
+                StonePlacementMetadata metadata = turnSnapshot != null
+                    ? StonePlacementMetadata.forRule(turnSnapshot, -1, null)
                     : StonePlacementMetadata.systemGenerated();
                 services.boardService().setStone(board, c[0], c[1], Stone.BLOCKER, metadata);
                 placed++;
@@ -101,8 +101,8 @@ public class PerTurnAdjacentBlockerRule implements Rule {
         }
         if (placed > 0) {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule placed " + placed + " blockers");
-            byte[] snapshot = services.boardService().snapshot(board);
-            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
+            byte[] boardSnapshot = services.boardService().snapshot(board);
+            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(boardSnapshot, System.currentTimeMillis()));
         } else {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule no placement this turn");
         }

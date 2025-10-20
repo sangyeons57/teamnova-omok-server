@@ -44,7 +44,7 @@ public class RotatePlayerStonesRule implements Rule {
         if (view == null) {
             view = RuleTurnStateView.capture(stateContext, services.turnService());
         }
-        GameTurnService.TurnSnapshot snapshot = view != null ? view.resolvedSnapshot() : null;
+        GameTurnService.TurnSnapshot turnSnapshot = view != null ? view.resolvedSnapshot() : null;
 
         GameSessionBoardAccess board = stateContext.board();
         GameSessionParticipantsAccess participants = stateContext.participants();
@@ -65,8 +65,8 @@ public class RotatePlayerStonesRule implements Rule {
                     String userId = (playerIndex >= 0 && playerIndex < userOrder.size())
                         ? userOrder.get(playerIndex)
                         : null;
-                    StonePlacementMetadata metadata = snapshot != null
-                        ? StonePlacementMetadata.forRule(snapshot, playerIndex, userId)
+                    StonePlacementMetadata metadata = turnSnapshot != null
+                        ? StonePlacementMetadata.forRule(turnSnapshot, playerIndex, userId)
                         : StonePlacementMetadata.systemGenerated();
                     services.boardService().setStone(board, x, y, ns, metadata);
                     changed++;
@@ -75,8 +75,8 @@ public class RotatePlayerStonesRule implements Rule {
         }
         if (changed > 0) {
             System.out.println("[RULE_LOG] RotatePlayerStonesRule rotated " + changed + " stones");
-            byte[] snapshot = services.boardService().snapshot(board);
-            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
+            byte[] boardSnapshot = services.boardService().snapshot(board);
+            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(boardSnapshot, System.currentTimeMillis()));
         }
     }
 }

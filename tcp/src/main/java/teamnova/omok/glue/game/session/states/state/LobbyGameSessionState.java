@@ -5,12 +5,11 @@ import java.util.Objects;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
+import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext.TurnTransition;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
@@ -57,7 +56,7 @@ public class LobbyGameSessionState implements BaseState {
         try {
             int playerIndex = context.participants().playerIndexOf(event.userId());
             if (playerIndex < 0) {
-                result = ReadyResult.invalid(session, event.userId());
+                result = ReadyResult.invalid(event.userId());
             } else {
                 boolean changed = context.participants().markReady(event.userId());
                 boolean allReady = context.participants().allReady();
@@ -78,7 +77,6 @@ public class LobbyGameSessionState implements BaseState {
                     snapshot = turnService.snapshot(context.turns());
                 }
                 result = new ReadyResult(
-                    session,
                     true,
                     changed,
                     allReady,

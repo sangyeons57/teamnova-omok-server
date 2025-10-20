@@ -2,15 +2,16 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 
 public final class TurnTimeoutMessageEncoder {
     private TurnTimeoutMessageEncoder() {}
 
-    public static byte[] encode(TurnTimeoutResult result) {
+    public static byte[] encode(GameSessionAccess session, TurnTimeoutResult result) {
         StringBuilder sb = new StringBuilder(192);
         sb.append('{')
-          .append("\"sessionId\":\"").append(result.session().sessionId().asUuid()).append('\"')
+          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"timedOutUserId\":");
         if (result.previousPlayerId() == null) {

@@ -75,6 +75,6 @@ public class EveryTwoTurnJokerRule implements Rule {
         services.boardService().setStone(board, x, y, Stone.JOKER, metadata);
         System.out.println("[RULE_LOG] EveryTwoTurnJokerRule placed JOKER at (" + x + "," + y + ")");
         byte[] boardSnapshot = services.boardService().snapshot(board);
-        runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), boardSnapshot, System.currentTimeMillis()));
+        runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(boardSnapshot, System.currentTimeMillis()));
     }
 }

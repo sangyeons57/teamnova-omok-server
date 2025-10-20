@@ -1,6 +1,7 @@
 package teamnova.omok.glue.game.session.interfaces.session;
 
 import teamnova.omok.glue.data.model.UserData;
+import teamnova.omok.glue.game.session.model.store.ParticipantsStore;
 
 import java.util.List;
 import java.util.Set;

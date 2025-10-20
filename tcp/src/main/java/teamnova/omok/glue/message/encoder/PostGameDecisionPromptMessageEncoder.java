@@ -2,15 +2,16 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 
 public final class PostGameDecisionPromptMessageEncoder {
     private PostGameDecisionPromptMessageEncoder() {}
 
-    public static byte[] encode(PostGameDecisionPrompt prompt) {
+    public static byte[] encode(GameSessionAccess session, PostGameDecisionPrompt prompt) {
         StringBuilder sb = new StringBuilder(160);
         sb.append('{')
-          .append("\"sessionId\":\"").append(prompt.session().sessionId().asUuid()).append('\"')
+          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"deadlineAt\":").append(prompt.deadlineAt())
           .append(',')

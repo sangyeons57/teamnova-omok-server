@@ -6,8 +6,6 @@ import teamnova.omok.glue.client.session.services.ClientSessionDirectory;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.message.encoder.BoardSnapshotMessageEncoder;
 import teamnova.omok.glue.message.encoder.ErrorMessageEncoder;
@@ -25,10 +23,10 @@ import teamnova.omok.glue.message.encoder.ReadyStateMessageEncoder;
 import teamnova.omok.glue.message.encoder.StonePlacedMessageEncoder;
 import teamnova.omok.glue.message.encoder.TurnTimeoutMessageEncoder;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
+import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 
@@ -48,8 +46,8 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastReady(ReadyResult result) {
-        directory.broadcast(result.session().getUserIds(), Type.READY_IN_GAME_SESSION, ReadyStateMessageEncoder.encode(result));
+    public void broadcastReady(GameSessionAccess session, ReadyResult result) {
+        directory.broadcast(session.getUserIds(), Type.READY_IN_GAME_SESSION, ReadyStateMessageEncoder.encode(session, result));
     }
 
     @Override
@@ -58,18 +56,18 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastStonePlaced(MoveResult result) {
-        directory.broadcast(result.session().getUserIds(), Type.STONE_PLACED, StonePlacedMessageEncoder.encode(result));
+    public void broadcastStonePlaced(GameSessionAccess session, MoveResult result) {
+        directory.broadcast(session.getUserIds(), Type.STONE_PLACED, StonePlacedMessageEncoder.encode(session, result));
     }
 
     @Override
     public void broadcastTurnTimeout(GameSessionAccess session, TurnTimeoutResult result) {
-        directory.broadcast(session.getUserIds(), Type.TURN_TIMEOUT, TurnTimeoutMessageEncoder.encode(result));
+        directory.broadcast(session.getUserIds(), Type.TURN_TIMEOUT, TurnTimeoutMessageEncoder.encode(session, result));
     }
 
     @Override
-    public void broadcastBoardSnapshot(BoardSnapshotUpdate update) {
-        directory.broadcast(update.getParticipantsAccess().getUserIds(), Type.BOARD_SNAPSHOT, BoardSnapshotMessageEncoder.encode(update));
+    public void broadcastBoardSnapshot(GameSessionAccess session, BoardSnapshotUpdate update) {
+        directory.broadcast(session.getUserIds(), Type.BOARD_SNAPSHOT, BoardSnapshotMessageEncoder.encode(session, update));
     }
 
     @Override
@@ -78,13 +76,13 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastPostGamePrompt(PostGameDecisionPrompt prompt) {
-        directory.broadcast(prompt.session().getUserIds(), Type.GAME_POST_DECISION_PROMPT, PostGameDecisionPromptMessageEncoder.encode(prompt));
+    public void broadcastPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt) {
+        directory.broadcast(session.getUserIds(), Type.GAME_POST_DECISION_PROMPT, PostGameDecisionPromptMessageEncoder.encode(session, prompt));
     }
 
     @Override
-    public void broadcastPostGameDecisionUpdate(PostGameDecisionUpdate update) {
-        directory.broadcast(update.session().getUserIds(), Type.GAME_POST_DECISION_UPDATE, PostGameDecisionUpdateMessageEncoder.encode(update));
+    public void broadcastPostGameDecisionUpdate(GameSessionAccess session, PostGameDecisionUpdate update) {
+        directory.broadcast(session.getUserIds(), Type.GAME_POST_DECISION_UPDATE, PostGameDecisionUpdateMessageEncoder.encode(session, update));
     }
 
     @Override
@@ -103,13 +101,13 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void respondReady(String userId, long requestId, ReadyResult result) {
-        directory.send(userId, Type.READY_IN_GAME_SESSION, requestId, ReadyStateMessageEncoder.encode(result));
+    public void respondReady(String userId, long requestId, GameSessionAccess session, ReadyResult result) {
+        directory.send(userId, Type.READY_IN_GAME_SESSION, requestId, ReadyStateMessageEncoder.encode(session, result));
     }
 
     @Override
-    public void respondMove(String userId, long requestId, MoveResult result) {
-        directory.send(userId, Type.PLACE_STONE, requestId, MoveAckMessageEncoder.encode(result));
+    public void respondMove(String userId, long requestId, GameSessionAccess session, MoveResult result) {
+        directory.send(userId, Type.PLACE_STONE, requestId, MoveAckMessageEncoder.encode(session, result));
     }
 
     @Override

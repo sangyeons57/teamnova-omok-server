@@ -48,7 +48,6 @@ public final class MoveValidatingState implements BaseState {
         if (cycle == null) {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
-        GameSessionAccess session = cycle.session();
         String userId = cycle.userId();
         int x = cycle.x();
         int y = cycle.y();
@@ -56,7 +55,6 @@ public final class MoveValidatingState implements BaseState {
         int playerIndex = context.participants().playerIndexOf(userId);
         if (playerIndex < 0) {
             invalidate(context, MoveResult.invalid(
-                session,
                 MoveStatus.INVALID_PLAYER,
                 null,
                 userId,
@@ -67,7 +65,6 @@ public final class MoveValidatingState implements BaseState {
         }
         if (!context.lifecycle().isGameStarted()) {
             invalidate(context, MoveResult.invalid(
-                session,
                 MoveStatus.GAME_NOT_STARTED,
                 null,
                 userId,
@@ -83,7 +80,6 @@ public final class MoveValidatingState implements BaseState {
 
         if (context.outcomes().isGameFinished()) {
             invalidate(context, MoveResult.invalid(
-                session,
                 MoveStatus.GAME_FINISHED,
                 currentSnapshot,
                 userId,
@@ -95,7 +91,6 @@ public final class MoveValidatingState implements BaseState {
 
         if (!boardService.isWithinBounds(context.board(), x, y)) {
             invalidate(context, MoveResult.invalid(
-                session,
                 MoveStatus.OUT_OF_BOUNDS,
                 currentSnapshot,
                 userId,
@@ -108,7 +103,6 @@ public final class MoveValidatingState implements BaseState {
         Integer currentIndex = turnService.currentPlayerIndex(context.turns());
         if (currentIndex == null || currentIndex != playerIndex) {
             invalidate(context, MoveResult.invalid(
-                session,
                 MoveStatus.OUT_OF_TURN,
                 currentSnapshot,
                 userId,
@@ -120,7 +114,6 @@ public final class MoveValidatingState implements BaseState {
 
         if (!boardService.isEmpty(context.board(), x, y)) {
             invalidate(context, MoveResult.invalid(
-                session,
                 MoveStatus.CELL_OCCUPIED,
                 currentSnapshot,
                 userId,

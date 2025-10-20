@@ -101,14 +101,13 @@ public final class OutcomeEvaluatingState implements BaseState {
             cycle.session().lock().unlock();
         }
         contextService.turn().queueMoveResult(context, MoveResult.success(
-                cycle.session(),
                 cycle.stone(),
                 null,
                 cycle.userId(),
                 cycle.x(),
                 cycle.y()
         ));
-        contextService.postGame().queueGameCompletion(context, new GameCompletionNotice(cycle.session()));
+        contextService.postGame().queueGameCompletion(context, new GameCompletionNotice());
         contextService.turn().clearTurnCycle(context);
     }
 
@@ -185,7 +184,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         } finally {
             session.lock().unlock();
         }
-        contextService.postGame().queueGameCompletion(context, new GameCompletionNotice(session));
+        contextService.postGame().queueGameCompletion(context, new GameCompletionNotice());
     }
 
     @Override

@@ -64,8 +64,8 @@ public class GoCaptureRule implements Rule {
         }
         if (removed > 0) {
             System.out.println("[RULE_LOG] GoCaptureRule removed " + removed + " stones (no liberties)");
-            byte[] snapshot = services.boardService().snapshot(board);
-            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
+            byte[] boardSnapshot = services.boardService().snapshot(board);
+            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(boardSnapshot, System.currentTimeMillis()));
         }
     }
 }

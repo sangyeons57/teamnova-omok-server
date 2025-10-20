@@ -3,10 +3,10 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
 import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext.TurnTransition;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.GameSessionTurnContextService;
 import teamnova.omok.glue.rule.RuleRuntimeContext;

@@ -44,7 +44,7 @@ public final class PostGameEventProcessor {
         GameSessionStateContextService contextService = deps.contextService();
         PostGameDecisionResult result = contextService.postGame().consumeDecisionResult(ctx);
         if (result == null) {
-            result = PostGameDecisionResult.rejected(manager.session(),
+            result = PostGameDecisionResult.rejected(
                 event.userId(),
                 PostGameDecisionStatus.SESSION_CLOSED);
         }
@@ -57,26 +57,27 @@ public final class PostGameEventProcessor {
         Objects.requireNonNull(ctx, "ctx");
         Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
         GameSessionStateContextService contextService = deps.contextService();
+        GameSessionAccess session = ctx.session();
         BoardSnapshotUpdate boardUpdate = contextService.postGame().consumeBoardSnapshot(ctx);
         if (boardUpdate != null) {
-            deps.messenger().broadcastBoardSnapshot(boardUpdate);
+            deps.messenger().broadcastBoardSnapshot(session, boardUpdate);
         }
         GameCompletionNotice completion = contextService.postGame().consumeGameCompletion(ctx);
         if (completion != null) {
-            deps.messenger().broadcastGameCompleted(completion.session());
+            deps.messenger().broadcastGameCompleted(session);
         }
         PostGameDecisionPrompt prompt = contextService.postGame().consumeDecisionPrompt(ctx);
         if (prompt != null) {
-            deps.messenger().broadcastPostGamePrompt(prompt);
-            scheduleDecisionTimeout(prompt.session(), prompt.deadlineAt(), timeoutConsumer);
+            deps.messenger().broadcastPostGamePrompt(session, prompt);
+            scheduleDecisionTimeout(session, prompt.deadlineAt(), timeoutConsumer);
         }
         PostGameDecisionUpdate update = contextService.postGame().consumeDecisionUpdate(ctx);
         if (update != null) {
-            deps.messenger().broadcastPostGameDecisionUpdate(update);
+            deps.messenger().broadcastPostGameDecisionUpdate(session, update);
         }
         PostGameResolution resolution = contextService.postGame().consumePostGameResolution(ctx);
         if (resolution != null) {
-            handlePostGameResolution(resolution);
+            handlePostGameResolution(session, resolution);
         }
     }
 
@@ -102,11 +103,10 @@ public final class PostGameEventProcessor {
         manager.submit(event, ctx -> drainSideEffects(ctx, timeoutConsumer));
     }
 
-    private void handlePostGameResolution(PostGameResolution resolution) {
-        GameSessionAccess session = resolution.session();
+    private void handlePostGameResolution(GameSessionAccess session, PostGameResolution resolution) {
         cancelAllTimers(session.sessionId());
         if (resolution.type() == PostGameResolution.ResolutionType.REMATCH) {
-            handleRematchResolution(resolution);
+            handleRematchResolution(session, resolution);
         } else {
             handleSessionTermination(session, resolution.disconnected());
         }
@@ -117,8 +117,7 @@ public final class PostGameEventProcessor {
         deps.decisionTimeoutScheduler().cancel(sessionId);
     }
 
-    private void handleRematchResolution(PostGameResolution resolution) {
-        GameSessionAccess oldSession = resolution.session();
+    private void handleRematchResolution(GameSessionAccess oldSession, PostGameResolution resolution) {
         List<String> participants = resolution.rematchParticipants();
         if (participants.size() < 2) {
             handleSessionTermination(oldSession, resolution.disconnected());

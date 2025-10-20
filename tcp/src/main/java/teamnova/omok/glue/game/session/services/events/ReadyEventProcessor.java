@@ -40,9 +40,9 @@ public final class ReadyEventProcessor {
         Objects.requireNonNull(ctx, "ctx");
         Objects.requireNonNull(event, "event");
         GameSessionStateContextService contextService = deps.contextService();
+        GameSessionAccess session = manager.session();
         ReadyResult result = contextService.turn().consumeReadyResult(ctx);
         if (result == null) {
-            GameSessionAccess session = manager.session();
             String message;
             if (!session.containsUser(event.userId())) {
                 message = "INVALID_PLAYER";
@@ -62,16 +62,16 @@ public final class ReadyEventProcessor {
             postGameProcessor.drainSideEffects(ctx, timeoutConsumer);
             return;
         }
-        deps.messenger().respondReady(event.userId(), event.requestId(), result);
+        deps.messenger().respondReady(event.userId(), event.requestId(), session, result);
         if (result.stateChanged()) {
-            deps.messenger().broadcastReady(result);
+            deps.messenger().broadcastReady(session, result);
         }
         if (result.gameStartedNow() && result.firstTurn() != null) {
-            deps.messenger().broadcastGameStart(result.session(), result.firstTurn());
-            timeoutProcessor.scheduleTurnTimeout(result.session(), result.firstTurn(), timeoutConsumer);
+            deps.messenger().broadcastGameStart(session, result.firstTurn());
+            timeoutProcessor.scheduleTurnTimeout(session, result.firstTurn(), timeoutConsumer);
         }
         if (manager.currentType() == GameSessionStateType.COMPLETED) {
-            timeoutProcessor.cancelAllTimers(result.session().sessionId());
+            timeoutProcessor.cancelAllTimers(session.sessionId());
         }
         postGameProcessor.drainSideEffects(ctx, timeoutConsumer);
     }

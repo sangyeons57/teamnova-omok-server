@@ -16,88 +16,88 @@ public final class GameSessionPostGameContextService {
 
     public void queueDecisionResult(GameSessionStateContext context, PostGameDecisionResult result) {
         Objects.requireNonNull(context, "context");
-        context.setPendingDecisionResult(result);
+        context.postGameRuntime().setPendingDecisionResult(result);
     }
 
     public PostGameDecisionResult consumeDecisionResult(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        PostGameDecisionResult result = context.getPendingDecisionResult();
-        context.clearPendingDecisionResult();
+        PostGameDecisionResult result = context.postGameRuntime().getPendingDecisionResult();
+        context.postGameRuntime().clearPendingDecisionResult();
         return result;
     }
 
     public void queueDecisionUpdate(GameSessionStateContext context, PostGameDecisionUpdate update) {
         Objects.requireNonNull(context, "context");
-        context.setPendingDecisionUpdate(update);
+        context.postGameRuntime().setPendingDecisionUpdate(update);
     }
 
     public PostGameDecisionUpdate consumeDecisionUpdate(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        PostGameDecisionUpdate update = context.getPendingDecisionUpdate();
-        context.clearPendingDecisionUpdate();
+        PostGameDecisionUpdate update = context.postGameRuntime().getPendingDecisionUpdate();
+        context.postGameRuntime().clearPendingDecisionUpdate();
         return update;
     }
 
     public void queueDecisionPrompt(GameSessionStateContext context, PostGameDecisionPrompt prompt) {
         Objects.requireNonNull(context, "context");
-        context.setPendingDecisionPrompt(prompt);
+        context.postGameRuntime().setPendingDecisionPrompt(prompt);
     }
 
     public PostGameDecisionPrompt consumeDecisionPrompt(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        PostGameDecisionPrompt prompt = context.getPendingDecisionPrompt();
-        context.clearPendingDecisionPrompt();
+        PostGameDecisionPrompt prompt = context.postGameRuntime().getPendingDecisionPrompt();
+        context.postGameRuntime().clearPendingDecisionPrompt();
         return prompt;
     }
 
     public void queuePostGameResolution(GameSessionStateContext context, PostGameResolution resolution) {
         Objects.requireNonNull(context, "context");
-        context.setPendingPostGameResolution(resolution);
+        context.postGameRuntime().setPendingPostGameResolution(resolution);
     }
 
     public PostGameResolution consumePostGameResolution(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        PostGameResolution resolution = context.getPendingPostGameResolution();
-        context.clearPendingPostGameResolution();
+        PostGameResolution resolution = context.postGameRuntime().getPendingPostGameResolution();
+        context.postGameRuntime().clearPendingPostGameResolution();
         return resolution;
     }
 
     public void setDecisionDeadline(GameSessionStateContext context, long deadline) {
         Objects.requireNonNull(context, "context");
-        context.setPostGameDecisionDeadline(deadline);
+        context.postGameRuntime().setPostGameDecisionDeadline(deadline);
     }
 
     public long decisionDeadline(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        return context.getPostGameDecisionDeadline();
+        return context.postGameRuntime().getPostGameDecisionDeadline();
     }
 
     public void clearDecisionDeadline(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        context.clearPostGameDecisionDeadline();
+        context.postGameRuntime().clearPostGameDecisionDeadline();
     }
 
     public void queueGameCompletion(GameSessionStateContext context, GameCompletionNotice notice) {
         Objects.requireNonNull(context, "context");
-        context.setPendingGameCompletion(notice);
+        context.postGameRuntime().setPendingGameCompletion(notice);
     }
 
     public GameCompletionNotice consumeGameCompletion(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        GameCompletionNotice notice = context.getPendingGameCompletion();
-        context.clearPendingGameCompletion();
+        GameCompletionNotice notice = context.postGameRuntime().getPendingGameCompletion();
+        context.postGameRuntime().clearPendingGameCompletion();
         return notice;
     }
 
     public void queueBoardSnapshot(GameSessionStateContext context, BoardSnapshotUpdate update) {
         Objects.requireNonNull(context, "context");
-        context.setPendingBoardSnapshot(update);
+        context.postGameRuntime().setPendingBoardSnapshot(update);
     }
 
     public BoardSnapshotUpdate consumeBoardSnapshot(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        BoardSnapshotUpdate update = context.getPendingBoardSnapshot();
-        context.clearPendingBoardSnapshot();
+        BoardSnapshotUpdate update = context.postGameRuntime().getPendingBoardSnapshot();
+        context.postGameRuntime().clearPendingBoardSnapshot();
         return update;
     }
 }

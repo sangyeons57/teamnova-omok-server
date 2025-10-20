@@ -4,14 +4,13 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
 import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext.TurnTransition;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
@@ -58,7 +57,7 @@ public class TurnWaitingState implements BaseState {
         session.lock().lock();
         try {
             TurnCycleContext cycleContext = new TurnCycleContext(
-                context,
+                context.session(),
                 event.userId(),
                 event.x(),
                 event.y(),
@@ -80,16 +79,16 @@ public class TurnWaitingState implements BaseState {
         session.lock().lock();
         try {
             if (!context.lifecycle().isGameStarted()) {
-                result = TurnTimeoutResult.noop(session, null);
+                result = TurnTimeoutResult.noop(null);
             } else {
                 GameTurnService.TurnSnapshot current =
                     turnService.snapshot(context.turns());
                 if (context.outcomes().isGameFinished()) {
-                    result = TurnTimeoutResult.noop(session, current);
+                    result = TurnTimeoutResult.noop(current);
                 } else if (current.turnNumber() != event.expectedTurnNumber()) {
-                    result = TurnTimeoutResult.noop(session, current);
+                    result = TurnTimeoutResult.noop(current);
                 } else if (!turnService.isExpired(context.turns(), event.timestamp())) {
-                    result = TurnTimeoutResult.noop(session, current);
+                    result = TurnTimeoutResult.noop(current);
                 } else {
                     String previousPlayerId = current.currentPlayerId();
                     GameTurnService.TurnSnapshot next = turnService
@@ -99,7 +98,6 @@ public class TurnWaitingState implements BaseState {
                             event.timestamp()
                         );
                     result = TurnTimeoutResult.timedOut(
-                        session,
                         current,
                         next,
                         previousPlayerId

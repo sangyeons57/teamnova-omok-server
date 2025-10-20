@@ -14,19 +14,19 @@ import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 
 public interface GameSessionMessenger {
     void broadcastJoin(GameSessionAccess session);
-    void broadcastReady(ReadyResult result);
+    void broadcastReady(GameSessionAccess session, ReadyResult result);
     void broadcastGameStart(GameSessionAccess session, GameTurnService.TurnSnapshot turn);
-    void broadcastStonePlaced(MoveResult result);
+    void broadcastStonePlaced(GameSessionAccess session, MoveResult result);
     void broadcastTurnTimeout(GameSessionAccess session, TurnTimeoutResult result);
-    void broadcastBoardSnapshot(BoardSnapshotUpdate update);
+    void broadcastBoardSnapshot(GameSessionAccess session, BoardSnapshotUpdate update);
     void broadcastGameCompleted(GameSessionAccess session);
-    void broadcastPostGamePrompt(PostGameDecisionPrompt prompt);
-    void broadcastPostGameDecisionUpdate(PostGameDecisionUpdate update);
+    void broadcastPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt);
+    void broadcastPostGameDecisionUpdate(GameSessionAccess session, PostGameDecisionUpdate update);
     void broadcastSessionTerminated(GameSessionAccess session, List<String> disconnected);
     void broadcastRematchStarted(GameSessionAccess previous, GameSessionAccess rematch, List<String> participants);
     void broadcastPlayerDisconnected(GameSessionAccess session, String userId, String reason);
-    void respondReady(String userId, long requestId, ReadyResult result);
-    void respondMove(String userId, long requestId, MoveResult result);
+    void respondReady(String userId, long requestId, GameSessionAccess session, ReadyResult result);
+    void respondMove(String userId, long requestId, GameSessionAccess session, MoveResult result);
     void respondPostGameDecision(String userId, long requestId, PostGameDecisionResult result);
     void respondError(String userId, Type type, long requestId, String message);
 }

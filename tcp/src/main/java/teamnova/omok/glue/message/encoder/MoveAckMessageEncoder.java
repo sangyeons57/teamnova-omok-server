@@ -2,16 +2,17 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
 
 public final class MoveAckMessageEncoder {
     private MoveAckMessageEncoder() {}
 
-    public static byte[] encode(MoveResult result) {
+    public static byte[] encode(GameSessionAccess session, MoveResult result) {
         StringBuilder sb = new StringBuilder(224);
         sb.append('{')
-          .append("\"sessionId\":\"").append(result.session().sessionId().asUuid()).append('\"')
+          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"status\":\"").append(result.status()).append('\"');
         sb.append(',')
@@ -28,7 +29,6 @@ public final class MoveAckMessageEncoder {
           .append("\"turn\":");
         MessageEncodingUtil.appendTurn(sb, result.turnSnapshot());
         sb.append('}');
-        System.out.println(sb);
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 }
