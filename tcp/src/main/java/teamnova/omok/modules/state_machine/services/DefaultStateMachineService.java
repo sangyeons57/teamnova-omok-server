@@ -12,12 +12,12 @@ import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
 import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
-import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
+import teamnova.omok.modules.state_machine.interfaces.StateMachineService;
 import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 import teamnova.omok.modules.state_machine.models.StateStep;
 
-public class DefaultStateMachineManager implements StateMachineManager {
+public class DefaultStateMachineService implements StateMachineService {
 
     private final Map<StateName, BaseState> states;
     private final Queue<PendingEvent> eventQueue;
@@ -26,7 +26,7 @@ public class DefaultStateMachineManager implements StateMachineManager {
     private BaseState currentState;
     private Consumer<StateName> transitionListener;
 
-    public DefaultStateMachineManager() {
+    public DefaultStateMachineService() {
         this.states = new java.util.concurrent.ConcurrentHashMap<>();
         this.eventQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
         this.lifecycleListeners = new java.util.concurrent.ConcurrentHashMap<>();

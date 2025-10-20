@@ -8,9 +8,9 @@ import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
 import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
-import teamnova.omok.modules.state_machine.interfaces.StateMachineManager;
+import teamnova.omok.modules.state_machine.interfaces.StateMachineService;
 import teamnova.omok.modules.state_machine.models.StateName;
-import teamnova.omok.modules.state_machine.services.DefaultStateMachineManager;
+import teamnova.omok.modules.state_machine.services.DefaultStateMachineService;
 
 /**
  * Single entry point used to work with the state machine module.
@@ -22,17 +22,17 @@ public final class StateMachineGateway {
 
 
     public static Handle open() {
-        return new Handle(new DefaultStateMachineManager());
+        return new Handle(new DefaultStateMachineService());
     }
 
-    public static Handle wrap(StateMachineManager manager) {
-        return new Handle(manager);
+    public static Handle wrap(StateMachineService mainService) {
+        return new Handle(mainService);
     }
 
     public static final class Handle {
-        private final StateMachineManager delegate;
+        private final StateMachineService delegate;
 
-        private Handle(StateMachineManager delegate) {
+        private Handle(StateMachineService delegate) {
             this.delegate = Objects.requireNonNull(delegate, "delegate");
         }
 

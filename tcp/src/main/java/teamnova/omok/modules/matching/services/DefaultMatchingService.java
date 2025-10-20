@@ -3,24 +3,24 @@ package teamnova.omok.modules.matching.services;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
-import teamnova.omok.modules.matching.interfaces.MatchingManager;
+import teamnova.omok.modules.matching.interfaces.MatchingService;
 import teamnova.omok.modules.matching.models.*;
 
 /**
  * DefaultMatchingManager now owns the full matching logic (no glue service dependency).
  */
-public final class DefaultMatchingManager implements MatchingManager {
+public final class DefaultMatchingService implements MatchingService {
     // Configurable parameters
     private final MatchingConfig cfg;
 
     private final Deque<TicketInfo> globalQueue = new ConcurrentLinkedDeque<>();
     private final Map<Integer, List<TicketInfo>> ticketGroups = new HashMap<>();
 
-    public DefaultMatchingManager() {
+    public DefaultMatchingService() {
         this(MatchingConfig.defaults());
     }
 
-    public DefaultMatchingManager(MatchingConfig cfg) {
+    public DefaultMatchingService(MatchingConfig cfg) {
         this.cfg = Objects.requireNonNull(cfg, "cfg");
         ticketGroups.put(2, new ArrayList<>());
         ticketGroups.put(3, new ArrayList<>());
@@ -28,15 +28,16 @@ public final class DefaultMatchingManager implements MatchingManager {
     }
 
     @Override
-    public boolean enqueue(MatchTicket ticket) {
+    public void enqueue(MatchTicket ticket) {
         Objects.requireNonNull(ticket, "ticket");
         TicketInfo t = TicketInfo.create(ticket);
         boolean ok = globalQueue.offer(t);
         if (ok) {
             for (int m : t.getMatchSet()) ticketGroups.get(m).add(t);
             System.out.println("[MATCH][ENQ] user=" + t.getId() + " rating=" + t.getRating() + " modes=" + t.getMatchSet() + " q=" + globalQueue.size());
+        } else {
+            System.err.println("[MATCH][ENQ][FAILED] user=" + t.getId() + " rating=" + t.getRating() + " modes=" + t.getMatchSet() + " q=" + globalQueue.size());
         }
-        return ok;
     }
 
     @Override
@@ -56,7 +57,11 @@ public final class DefaultMatchingManager implements MatchingManager {
 
         MatchGroup bestGroup = null;
         for (int match : ticketInfo.getMatchSet()) {
-            List<TicketInfo> neighborTicketInfos = getNeighborTickets(match, ticketInfo);
+
+            List<TicketInfo> pool = ticketGroups.get(match);
+            if (pool == null || pool.size() < match) continue;
+
+            List<TicketInfo> neighborTicketInfos = getNeighborTickets(match, pool, ticketInfo);
             MatchGroup group = buildGroup(neighborTicketInfos);
             if (group != null && qualityCheck(group, bestGroup)) {
                 bestGroup = group;
@@ -90,25 +95,18 @@ public final class DefaultMatchingManager implements MatchingManager {
         }
     }
 
-    private List<TicketInfo> getNeighborTickets(int match, TicketInfo selectedTicketInfo) {
-        List<TicketInfo> pool = ticketGroups.get(match);
-        if (pool == null || pool.size() < match) return null;
+    private List<TicketInfo> getNeighborTickets(int match, List<TicketInfo> pool, TicketInfo selectedTicketInfo) {
 
         long waitSec = (System.currentTimeMillis() - selectedTicketInfo.getTimestamp()) / 1000;
-        int timeTerm = (int) (cfg.timeMatchingWeight * Math.sqrt(Math.max(0, waitSec)));
-        int windowMu = cfg.baseMatchingGap
-            + timeTerm
-            + cfg.creditMatchingWeight * selectedTicketInfo.getCredit();
+        int timeTerm = (int) (cfg.timeMatchingWeight * Math.max(0, waitSec));
+        int creditTerm = (int) (cfg.creditMatchingWeight * selectedTicketInfo.getCredit());
+        int windowMu = cfg.baseMatchingGap + timeTerm + creditTerm;
 
         List<TicketInfo> candidates = new ArrayList<>(pool.size());
         for (TicketInfo t : pool) {
             if (!t.getId().equals(selectedTicketInfo.getId()) && Math.abs(t.getRating() - selectedTicketInfo.getRating()) <= windowMu) {
                 candidates.add(t);
             }
-        }
-        if (candidates.size() < match - 1) {
-            System.out.println("[MATCH][WINDOW] user=" + selectedTicketInfo.getId() + " match=" + match + " mu=" + windowMu + " candidates=" + candidates.size() + " -> insufficient");
-            return null;
         }
 
         candidates.sort((a, b) -> {
@@ -123,7 +121,6 @@ public final class DefaultMatchingManager implements MatchingManager {
         List<TicketInfo> result = new ArrayList<>(match);
         result.add(selectedTicketInfo);
         for (int i = 0; i < candidates.size() && result.size() < match; i++) result.add(candidates.get(i));
-        System.out.println("[MATCH][WINDOW] user=" + selectedTicketInfo.getId() + " match=" + match + " mu=" + windowMu + " candidates=" + candidates.size() + " selectedSize=" + result.size());
         return result;
     }
 
@@ -141,11 +138,7 @@ public final class DefaultMatchingManager implements MatchingManager {
             if (t.getRating() > maxRating) maxRating = t.getRating();
         }
         double average = (double) sum / group.size();
-        double devSum = 0.0;
-        for (TicketInfo t : group) {
-            double diff = t.getRating() - average;
-            devSum += diff * diff;
-        }
+        double devSum = group.stream().map(t -> t.getRating() - average).map(diff -> diff * diff).reduce(0.0, Double::sum);
         int delta = (maxRating - minRating);
         int deltaPenalty = (delta > cfg.baseMatchingGap) ? (cfg.groupMaxDeltaNegativeWeight * delta) : 0;
         int score = cfg.groupBaseScore

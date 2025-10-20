@@ -4,7 +4,7 @@ import java.util.function.Consumer;
 
 import teamnova.omok.modules.state_machine.models.StateName;
 
-public interface StateMachineManager {
+public interface StateMachineService {
 
     <I extends StateContext> void start(StateName stateName, I context);
 
