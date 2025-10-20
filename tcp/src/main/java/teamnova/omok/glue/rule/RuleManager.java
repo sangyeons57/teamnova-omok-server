@@ -29,9 +29,11 @@ public class RuleManager {
 
     private final RuleRegistry registry;
     private final Random random = new Random();
+    private final RuleSelectionConfig selectionConfig;
 
     private RuleManager(RuleRegistry registry) {
         this.registry = Objects.requireNonNull(registry, "registry");
+        this.selectionConfig = RuleSelectionConfig.load();
         new RuleBootstrap().registerDefaults(this.registry);
     }
 
@@ -50,7 +52,9 @@ public class RuleManager {
         Map<String, Integer> scores = resolveScores(session.getUserIds(), knownScores);
         int lowestScore = scores.values().stream().min(Integer::compareTo).orElse(0);
         session.setLowestParticipantScore(lowestScore);
-        int desiredRuleCount = deriveRuleCount(lowestScore);
+        int desiredRuleCount = selectionConfig.hasFixedRuleOverride()
+            ? selectionConfig.fixedRuleIds().size()
+            : deriveRuleCount(lowestScore);
         session.setDesiredRuleCount(desiredRuleCount);
         return selectAndBuildContext(session, lowestScore, desiredRuleCount);
     }
@@ -58,6 +62,18 @@ public class RuleManager {
     private RulesContext selectAndBuildContext(GameSession session,
                                      int lowestScore,
                                      int desiredRuleCount) {
+        if (selectionConfig.hasFixedRuleOverride()) {
+            List<Rule> fixed = selectionConfig.resolveFixedRules(registry);
+            if (!fixed.isEmpty()) {
+                System.out.println("[RULE_LOG] Using fixed rule override for session " + session.sessionId().asUuid()
+                    + " -> " + selectionConfig.fixedRuleIds());
+                return RulesContext.fromRules(session, fixed, lowestScore);
+            }
+            System.out.println("[RULE_LOG] Fixed rule override configured but no rules resolved; falling back to random selection");
+            int fallbackCount = deriveRuleCount(lowestScore);
+            session.setDesiredRuleCount(fallbackCount);
+            desiredRuleCount = fallbackCount;
+        }
         List<Rule> candidates = registry.eligibleRules(lowestScore);
         if (candidates.isEmpty() || desiredRuleCount <= 0) {
             System.out.println("[RULE_LOG] No eligible rules for session " + session.sessionId().asUuid());
