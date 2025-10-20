@@ -18,7 +18,7 @@ import teamnova.omok.modules.matching.models.MatchTicket;
  * Periodically attempts to match waiting players and spin up game sessions.
  */
 public final class MatchingManager implements Closeable {
-    private static final long DEFAULT_INTERVAL_MILLIS = 500L;
+    private static final long DEFAULT_INTERVAL_MILLIS = 100L;
 
     private static MatchingManager INSTANCE;
 

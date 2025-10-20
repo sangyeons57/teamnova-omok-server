@@ -34,9 +34,6 @@ public final class DefaultMatchingService implements MatchingService {
         boolean ok = globalQueue.offer(t);
         if (ok) {
             for (int m : t.getMatchSet()) ticketGroups.get(m).add(t);
-            System.out.println("[MATCH][ENQ] user=" + t.getId() + " rating=" + t.getRating() + " modes=" + t.getMatchSet() + " q=" + globalQueue.size());
-        } else {
-            System.err.println("[MATCH][ENQ][FAILED] user=" + t.getId() + " rating=" + t.getRating() + " modes=" + t.getMatchSet() + " q=" + globalQueue.size());
         }
     }
 
@@ -53,7 +50,6 @@ public final class DefaultMatchingService implements MatchingService {
     public MatchResult tryMatchOnce() {
         TicketInfo ticketInfo = globalQueue.poll();
         if (ticketInfo == null) return MatchResult.fail("No ticket available");
-        System.out.println("[MATCH][TRY] user=" + ticketInfo.getId() + " rating=" + ticketInfo.getRating() + " modes=" + ticketInfo.getMatchSet() + " qRemain=" + globalQueue.size());
 
         MatchGroup bestGroup = null;
         for (int match : ticketInfo.getMatchSet()) {
@@ -85,11 +81,9 @@ public final class DefaultMatchingService implements MatchingService {
                 if (i > 0) sb.append(',');
                 sb.append(bestGroup.tickets().get(i).id());
             }
-            System.out.println("[MATCH][SUCCESS] size=" + bestGroup.tickets().size() + " users=[" + sb + "] score=" + bestGroup.score());
             return MatchResult.success(bestGroup);
         } else {
             ticketInfo.addCredit();
-            System.out.println("[MATCH][REQUEUE] user=" + ticketInfo.getId() + " credit=" + ticketInfo.getCredit() + " reason=No group available");
             globalQueue.offer(ticketInfo);
             return MatchResult.fail("No group available");
         }
