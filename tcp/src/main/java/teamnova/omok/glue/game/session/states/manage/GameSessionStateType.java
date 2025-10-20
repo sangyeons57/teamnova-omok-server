@@ -11,7 +11,9 @@ public enum GameSessionStateType {
     MOVE_VALIDATING,
     MOVE_APPLYING,
     OUTCOME_EVALUATING,
-    TURN_FINALIZING,
+    TURN_PERSONAL_COMPLETED,
+    TURN_ROUND_COMPLETED,
+    TURN_STARTING,
     POST_GAME_DECISION_WAITING,
     POST_GAME_DECISION_RESOLVING,
     SESSION_REMATCH_PREPARING,
@@ -35,7 +37,9 @@ public enum GameSessionStateType {
             case "move_validating", "MOVE_VALIDATING" -> MOVE_VALIDATING;
             case "move_applying", "MOVE_APPLYING" -> MOVE_APPLYING;
             case "outcome_evaluating", "OUTCOME_EVALUATING" -> OUTCOME_EVALUATING;
-            case "turn_finalizing", "TURN_FINALIZING" -> TURN_FINALIZING;
+            case "turn_personal_completed", "TURN_PERSONAL_COMPLETED", "turn_finalizing", "TURN_FINALIZING" -> TURN_PERSONAL_COMPLETED;
+            case "turn_round_completed", "TURN_ROUND_COMPLETED" -> TURN_ROUND_COMPLETED;
+            case "turn_starting", "TURN_STARTING" -> TURN_STARTING;
             case "post_game_decision_waiting", "POST_GAME_DECISION_WAITING" -> POST_GAME_DECISION_WAITING;
             case "post_game_decision_resolving", "POST_GAME_DECISION_RESOLVING" -> POST_GAME_DECISION_RESOLVING;
             case "session_rematch_preparing", "SESSION_REMATCH_PREPARING" -> SESSION_REMATCH_PREPARING;

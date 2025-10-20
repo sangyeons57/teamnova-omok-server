@@ -4,13 +4,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
 import teamnova.omok.glue.data.model.UserData;
 import teamnova.omok.glue.game.session.interfaces.session.*;
+import teamnova.omok.glue.game.session.model.store.*;
 import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
+import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 import teamnova.omok.glue.game.session.model.vo.TurnCounters;
 import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
@@ -30,6 +31,7 @@ public class GameSession implements GameSessionAccess {
     private final LifecycleStore lifecycleStore;
     private final RulesStore rulesStore = new RulesStore();
     private final BoardStore boardStore;
+    private final TurnPlacementStore placementStore;
     private final TurnStore turnStore;
     private final OutcomeStore outcomeStore;
     private final PostGameStore postGameStore = new PostGameStore();
@@ -43,6 +45,7 @@ public class GameSession implements GameSessionAccess {
         this.id = GameSessionId.random();
         this.lifecycleStore = new LifecycleStore(System.currentTimeMillis());
         this.boardStore = new BoardStore(BOARD_WIDTH, BOARD_HEIGHT);
+        this.placementStore = new TurnPlacementStore(BOARD_WIDTH, BOARD_HEIGHT);
         this.turnStore = new TurnStore();
         this.outcomeStore = new OutcomeStore(userIds);
         List<UserData> resolvedUsers = userIds.stream()
@@ -259,6 +262,26 @@ public class GameSession implements GameSessionAccess {
         boardStore.set(linearIndex(x, y), stone.code());
     }
 
+    @Override
+    public StonePlacementMetadata placementAt(int x, int y) {
+        return placementStore.get(linearIndex(x, y));
+    }
+
+    @Override
+    public void recordPlacement(int x, int y, StonePlacementMetadata metadata) {
+        placementStore.record(linearIndex(x, y), metadata);
+    }
+
+    @Override
+    public void clearPlacement(int x, int y) {
+        placementStore.clear(linearIndex(x, y));
+    }
+
+    @Override
+    public void clearPlacements() {
+        placementStore.reset();
+    }
+
     private int linearIndex(int x, int y) {
         return y * boardStore.width() + x;
     }
@@ -266,6 +289,7 @@ public class GameSession implements GameSessionAccess {
     @Override
     public void clear() {
         boardStore.clear();
+        placementStore.reset();
     }
 
     @Override

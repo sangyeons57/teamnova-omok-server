@@ -8,20 +8,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import teamnova.omok.glue.game.session.interfaces.session.*;
 import teamnova.omok.glue.game.session.model.GameSession;
-import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
+import teamnova.omok.glue.rule.RuleRuntimeContext;
 
 public class RulesContext {
     private final GameSession session;
     private final List<RuleId> ruleIds;
     private final int lowestScore;
     private final Map<String, Object> data = new ConcurrentHashMap<>();
-
-    private volatile GameSessionStateContext stateContext;
-    private volatile GameSessionServices services;
-    private volatile GameSessionStateContextService contextService;
 
     private RulesContext(GameSession session,
                          List<RuleId> ruleIds,
@@ -63,49 +57,20 @@ public class RulesContext {
         data.put(key, value);
     }
 
-    public GameSessionStateContext stateContext() {
-        return stateContext;
-    }
-
-    public void attachStateContext(GameSessionStateContext stateContext) {
-        this.stateContext = stateContext;
-    }
-
-    public GameSessionServices services() {
-        return services;
-    }
-
-    public void attachServices(GameSessionServices services) {
-        this.services = services;
-    }
-
-    public void attachContextService(GameSessionStateContextService contextService) {
-        this.contextService = Objects.requireNonNull(contextService, "contextService");
-    }
-
-    public GameSessionStateContextService contextService() {
-        return Objects.requireNonNull(contextService, "contextService not attached");
-    }
-
-    // With simplified rules, we ignore the specific state and always allow activation when any rule exists.
-    public boolean setCurrentRuleByGameState(GameSessionStateType type) {
+    public boolean allowsActivation(GameSessionStateType type) {
         return !ruleIds.isEmpty();
     }
 
-    private void activateRule(RuleId id) {
-        if (id == null) {
+    public void activateRules(RuleRuntimeContext runtime, GameSessionStateType targetState) {
+        Objects.requireNonNull(runtime, "runtime");
+        if (!allowsActivation(targetState)) {
             return;
         }
-        Rule rule = RuleRegistry.getInstance().get(id);
-        if (rule == null) {
-            return;
-        }
-        rule.invoke(this);
-    }
-
-    public void activateCurrentRule() {
         for (RuleId id : ruleIds) {
-            activateRule(id);
+            Rule rule = RuleRegistry.getInstance().get(id);
+            if (rule != null) {
+                rule.invoke(this, runtime);
+            }
         }
     }
 }

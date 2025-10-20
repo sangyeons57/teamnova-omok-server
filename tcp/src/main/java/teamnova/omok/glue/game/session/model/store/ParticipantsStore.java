@@ -1,4 +1,4 @@
-package teamnova.omok.glue.game.session.model;
+package teamnova.omok.glue.game.session.model.store;
 
 import java.util.Collections;
 import java.util.List;

@@ -12,7 +12,6 @@ import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.states.signal.TurnFinalizingSignal;
 import teamnova.omok.glue.game.session.states.state.CompletedGameSessionState;
 import teamnova.omok.glue.game.session.states.state.LobbyGameSessionState;
 import teamnova.omok.glue.game.session.states.state.MoveApplyingState;
@@ -22,7 +21,9 @@ import teamnova.omok.glue.game.session.states.state.PostGameDecisionResolvingSta
 import teamnova.omok.glue.game.session.states.state.PostGameDecisionWaitingState;
 import teamnova.omok.glue.game.session.states.state.SessionRematchPreparingState;
 import teamnova.omok.glue.game.session.states.state.SessionTerminatingState;
-import teamnova.omok.glue.game.session.states.state.TurnFinalizingState;
+import teamnova.omok.glue.game.session.states.state.TurnPersonalCompletedState;
+import teamnova.omok.glue.game.session.states.state.TurnRoundCompletedState;
+import teamnova.omok.glue.game.session.states.state.TurnStartingState;
 import teamnova.omok.glue.game.session.states.state.TurnWaitingState;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
@@ -53,7 +54,6 @@ public class GameStateHub {
 
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.onTransition(this::handleTransition);
-        this.stateMachine.addStateSignalListener(new TurnFinalizingSignal(context, contextService, services));
         registerStateConfig(contextService);
 
         this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
@@ -65,7 +65,9 @@ public class GameStateHub {
         registerState(new MoveValidatingState(contextService, services.boardService(), services.turnService()));
         registerState(new MoveApplyingState(contextService, services.boardService()));
         registerState(new OutcomeEvaluatingState(contextService, services.boardService(), services.scoreService()));
-        registerState(new TurnFinalizingState(contextService, services.turnService()));
+        registerState(new TurnPersonalCompletedState(contextService, services));
+        registerState(new TurnRoundCompletedState(contextService, services));
+        registerState(new TurnStartingState(contextService, services));
         registerState(new PostGameDecisionWaitingState(contextService, services.turnService()));
         registerState(new PostGameDecisionResolvingState(contextService));
         registerState(new SessionRematchPreparingState(contextService));
@@ -86,7 +88,7 @@ public class GameStateHub {
             return;
         }
         currentType = resolved;
-        // Do NOT trigger rules here to avoid duplicate calls; signals handle rule triggering
+        // Rule triggering happens inside state implementations.
     }
 
     public GameSessionStateType currentType() {

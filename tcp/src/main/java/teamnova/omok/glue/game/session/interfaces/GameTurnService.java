@@ -16,12 +16,17 @@ public interface GameTurnService {
     boolean isExpired(GameSessionTurnAccess turns, long now);
     Integer currentPlayerIndex(GameSessionTurnAccess turns);
     TurnSnapshot snapshot(GameSessionTurnAccess turns);
+    TurnSnapshot reseedOrder(GameSessionTurnAccess turns,
+                             List<String> newOrder,
+                             String pivotPlayerId,
+                             long now);
 
     record TurnSnapshot(int currentPlayerIndex,
                         String currentPlayerId,
                         TurnCounters counters,
                         TurnTiming timing,
-                        TurnOrder order) {
+                        TurnOrder order,
+                        boolean wrapped) {
         public int actionNumber() {
             return counters.actionNumber();
         }

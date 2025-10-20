@@ -6,16 +6,20 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
+import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
+import teamnova.omok.glue.rule.RuleRuntimeContext;
 import teamnova.omok.glue.rule.RulesContext;
 
 public class EveryFiveTurnBlockerRule implements Rule {
@@ -32,16 +36,23 @@ public class EveryFiveTurnBlockerRule implements Rule {
     }
 
     @Override
-    public void invoke(RulesContext context) {
-        if (context == null) {
+    public void invoke(RulesContext context, RuleRuntimeContext runtime) {
+        if (context == null || runtime == null) {
             return;
         }
         System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule invoked");
-        GameSessionStateContext stateContext = context.stateContext();
-        GameSessionServices services = context.services();
+        GameSessionStateContext stateContext = runtime.stateContext();
+        GameSessionServices services = runtime.services();
         if (stateContext == null || services == null) {
             return;
         }
+
+        RuleTurnStateView view = runtime.turnStateView();
+        if (view == null) {
+            view = RuleTurnStateView.capture(stateContext, services.turnService());
+        }
+        GameTurnService.TurnSnapshot turnSnapshot = view != null ? view.resolvedSnapshot() : null;
+
         GameSessionTurnAccess turnStore = stateContext.turns();
         int completedTurns = Math.max(0, turnStore.actionNumber() - 1);
         if (completedTurns <= 0 || completedTurns % 5 != 0) {
@@ -85,14 +96,17 @@ public class EveryFiveTurnBlockerRule implements Rule {
             int cellIndex = occupied.get(random.nextInt(occupied.size()));
             int x = cellIndex % width;
             int y = cellIndex / width;
-            services.boardService().setStone(boardStore, x, y, Stone.BLOCKER);
+            StonePlacementMetadata metadata = turnSnapshot != null
+                ? StonePlacementMetadata.forRule(turnSnapshot, -1, null)
+                : StonePlacementMetadata.systemGenerated();
+            services.boardService().setStone(boardStore, x, y, Stone.BLOCKER, metadata);
             mutated = true;
         }
 
         if (mutated) {
             System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule placed blockers for players present");
             byte[] snapshot = services.boardService().snapshot(boardStore);
-            context.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(
+            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(
                 stateContext.session(),
                 snapshot,
                 System.currentTimeMillis()

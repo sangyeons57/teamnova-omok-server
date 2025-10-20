@@ -6,10 +6,12 @@ import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext.TurnTransition;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
@@ -74,6 +76,7 @@ public class TurnWaitingState implements BaseState {
         GameSessionAccess session = context.session();
         TurnTimeoutResult result;
 
+        boolean advanced = false;
         session.lock().lock();
         try {
             if (!context.lifecycle().isGameStarted()) {
@@ -101,6 +104,21 @@ public class TurnWaitingState implements BaseState {
                         next,
                         previousPlayerId
                     );
+                    RuleTurnStateView view = RuleTurnStateView.fromAdvance(
+                        current,
+                        next,
+                        context.participants().getUserIds(),
+                        context.participants().disconnectedUsersView(),
+                        previousPlayerId,
+                        previousPlayerId != null
+                            ? context.participants().playerIndexOf(previousPlayerId)
+                            : -1
+                    );
+                    contextService.turn().recordTurnTransition(
+                        context,
+                        new TurnTransition(current, next, view)
+                    );
+                    advanced = true;
                 }
             }
         } finally {
@@ -109,8 +127,16 @@ public class TurnWaitingState implements BaseState {
 
         contextService.turn().queueTimeoutResult(context, result);
         if (context.outcomes().isGameFinished()) {
+            contextService.turn().consumeTurnTransition(context);
             return StateStep.transition(GameSessionStateType.COMPLETED.toStateName());
         }
-        return StateStep.stay();
+        if (!advanced) {
+            return StateStep.stay();
+        }
+        TurnTransition transition = contextService.turn().peekTurnTransition(context);
+        GameSessionStateType nextState = (transition != null && transition.roundWrapped())
+            ? GameSessionStateType.TURN_ROUND_COMPLETED
+            : GameSessionStateType.TURN_STARTING;
+        return StateStep.transition(nextState.toStateName());
     }
 }

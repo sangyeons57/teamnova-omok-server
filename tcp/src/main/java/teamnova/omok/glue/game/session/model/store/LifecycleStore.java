@@ -1,4 +1,4 @@
-package teamnova.omok.glue.game.session.model;
+package teamnova.omok.glue.game.session.model.store;
 
 /**
  * Captures lifecycle timestamps and counters for a game session.

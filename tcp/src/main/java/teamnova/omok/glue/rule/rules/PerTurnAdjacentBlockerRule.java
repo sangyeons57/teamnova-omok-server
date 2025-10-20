@@ -1,14 +1,21 @@
 package teamnova.omok.glue.rule.rules;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
+import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
+import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
+import teamnova.omok.glue.rule.RuleRuntimeContext;
 import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
@@ -31,11 +38,21 @@ public class PerTurnAdjacentBlockerRule implements Rule {
     }
 
     @Override
-    public void invoke(RulesContext context) {
-        if (context == null) return;
-        GameSessionStateContext stateContext = context.stateContext();
-        GameSessionServices services = context.services();
-        if (stateContext == null || services == null) return;
+    public void invoke(RulesContext context, RuleRuntimeContext runtime) {
+        if (context == null || runtime == null) {
+            return;
+        }
+        GameSessionStateContext stateContext = runtime.stateContext();
+        GameSessionServices services = runtime.services();
+        if (stateContext == null || services == null) {
+            return;
+        }
+
+        RuleTurnStateView view = runtime.turnStateView();
+        if (view == null) {
+            view = RuleTurnStateView.capture(stateContext, services.turnService());
+        }
+        GameTurnService.TurnSnapshot snapshot = view != null ? view.resolvedSnapshot() : null;
 
         GameSessionTurnAccess turn = stateContext.turns();
         int completedTurns = Math.max(0, turn.actionNumber() - 1);
@@ -75,14 +92,17 @@ public class PerTurnAdjacentBlockerRule implements Rule {
             }
             if (!candidates.isEmpty()) {
                 int[] c = candidates.get(rnd.nextInt(candidates.size()));
-                services.boardService().setStone(board, c[0], c[1], Stone.BLOCKER);
+                StonePlacementMetadata metadata = snapshot != null
+                    ? StonePlacementMetadata.forRule(snapshot, -1, null)
+                    : StonePlacementMetadata.systemGenerated();
+                services.boardService().setStone(board, c[0], c[1], Stone.BLOCKER, metadata);
                 placed++;
             }
         }
         if (placed > 0) {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule placed " + placed + " blockers");
             byte[] snapshot = services.boardService().snapshot(board);
-            context.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
+            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
         } else {
             System.out.println("[RULE_LOG] PerTurnAdjacentBlockerRule no placement this turn");
         }

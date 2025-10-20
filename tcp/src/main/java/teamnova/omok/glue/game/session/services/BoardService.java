@@ -1,8 +1,11 @@
 package teamnova.omok.glue.game.session.services;
 
+import java.util.Objects;
+
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 
 /**
  * Stateless utility service for manipulating Omok board data.
@@ -11,6 +14,7 @@ public class BoardService implements GameBoardService {
     @Override
     public void reset(GameSessionBoardAccess store) {
         store.clear();
+        store.clearPlacements();
     }
 
     @Override
@@ -29,8 +33,22 @@ public class BoardService implements GameBoardService {
     }
 
     @Override
-    public void setStone(GameSessionBoardAccess store, int x, int y, Stone stone) {
+    public void setStone(GameSessionBoardAccess store, int x, int y, Stone stone, StonePlacementMetadata metadata) {
+        Objects.requireNonNull(store, "store");
+        Objects.requireNonNull(stone, "stone");
         store.setStone(x, y, stone);
+        if (stone == Stone.EMPTY) {
+            store.clearPlacement(x, y);
+        } else if (metadata != null && !metadata.isEmpty()) {
+            store.recordPlacement(x, y, metadata);
+        } else {
+            store.clearPlacement(x, y);
+        }
+    }
+
+    @Override
+    public StonePlacementMetadata placementAt(GameSessionBoardAccess store, int x, int y) {
+        return store.placementAt(x, y);
     }
 
     @Override

@@ -4,15 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
+import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
+import teamnova.omok.glue.rule.RuleRuntimeContext;
 import teamnova.omok.glue.rule.RulesContext;
 
 /**
@@ -30,11 +34,21 @@ public class EveryTwoTurnJokerRule implements Rule {
     }
 
     @Override
-    public void invoke(RulesContext context) {
-        if (context == null) return;
-        GameSessionStateContext stateContext = context.stateContext();
-        GameSessionServices services = context.services();
-        if (stateContext == null || services == null) return;
+    public void invoke(RulesContext context, RuleRuntimeContext runtime) {
+        if (context == null || runtime == null) {
+            return;
+        }
+        GameSessionStateContext stateContext = runtime.stateContext();
+        GameSessionServices services = runtime.services();
+        if (stateContext == null || services == null) {
+            return;
+        }
+
+        RuleTurnStateView view = runtime.turnStateView();
+        if (view == null) {
+            view = RuleTurnStateView.capture(stateContext, services.turnService());
+        }
+        GameTurnService.TurnSnapshot turnSnapshot = view != null ? view.resolvedSnapshot() : null;
 
         GameSessionTurnAccess turn = stateContext.turns();
         int completedTurns = Math.max(0, turn.actionNumber() - 1);
@@ -55,9 +69,12 @@ public class EveryTwoTurnJokerRule implements Rule {
         int pick = empties.get(ThreadLocalRandom.current().nextInt(empties.size()));
         int x = pick % w;
         int y = pick / w;
-        services.boardService().setStone(board, x, y, Stone.JOKER);
+        StonePlacementMetadata metadata = turnSnapshot != null
+            ? StonePlacementMetadata.forRule(turnSnapshot, -1, null)
+            : StonePlacementMetadata.systemGenerated();
+        services.boardService().setStone(board, x, y, Stone.JOKER, metadata);
         System.out.println("[RULE_LOG] EveryTwoTurnJokerRule placed JOKER at (" + x + "," + y + ")");
-        byte[] snapshot = services.boardService().snapshot(board);
-        context.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
+        byte[] boardSnapshot = services.boardService().snapshot(board);
+        runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), boardSnapshot, System.currentTimeMillis()));
     }
 }

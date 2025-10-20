@@ -4,6 +4,7 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
+import teamnova.omok.glue.rule.RuleRuntimeContext;
 import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
@@ -25,11 +26,15 @@ public class GoCaptureRule implements Rule {
     public RuleMetadata getMetadata() { return METADATA; }
 
     @Override
-    public void invoke(RulesContext context) {
-        if (context == null) return;
-        GameSessionStateContext stateContext = context.stateContext();
-        GameSessionServices services = context.services();
-        if (stateContext == null || services == null) return;
+    public void invoke(RulesContext context, RuleRuntimeContext runtime) {
+        if (context == null || runtime == null) {
+            return;
+        }
+        GameSessionStateContext stateContext = runtime.stateContext();
+        GameSessionServices services = runtime.services();
+        if (stateContext == null || services == null) {
+            return;
+        }
 
         GameSessionBoardAccess board = stateContext.board();
         int w = board.width();
@@ -53,14 +58,14 @@ public class GoCaptureRule implements Rule {
         for (int i = 0; i < toRemove.length; i++) {
             if (toRemove[i]) {
                 int x = i % w; int y = i / w;
-                services.boardService().setStone(board, x, y, Stone.EMPTY);
+                services.boardService().setStone(board, x, y, Stone.EMPTY, null);
                 removed++;
             }
         }
         if (removed > 0) {
             System.out.println("[RULE_LOG] GoCaptureRule removed " + removed + " stones (no liberties)");
             byte[] snapshot = services.boardService().snapshot(board);
-            context.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
+            runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(stateContext.session(), snapshot, System.currentTimeMillis()));
         }
     }
 }

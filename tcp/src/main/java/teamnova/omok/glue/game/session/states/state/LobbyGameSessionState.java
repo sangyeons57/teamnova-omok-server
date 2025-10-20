@@ -10,6 +10,7 @@ import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext.TurnTransition;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
@@ -69,6 +70,10 @@ public class LobbyGameSessionState implements BaseState {
                     boardService.reset(context.board());
                     snapshot = turnService
                         .start(context.turns(), context.participants().getUserIds(), event.timestamp());
+                    contextService.turn().recordTurnTransition(
+                        context,
+                        new TurnTransition(null, snapshot, null)
+                    );
                 } else if (context.lifecycle().isGameStarted()) {
                     snapshot = turnService.snapshot(context.turns());
                 }
@@ -91,7 +96,7 @@ public class LobbyGameSessionState implements BaseState {
             return StateStep.stay();
         }
         if (result.gameStartedNow()) {
-            return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
+            return StateStep.transition(GameSessionStateType.TURN_STARTING.toStateName());
         }
         return StateStep.stay();
     }

@@ -1,4 +1,6 @@
-package teamnova.omok.glue.game.session.model;
+package teamnova.omok.glue.game.session.model.store;
+
+import teamnova.omok.glue.game.session.model.Stone;
 
 import java.util.Arrays;
 

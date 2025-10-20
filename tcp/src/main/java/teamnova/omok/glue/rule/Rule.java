@@ -2,7 +2,7 @@ package teamnova.omok.glue.rule;
 
 
 public interface Rule {
-    public RuleMetadata getMetadata();
+    RuleMetadata getMetadata();
 
-    default public void invoke(RulesContext context) { }
+    void invoke(RulesContext context, RuleRuntimeContext runtime);
 }

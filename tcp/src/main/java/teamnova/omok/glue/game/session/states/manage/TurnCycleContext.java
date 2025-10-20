@@ -77,5 +77,6 @@ public final class TurnCycleContext {
         public void next(GameTurnService.TurnSnapshot snapshot) {
             this.next = snapshot;
         }
+
     }
 }

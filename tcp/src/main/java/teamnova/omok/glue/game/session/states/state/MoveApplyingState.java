@@ -3,6 +3,7 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
+import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
@@ -39,7 +40,18 @@ public final class MoveApplyingState implements BaseState {
         if (cycle == null) {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
-        boardService.setStone(context.board(), cycle.x(), cycle.y(), cycle.stone());
+        int playerIndex = context.participants().playerIndexOf(cycle.userId());
+        StonePlacementMetadata metadata;
+        if (cycle.snapshots().current() != null) {
+            metadata = StonePlacementMetadata.forPlayer(
+                cycle.snapshots().current(),
+                cycle.userId(),
+                playerIndex
+            );
+        } else {
+            metadata = StonePlacementMetadata.empty();
+        }
+        boardService.setStone(context.board(), cycle.x(), cycle.y(), cycle.stone(), metadata);
         return StateStep.transition(GameSessionStateType.OUTCOME_EVALUATING.toStateName());
     }
 }

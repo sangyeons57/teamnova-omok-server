@@ -2,6 +2,7 @@ package teamnova.omok.glue.game.session.states.manage;
 
 import java.util.Objects;
 
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionLifecycleAccess;
@@ -20,6 +21,7 @@ import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 
 /**
@@ -27,7 +29,6 @@ import teamnova.omok.modules.state_machine.interfaces.StateContext;
  * state while delegating behavioral logic to {@link GameSessionStateContextService}.
  */
 public final class GameSessionStateContext implements StateContext {
-    private final GameSession session;
     private final GameSessionAccess access;
 
     private TurnCycleContext activeTurnCycle;
@@ -41,14 +42,14 @@ public final class GameSessionStateContext implements StateContext {
     private long postGameDecisionDeadline;
     private GameCompletionNotice pendingGameCompletion;
     private BoardSnapshotUpdate pendingBoardSnapshot;
+    private TurnTransition pendingTurnTransition;
 
     public GameSessionStateContext(GameSession session) {
-        this.session = Objects.requireNonNull(session, "session");
-        this.access = session;
+        this.access = Objects.requireNonNull(session, "session");
     }
 
     public GameSessionAccess session() {
-        return session;
+        return access;
     }
 
     public GameSessionBoardAccess board() {
@@ -213,5 +214,47 @@ public final class GameSessionStateContext implements StateContext {
 
     void clearPendingBoardSnapshot() {
         this.pendingBoardSnapshot = null;
+    }
+
+    TurnTransition getPendingTurnTransition() {
+        return pendingTurnTransition;
+    }
+
+    void setPendingTurnTransition(TurnTransition transition) {
+        this.pendingTurnTransition = transition;
+    }
+
+    void clearPendingTurnTransition() {
+        this.pendingTurnTransition = null;
+    }
+
+    public static final class TurnTransition {
+        private final GameTurnService.TurnSnapshot currentSnapshot;
+        private final GameTurnService.TurnSnapshot nextSnapshot;
+        private final RuleTurnStateView view;
+
+        public TurnTransition(GameTurnService.TurnSnapshot currentSnapshot,
+                              GameTurnService.TurnSnapshot nextSnapshot,
+                              RuleTurnStateView view) {
+            this.currentSnapshot = currentSnapshot;
+            this.nextSnapshot = nextSnapshot;
+            this.view = view;
+        }
+
+        public GameTurnService.TurnSnapshot currentSnapshot() {
+            return currentSnapshot;
+        }
+
+        public GameTurnService.TurnSnapshot nextSnapshot() {
+            return nextSnapshot;
+        }
+
+        public RuleTurnStateView view() {
+            return view;
+        }
+
+        public boolean roundWrapped() {
+            return nextSnapshot != null && nextSnapshot.wrapped();
+        }
     }
 }

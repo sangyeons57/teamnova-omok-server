@@ -66,4 +66,22 @@ public final class GameSessionTurnContextService {
         context.clearPendingTimeoutResult();
         return result;
     }
+
+    public void recordTurnTransition(GameSessionStateContext context,
+                                     GameSessionStateContext.TurnTransition transition) {
+        Objects.requireNonNull(context, "context");
+        context.setPendingTurnTransition(transition);
+    }
+
+    public GameSessionStateContext.TurnTransition peekTurnTransition(GameSessionStateContext context) {
+        Objects.requireNonNull(context, "context");
+        return context.getPendingTurnTransition();
+    }
+
+    public GameSessionStateContext.TurnTransition consumeTurnTransition(GameSessionStateContext context) {
+        Objects.requireNonNull(context, "context");
+        GameSessionStateContext.TurnTransition transition = context.getPendingTurnTransition();
+        context.clearPendingTurnTransition();
+        return transition;
+    }
 }
