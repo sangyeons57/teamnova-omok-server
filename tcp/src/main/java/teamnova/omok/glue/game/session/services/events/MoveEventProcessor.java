@@ -3,6 +3,7 @@ package teamnova.omok.glue.game.session.services.events;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
@@ -42,7 +43,7 @@ public final class MoveEventProcessor {
         GameSessionStateContextService contextService = deps.contextService();
         MoveResult result = contextService.turn().consumeMoveResult(ctx);
         if (result == null) {
-            GameSession session = manager.session();
+            GameSessionAccess session = manager.session();
             String message;
             if (!session.containsUser(event.userId())) {
                 message = "INVALID_PLAYER";

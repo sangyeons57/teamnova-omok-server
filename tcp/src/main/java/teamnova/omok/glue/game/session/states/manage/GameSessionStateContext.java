@@ -47,7 +47,7 @@ public final class GameSessionStateContext implements StateContext {
         this.access = session;
     }
 
-    public GameSession session() {
+    public GameSessionAccess session() {
         return session;
     }
 

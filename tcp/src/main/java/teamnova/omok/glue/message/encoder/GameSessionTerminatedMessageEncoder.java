@@ -3,12 +3,13 @@ package teamnova.omok.glue.message.encoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 
 public final class GameSessionTerminatedMessageEncoder {
     private GameSessionTerminatedMessageEncoder() {}
 
-    public static byte[] encode(GameSession session, List<String> disconnected) {
+    public static byte[] encode(GameSessionAccess session, List<String> disconnected) {
         StringBuilder sb = new StringBuilder(192);
         sb.append('{')
           .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')

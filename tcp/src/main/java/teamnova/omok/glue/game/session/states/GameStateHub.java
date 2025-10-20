@@ -1,17 +1,18 @@
 package teamnova.omok.glue.game.session.states;
 
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
+import teamnova.omok.glue.game.session.states.signal.TurnFinalizingSignal;
 import teamnova.omok.glue.game.session.states.state.CompletedGameSessionState;
 import teamnova.omok.glue.game.session.states.state.LobbyGameSessionState;
 import teamnova.omok.glue.game.session.states.state.MoveApplyingState;
@@ -23,20 +24,16 @@ import teamnova.omok.glue.game.session.states.state.SessionRematchPreparingState
 import teamnova.omok.glue.game.session.states.state.SessionTerminatingState;
 import teamnova.omok.glue.game.session.states.state.TurnFinalizingState;
 import teamnova.omok.glue.game.session.states.state.TurnWaitingState;
-import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
-import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
-import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 
 public class GameStateHub {
 
     private final Handle stateMachine;
     private final GameSessionStateContext context;
-    private final GameSessionStateContextService contextService;
     private final GameSessionServices services;
     private GameSessionStateType currentType;
 
@@ -53,20 +50,16 @@ public class GameStateHub {
 
         this.services = new GameSessionServices(boardService, turnService, scoreService);
         this.context = new GameSessionStateContext(session);
-        this.contextService = contextService;
+
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.onTransition(this::handleTransition);
-        // Register signal listener to trigger rules on TurnFinalizing enter only
-        this.stateMachine.addStateSignalListener(new StateSignalListener() {
-            private final Set<StateName> states = Set.of(GameSessionStateType.TURN_FINALIZING.toStateName());
-            private final Set<LifecycleEventKind> events = Set.of(LifecycleEventKind.ON_START);
-            @Override public Set<StateName> states() { return states; }
-            @Override public Set<LifecycleEventKind> events() { return events; }
-            @Override public void onSignal(StateName state, LifecycleEventKind kind) {
-                triggerRules(GameSessionStateType.stateNameLookup(state));
-            }
-        });
+        this.stateMachine.addStateSignalListener(new TurnFinalizingSignal(context, contextService, services));
+        registerStateConfig(contextService);
 
+        this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
+    }
+
+    private void registerStateConfig(GameSessionStateContextService contextService) {
         registerState(new LobbyGameSessionState(contextService, services.boardService(), services.turnService()));
         registerState(new TurnWaitingState(contextService, services.turnService()));
         registerState(new MoveValidatingState(contextService, services.boardService(), services.turnService()));
@@ -78,8 +71,6 @@ public class GameStateHub {
         registerState(new SessionRematchPreparingState(contextService));
         registerState(new SessionTerminatingState(contextService));
         registerState(new CompletedGameSessionState(contextService, services.turnService()));
-
-        this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
     }
 
     private void registerState(BaseState state) {
@@ -98,25 +89,11 @@ public class GameStateHub {
         // Do NOT trigger rules here to avoid duplicate calls; signals handle rule triggering
     }
 
-    private void triggerRules(GameSessionStateType targetType) {
-        if (targetType == null) return;
-        RulesContext rulesContext = context.session().getRulesContext();
-        if (rulesContext == null) {
-            return;
-        }
-        rulesContext.attachServices(services);
-        rulesContext.attachContextService(contextService);
-        rulesContext.attachStateContext(context);
-        if (rulesContext.setCurrentRuleByGameState(targetType)) {
-            rulesContext.activateCurrentRule();
-        }
-    }
-
     public GameSessionStateType currentType() {
         return currentType;
     }
 
-    public GameSession session() {
+    public GameSessionAccess session() {
         return context.session();
     }
 

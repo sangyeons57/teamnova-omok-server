@@ -16,5 +16,9 @@ public final class MatchGroup {
     public List<MatchTicket> tickets() {
         return Collections.unmodifiableList(tickets.stream().map(TicketInfo::toMatchTicket).toList());
     }
+    public List<String> ids() {
+        return List.copyOf(tickets.stream().map(TicketInfo::getId).toList());
+    }
+
     public int score() { return score; }
 }

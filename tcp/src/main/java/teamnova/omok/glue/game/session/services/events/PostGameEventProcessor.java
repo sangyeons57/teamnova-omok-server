@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
@@ -79,7 +80,7 @@ public final class PostGameEventProcessor {
         }
     }
 
-    private void scheduleDecisionTimeout(GameSession session,
+    private void scheduleDecisionTimeout(GameSessionAccess session,
                                          long deadlineAt,
                                          TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer) {
         Objects.requireNonNull(session, "session");
@@ -102,7 +103,7 @@ public final class PostGameEventProcessor {
     }
 
     private void handlePostGameResolution(PostGameResolution resolution) {
-        GameSession session = resolution.session();
+        GameSessionAccess session = resolution.session();
         cancelAllTimers(session.sessionId());
         if (resolution.type() == PostGameResolution.ResolutionType.REMATCH) {
             handleRematchResolution(resolution);
@@ -117,7 +118,7 @@ public final class PostGameEventProcessor {
     }
 
     private void handleRematchResolution(PostGameResolution resolution) {
-        GameSession oldSession = resolution.session();
+        GameSessionAccess oldSession = resolution.session();
         List<String> participants = resolution.rematchParticipants();
         if (participants.size() < 2) {
             handleSessionTermination(oldSession, resolution.disconnected());
@@ -133,7 +134,7 @@ public final class PostGameEventProcessor {
         deps.repository().removeById(oldSession.sessionId()).ifPresent(deps.runtime()::remove);
     }
 
-    private void handleSessionTermination(GameSession session, List<String> disconnected) {
+    private void handleSessionTermination(GameSessionAccess session, List<String> disconnected) {
         deps.messenger().broadcastSessionTerminated(session, disconnected);
         deps.repository().removeById(session.sessionId()).ifPresent(deps.runtime()::remove);
     }

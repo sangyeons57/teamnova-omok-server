@@ -8,6 +8,7 @@ import java.util.Objects;
 import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.client.session.model.ClientSession;
 import teamnova.omok.glue.data.MysqlService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.model.GameSession;
@@ -43,7 +44,7 @@ public final class ScoreService implements GameScoreService {
     }
 
     @Override
-    public int calculateScoreDelta(GameSession session, String userId) {
+    public int calculateScoreDelta(GameSessionAccess session, String userId) {
         List<String> participants = session.getUserIds();
         PlayerResult result = session.outcomeFor(userId);
         MatchOutcome outcome = mapOutcome(result);

@@ -30,6 +30,7 @@ public final class ServerLifecycleManager implements Closeable {
         if (started.compareAndSet(false, true)) {
             matchingManager.start(nioManager.getServer());
             userSessionManager.start();
+            gameSessionManager.start(nioManager.getServer());
         }
     }
 

@@ -3,6 +3,7 @@ package teamnova.omok.glue.game.session.services.events;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.services.GameSessionDependencies;
@@ -41,7 +42,7 @@ public final class ReadyEventProcessor {
         GameSessionStateContextService contextService = deps.contextService();
         ReadyResult result = contextService.turn().consumeReadyResult(ctx);
         if (result == null) {
-            GameSession session = manager.session();
+            GameSessionAccess session = manager.session();
             String message;
             if (!session.containsUser(event.userId())) {
                 message = "INVALID_PLAYER";

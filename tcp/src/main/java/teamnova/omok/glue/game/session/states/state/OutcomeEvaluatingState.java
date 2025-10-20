@@ -6,6 +6,7 @@ import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.Stone;
@@ -49,7 +50,6 @@ public final class OutcomeEvaluatingState implements BaseState {
     }
 
     private StateStep noneCycleProcess(GameSessionStateContext context) {
-        GameSession session = context.session();
         // Unify end conditions: (decided + disconnected == total) OR (connected <= 1)
         if (shouldFinalizeNow(context)) {
             if (connectedCount(context) <= 1) {
@@ -64,7 +64,6 @@ public final class OutcomeEvaluatingState implements BaseState {
     }
 
     private StateStep cycleProcess(GameSessionStateContext context, TurnCycleContext cycle) {
-        GameSession session = context.session();
         // 1) Normal win condition (e.g., five-in-a-row) still takes precedence
         boolean finished = handleStonePlaced(context, cycle.userId(), cycle.x(), cycle.y(), cycle.stone());
         if (finished) {
@@ -177,7 +176,7 @@ public final class OutcomeEvaluatingState implements BaseState {
     }
 
     private void finalizeSession(GameSessionStateContext context) {
-        GameSession session = context.session();
+        GameSessionAccess session = context.session();
         session.lock().lock();
         try {
             int turnCount = context.turns().actionNumber();
@@ -192,7 +191,7 @@ public final class OutcomeEvaluatingState implements BaseState {
     @Override
     public <I extends StateContext> void onExit(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
-        GameSession session = ctx.session();
+        GameSessionAccess session = ctx.session();
         if (ctx.outcomes().isGameFinished()) {
             // Apply scores immediately when the game is confirmed finished
             for (String userId : ctx.participants().getUserIds()) {
@@ -207,7 +206,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(stone, "stone");
 
-        GameSession session = context.session();
+        GameSessionAccess session = context.session();
         if (context.outcomes().isGameFinished()) {
             return true;
         }

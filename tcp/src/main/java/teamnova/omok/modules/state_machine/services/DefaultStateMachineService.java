@@ -1,9 +1,6 @@
 package teamnova.omok.modules.state_machine.services;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -13,6 +10,7 @@ import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
 import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.interfaces.StateMachineService;
+import teamnova.omok.modules.state_machine.models.EventName;
 import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 import teamnova.omok.modules.state_machine.models.StateStep;
@@ -186,13 +184,11 @@ public class DefaultStateMachineService implements StateMachineService {
 
     private void notifySignal(StateName state, LifecycleEventKind kind) {
         for (StateSignalListener l : signalListeners) {
-            try {
-                var ss = l.states();
-                if (ss != null && !ss.contains(state)) continue;
-                var es = l.events();
-                if (es != null && !es.contains(kind)) continue;
-                l.onSignal(state, kind);
-            } catch (Throwable t) { }
+            Set<StateName> ss = l.states();
+            if (ss != null && !ss.contains(state)) continue;
+            Set<LifecycleEventKind> es = l.events();
+            if (es != null && !es.contains(kind)) continue;
+            l.onSignal(state, kind);
         }
     }
 

@@ -2,6 +2,7 @@ package teamnova.omok.glue.message.encoder;
 
 import java.nio.charset.StandardCharsets;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
@@ -10,7 +11,7 @@ import teamnova.omok.glue.game.session.model.GameSession;
 public final class GameSessionPlayerDisconnectedMessageEncoder {
     private GameSessionPlayerDisconnectedMessageEncoder() { }
 
-    public static byte[] encode(GameSession session, String userId, String reason) {
+    public static byte[] encode(GameSessionAccess session, String userId, String reason) {
         StringBuilder sb = new StringBuilder(128);
         sb.append('{')
           .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')

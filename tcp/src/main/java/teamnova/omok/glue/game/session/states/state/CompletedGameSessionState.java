@@ -3,6 +3,7 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.PostGameDecisionEvent;
@@ -60,7 +61,7 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handleReady(GameSessionStateContext context,
                                   ReadyEvent event) {
-        GameSession session = context.session();
+        GameSessionAccess session = context.session();
         if (!context.participants().containsUser(event.userId())) {
             contextService.turn().queueReadyResult(context, ReadyResult.invalid(session, event.userId()));
             return StateStep.stay();
@@ -83,7 +84,7 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handleMove(GameSessionStateContext context,
                                  MoveEvent event) {
-        GameSession session = context.session();
+        GameSessionAccess session = context.session();
         if (context.participants().playerIndexOf(event.userId()) < 0) {
             contextService.turn().queueMoveResult(
                 context,
@@ -113,7 +114,7 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handleTimeout(GameSessionStateContext context,
                                     TimeoutEvent event) {
-        GameSession session = context.session();
+        GameSessionAccess session = context.session();
         GameTurnService.TurnSnapshot snapshot =
             turnService.snapshot(context.turns());
         contextService.turn().queueTimeoutResult(context,
@@ -124,7 +125,7 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handlePostGameDecision(GameSessionStateContext context,
                                              PostGameDecisionEvent event) {
-        GameSession session = context.session();
+        GameSessionAccess session = context.session();
         contextService.postGame().queueDecisionResult(context,
             PostGameDecisionResult.rejected(
                 session,

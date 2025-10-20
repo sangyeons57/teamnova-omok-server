@@ -1,6 +1,7 @@
 package teamnova.omok.glue.game.session.states.manage;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
 
@@ -25,7 +26,7 @@ public final class TurnCycleContext {
         this.now = now;
     }
 
-    public GameSession session() {
+    public GameSessionAccess session() {
         return parent.session();
     }
 

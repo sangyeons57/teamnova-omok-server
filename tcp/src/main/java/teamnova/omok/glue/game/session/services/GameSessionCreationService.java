@@ -21,16 +21,16 @@ public final class GameSessionCreationService {
         Objects.requireNonNull(deps, "deps");
         Objects.requireNonNull(group, "group");
 
-        List<String> userIds = new ArrayList<>();
-        group.tickets().forEach(ticket -> userIds.add(ticket.id()));
-        GameSession session = new GameSession(userIds);
+        GameSession session = new GameSession(group.ids());
 
-        Map<String, Integer> knownScores = new HashMap<>();
-        group.tickets().forEach(ticket -> knownScores.put(ticket.id(), ticket.rating()));
-        session.setRulesContext(deps.ruleManager().prepareRules(session, knownScores));
 
         deps.repository().save(session);
         deps.runtime().ensure(session);
         deps.messenger().broadcastJoin(session);
+
+        Map<String, Integer> knownScores = new HashMap<>();
+        group.tickets().forEach(ticket -> knownScores.put(ticket.id(), ticket.rating()));
+
+        session.setRulesContext(deps.ruleManager().prepareRules(session, knownScores));
     }
 }

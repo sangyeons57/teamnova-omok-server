@@ -3,6 +3,7 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
@@ -51,7 +52,7 @@ public class TurnWaitingState implements BaseState {
         if (contextService.turn().activeTurnCycle(context) != null) {
             return StateStep.stay();
         }
-        GameSession session = context.session();
+        GameSessionAccess session = context.session();
         session.lock().lock();
         try {
             TurnCycleContext cycleContext = new TurnCycleContext(
@@ -70,7 +71,7 @@ public class TurnWaitingState implements BaseState {
 
     private StateStep handleTimeout(GameSessionStateContext context,
                                     TimeoutEvent event) {
-        GameSession session = context.session();
+        GameSessionAccess session = context.session();
         TurnTimeoutResult result;
 
         session.lock().lock();

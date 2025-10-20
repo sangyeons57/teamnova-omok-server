@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.modules.matching.MatchingGateway;
+import teamnova.omok.modules.matching.models.MatchGroup;
 import teamnova.omok.modules.matching.models.MatchResult;
 import teamnova.omok.modules.matching.models.MatchTicket;
 
@@ -73,8 +74,8 @@ public final class MatchingManager implements Closeable {
         }
         try {
             MatchResult result = matchingGateway.tryMatchOnce();
-            if (result instanceof MatchResult.Success success) {
-                gameSessionManager.createFromGroup(srv, success.group());
+            if (result instanceof MatchResult.Success(MatchGroup group)) {
+                gameSessionManager.createFromGroup(srv, group);
             }
         } catch (Exception ignored) {
             // keep loop running even if one iteration fails

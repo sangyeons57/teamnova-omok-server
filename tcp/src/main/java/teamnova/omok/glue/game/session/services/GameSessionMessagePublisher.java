@@ -5,6 +5,7 @@ import java.util.List;
 import teamnova.omok.glue.client.session.services.ClientSessionDirectory;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.handler.register.Type;
@@ -42,7 +43,7 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastJoin(GameSession session) {
+    public void broadcastJoin(GameSessionAccess session) {
         directory.broadcast(session.getUserIds(), Type.JOIN_IN_GAME_SESSION, JoinSessionMessageEncoder.encode(session));
     }
 
@@ -52,7 +53,7 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastGameStart(GameSession session, GameTurnService.TurnSnapshot turn) {
+    public void broadcastGameStart(GameSessionAccess session, GameTurnService.TurnSnapshot turn) {
         directory.broadcast(session.getUserIds(), Type.GAME_SESSION_STARTED, GameSessionStartedMessageEncoder.encode(session, turn));
     }
 
@@ -62,7 +63,7 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastTurnTimeout(GameSession session, TurnTimeoutResult result) {
+    public void broadcastTurnTimeout(GameSessionAccess session, TurnTimeoutResult result) {
         directory.broadcast(session.getUserIds(), Type.TURN_TIMEOUT, TurnTimeoutMessageEncoder.encode(result));
     }
 
@@ -72,7 +73,7 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastGameCompleted(GameSession session) {
+    public void broadcastGameCompleted(GameSessionAccess session) {
         directory.broadcast(session.getUserIds(), Type.GAME_SESSION_COMPLETED, GameSessionCompletedMessageEncoder.encode(session));
     }
 
@@ -87,17 +88,17 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastSessionTerminated(GameSession session, List<String> disconnected) {
+    public void broadcastSessionTerminated(GameSessionAccess session, List<String> disconnected) {
         directory.broadcast(session.getUserIds(), Type.GAME_SESSION_TERMINATED, GameSessionTerminatedMessageEncoder.encode(session, disconnected));
     }
 
     @Override
-    public void broadcastRematchStarted(GameSession previous, GameSession rematch, List<String> participants) {
+    public void broadcastRematchStarted(GameSessionAccess previous, GameSessionAccess rematch, List<String> participants) {
         directory.broadcast(previous.getUserIds(), Type.GAME_SESSION_REMATCH_STARTED, GameSessionRematchStartedMessageEncoder.encode(previous, rematch, participants));
     }
 
     @Override
-    public void broadcastPlayerDisconnected(GameSession session, String userId, String reason) {
+    public void broadcastPlayerDisconnected(GameSessionAccess session, String userId, String reason) {
         directory.broadcast(session.getUserIds(), Type.GAME_SESSION_PLAYER_DISCONNECTED, GameSessionPlayerDisconnectedMessageEncoder.encode(session, userId, reason));
     }
 

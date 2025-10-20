@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
@@ -47,7 +48,7 @@ public final class MoveValidatingState implements BaseState {
         if (cycle == null) {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
-        GameSession session = cycle.session();
+        GameSessionAccess session = cycle.session();
         String userId = cycle.userId();
         int x = cycle.x();
         int y = cycle.y();

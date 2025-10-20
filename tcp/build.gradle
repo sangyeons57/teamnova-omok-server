@@ -19,7 +19,7 @@ version = '1.0.0'
 // 3. 자바 컴파일러 설정
 java {
     // CI/CD 환경과 동일한 JDK 버전을 지정합니다.
-    sourceCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
 // 4. 의존성 라이브러리를 다운로드할 원격 저장소
