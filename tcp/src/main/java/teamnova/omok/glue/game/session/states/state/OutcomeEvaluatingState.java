@@ -7,6 +7,7 @@ import java.util.Set;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.log.TurnStateLogger;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.Stone;
@@ -69,6 +70,8 @@ public final class OutcomeEvaluatingState implements BaseState {
         // 1) Normal win condition (e.g., five-in-a-row) still takes precedence
         boolean finished = handleStonePlaced(context, frame.userId(), frame.x(), frame.y(), frame.stone());
         if (finished) {
+            TurnStateLogger.event(context, GameSessionStateType.OUTCOME_EVALUATING, "WinDetected",
+                String.format("winner=%s stone=%s", frame.userId(), frame.stone()));
             normalWinCondition(frame, context);
             return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());
         }
@@ -76,8 +79,12 @@ public final class OutcomeEvaluatingState implements BaseState {
         // 2) Unified finalize path after a non-finishing move
         if (shouldFinalizeNow(context)) {
             if (connectedCount(context) <= 1) {
+                TurnStateLogger.event(context, GameSessionStateType.OUTCOME_EVALUATING, "AutoFinalize",
+                    "reason=solo-or-none");
                 applySoloOrNoneOutcome(context);
             } else {
+                TurnStateLogger.event(context, GameSessionStateType.OUTCOME_EVALUATING, "AutoFinalize",
+                    "reason=disconnected-loss");
                 applyDisconnectedAsLoss(context);
             }
             finalizeSession(context);

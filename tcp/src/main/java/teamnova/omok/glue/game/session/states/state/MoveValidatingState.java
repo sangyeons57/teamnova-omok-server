@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.log.TurnStateLogger;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
@@ -103,6 +104,9 @@ public final class MoveValidatingState implements BaseState {
         if (snapshot != null) {
             frame.currentSnapshot(snapshot);
         }
+        TurnStateLogger.event(context, GameSessionStateType.MOVE_VALIDATING, "MoveRejected",
+            "status=" + status,
+            String.format("user=%s x=%d y=%d", frame.userId(), frame.x(), frame.y()));
         contextService.turn().finalizeMoveOutcome(context, status);
         contextService.turn().clearTurnCycle(context);
     }

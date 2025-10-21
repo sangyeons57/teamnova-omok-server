@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.log.TurnStateLogger;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
@@ -50,9 +51,15 @@ public class TurnWaitingState implements BaseState {
                                  MoveEvent event) {
         TurnPersonalFrame frame = contextService.turn().currentPersonalTurn(context);
         if (frame == null) {
+            TurnStateLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
+                "reason=no-active-frame",
+                String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
             return StateStep.stay();
         }
         if (frame.hasActiveMove()) {
+            TurnStateLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
+                "reason=move-in-progress",
+                String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
             return StateStep.stay();
         }
         GameSessionAccess session = context.session();
@@ -65,6 +72,8 @@ public class TurnWaitingState implements BaseState {
                 event.y(),
                 event.timestamp()
             );
+            TurnStateLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:accepted",
+                String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
             return StateStep.transition(GameSessionStateType.MOVE_VALIDATING.toStateName());
         } finally {
             session.lock().unlock();
@@ -123,6 +132,12 @@ public class TurnWaitingState implements BaseState {
                 );
             }
         }
+        TurnStateLogger.event(context, GameSessionStateType.TURN_WAITING, "TimeoutProcessed",
+            String.format("timedOut=%s previous=%s", timedOut, previousPlayerId),
+            currentSnapshot == null ? "currentSnapshot=null"
+                : String.format("currentTurn=%s", currentSnapshot.currentPlayerId()),
+            nextSnapshot == null ? "nextSnapshot=null"
+                : String.format("nextTurn=%s wrapped=%s", nextSnapshot.currentPlayerId(), nextSnapshot.wrapped()));
         if (context.outcomes().isGameFinished()) {
             contextService.turn().consumeTurnSnapshot(context);
             return StateStep.transition(GameSessionStateType.COMPLETED.toStateName());

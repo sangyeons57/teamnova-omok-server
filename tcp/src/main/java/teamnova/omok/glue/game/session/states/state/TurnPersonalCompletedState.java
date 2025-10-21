@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.log.TurnStateLogger;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
@@ -57,6 +58,10 @@ public final class TurnPersonalCompletedState implements BaseState {
         contextService.turn().recordTurnSnapshot(context, nextSnapshot, frame.requestedAtMillis());
         fireRules(context, RuleTriggerKind.TURN_ADVANCE, nextSnapshot);
         contextService.turn().finalizeMoveOutcome(context, MoveStatus.SUCCESS);
+        TurnStateLogger.event(context, GameSessionStateType.TURN_PERSONAL_COMPLETED, "TurnFinalized",
+            String.format("user=%s nextPlayer=%s wrapped=%s", frame.userId(),
+                nextSnapshot != null ? nextSnapshot.currentPlayerId() : "-",
+                nextSnapshot != null && nextSnapshot.wrapped()));
         contextService.turn().clearTurnCycle(context);
         GameSessionStateType nextState = nextSnapshot != null && nextSnapshot.wrapped()
             ? GameSessionStateType.TURN_ROUND_COMPLETED

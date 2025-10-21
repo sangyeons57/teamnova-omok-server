@@ -3,6 +3,7 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.log.TurnStateLogger;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
@@ -69,6 +70,8 @@ public final class MoveApplyingState implements BaseState {
             metadata = StonePlacementMetadata.empty();
         }
         services.boardService().setStone(context.board(), x, y, frame.stone(), metadata);
+        TurnStateLogger.event(context, GameSessionStateType.MOVE_APPLYING, "StonePlaced",
+            String.format("user=%s x=%d y=%d stone=%s", frame.userId(), x, y, frame.stone()));
         fireRules(context, RuleTriggerKind.POST_PLACEMENT);
         return StateStep.transition(GameSessionStateType.OUTCOME_EVALUATING.toStateName());
     }

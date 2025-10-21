@@ -7,6 +7,7 @@ import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.log.TurnStateLogger;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
@@ -30,6 +31,8 @@ import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
+import teamnova.omok.modules.state_machine.interfaces.StateContext;
+import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
 import teamnova.omok.modules.state_machine.models.StateName;
 
 public class GameStateHub {
@@ -55,6 +58,7 @@ public class GameStateHub {
 
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.onTransition(this::handleTransition);
+        registerLifecycleLogging();
         registerStateConfig(contextService);
 
         this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
@@ -89,8 +93,31 @@ public class GameStateHub {
         if (resolved == currentType) {
             return;
         }
+        GameSessionStateType previous = currentType;
+        TurnStateLogger.transition(context, previous, resolved, "state-machine");
         currentType = resolved;
         // Rule triggering happens inside state implementations.
+    }
+
+    private void registerLifecycleLogging() {
+        for (GameSessionStateType type : GameSessionStateType.values()) {
+            stateMachine.onStateLifecycle(new StateLifecycleListener() {
+                @Override
+                public StateName state() {
+                    return type.toStateName();
+                }
+
+                @Override
+                public <I extends StateContext> void onEnter(I ctx) {
+                    TurnStateLogger.enter((GameSessionStateContext) ctx, type);
+                }
+
+                @Override
+                public <I extends StateContext> void onExit(I ctx) {
+                    TurnStateLogger.exit((GameSessionStateContext) ctx, type);
+                }
+            });
+        }
     }
 
     public GameSessionStateType currentType() {
