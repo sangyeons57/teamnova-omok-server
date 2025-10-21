@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.dto.SessionSubmission;
@@ -44,6 +45,7 @@ public final class SessionEventService {
         Objects.requireNonNull(userId, "userId");
         return withSession(userId, submission -> {
             ReadyEvent event = new ReadyEvent(userId, submission.timestamp(), requestId);
+            GameSessionLogger.inbound(submission.session(), "READY", userId, requestId);
             submission.manager().submit(event,
                 ctx -> readyProcessor.handleCompletion(timeoutConsumer, submission.manager(), ctx, event));
         });
@@ -58,6 +60,8 @@ public final class SessionEventService {
         Objects.requireNonNull(userId, "userId");
         return withSession(userId, submission -> {
             MoveEvent event = new MoveEvent(userId, x, y, submission.timestamp(), requestId);
+            GameSessionLogger.inbound(submission.session(), "MOVE", userId, requestId,
+                String.format("x=%d y=%d", x, y));
             submission.manager().submit(event,
                 ctx -> moveProcessor.handleCompletion(timeoutConsumer, submission.manager(), ctx, event));
         });
@@ -73,6 +77,8 @@ public final class SessionEventService {
         return withSession(userId, submission -> {
             PostGameDecisionEvent event =
                 new PostGameDecisionEvent(userId, decision, submission.timestamp(), requestId);
+            GameSessionLogger.inbound(submission.session(), "POST_GAME_DECISION", userId, requestId,
+                "decision=" + decision);
             submission.manager().submit(event,
                 ctx -> postGameProcessor.handleDecisionCompletion(submission.manager(), ctx, event, timeoutConsumer));
         });

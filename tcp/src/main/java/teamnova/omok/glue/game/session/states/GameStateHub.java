@@ -7,7 +7,7 @@ import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.log.TurnStateLogger;
+import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
@@ -94,7 +94,7 @@ public class GameStateHub {
             return;
         }
         GameSessionStateType previous = currentType;
-        TurnStateLogger.transition(context, previous, resolved, "state-machine");
+        GameSessionLogger.transition(context, previous, resolved, "state-machine");
         currentType = resolved;
         // Rule triggering happens inside state implementations.
     }
@@ -109,12 +109,12 @@ public class GameStateHub {
 
                 @Override
                 public <I extends StateContext> void onEnter(I ctx) {
-                    TurnStateLogger.enter((GameSessionStateContext) ctx, type);
+                    GameSessionLogger.enter((GameSessionStateContext) ctx, type);
                 }
 
                 @Override
                 public <I extends StateContext> void onExit(I ctx) {
-                    TurnStateLogger.exit((GameSessionStateContext) ctx, type);
+                    GameSessionLogger.exit((GameSessionStateContext) ctx, type);
                 }
             });
         }

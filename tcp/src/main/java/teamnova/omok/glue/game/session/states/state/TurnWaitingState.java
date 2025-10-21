@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.log.TurnStateLogger;
+import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
@@ -51,13 +51,13 @@ public class TurnWaitingState implements BaseState {
                                  MoveEvent event) {
         TurnPersonalFrame frame = contextService.turn().currentPersonalTurn(context);
         if (frame == null) {
-            TurnStateLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
+            GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
                 "reason=no-active-frame",
                 String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
             return StateStep.stay();
         }
         if (frame.hasActiveMove()) {
-            TurnStateLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
+            GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
                 "reason=move-in-progress",
                 String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
             return StateStep.stay();
@@ -72,7 +72,7 @@ public class TurnWaitingState implements BaseState {
                 event.y(),
                 event.timestamp()
             );
-            TurnStateLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:accepted",
+            GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:accepted",
                 String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
             return StateStep.transition(GameSessionStateType.MOVE_VALIDATING.toStateName());
         } finally {
@@ -92,9 +92,7 @@ public class TurnWaitingState implements BaseState {
         boolean advanced = false;
         session.lock().lock();
         try {
-            if (!context.lifecycle().isGameStarted()) {
-                currentSnapshot = null;
-            } else {
+            if (context.lifecycle().isGameStarted()) {
                 currentSnapshot = turnService.snapshot(context.turns());
                 if (context.outcomes().isGameFinished()) {
                     timedOut = false;
@@ -132,7 +130,7 @@ public class TurnWaitingState implements BaseState {
                 );
             }
         }
-        TurnStateLogger.event(context, GameSessionStateType.TURN_WAITING, "TimeoutProcessed",
+        GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "TimeoutProcessed",
             String.format("timedOut=%s previous=%s", timedOut, previousPlayerId),
             currentSnapshot == null ? "currentSnapshot=null"
                 : String.format("currentTurn=%s", currentSnapshot.currentPlayerId()),
