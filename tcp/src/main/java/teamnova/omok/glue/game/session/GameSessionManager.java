@@ -69,6 +69,7 @@ public final class GameSessionManager implements Closeable,
         BoardService boardService = new BoardService();
         TurnService turnService = new TurnService(GameSession.TURN_DURATION_MILLIS);
         ScoreService scoreService = new ScoreService();
+        RuleService ruleService = RuleService.Init();
 
         TurnTimeoutCoordinator turnTimeoutScheduler = new TurnTimeoutCoordinator();
         DecisionTimeoutCoordinator decisionTimeoutScheduler = new DecisionTimeoutCoordinator();

@@ -8,25 +8,23 @@ import teamnova.omok.glue.game.session.model.Stone;
  * Mutable data shared across turn-processing phases.
  */
 public final class TurnCycleContext {
-    private final GameSessionAccess session;
     private final String userId;
-    private final int x;
-    private final int y;
+    private final int originalX;
+    private final int originalY;
     private final long now;
 
+    private int targetX;
+    private int targetY;
     private Stone stone;
     private final TurnServiceSnapshotWrapper snapshots = new TurnServiceSnapshotWrapper();
 
-    public TurnCycleContext(GameSessionAccess session, String userId, int x, int y, long now) {
-        this.session = session;
+    public TurnCycleContext(String userId, int x, int y, long now) {
         this.userId = userId;
-        this.x = x;
-        this.y = y;
+        this.originalX = x;
+        this.originalY = y;
         this.now = now;
-    }
-
-    public GameSessionAccess session() {
-        return session;
+        this.targetX = x;
+        this.targetY = y;
     }
 
     public String userId() {
@@ -34,11 +32,24 @@ public final class TurnCycleContext {
     }
 
     public int x() {
-        return x;
+        return targetX;
     }
 
     public int y() {
-        return y;
+        return targetY;
+    }
+
+    public int originalX() {
+        return originalX;
+    }
+
+    public int originalY() {
+        return originalY;
+    }
+
+    public void updatePosition(int x, int y) {
+        this.targetX = x;
+        this.targetY = y;
     }
 
     public long now() {

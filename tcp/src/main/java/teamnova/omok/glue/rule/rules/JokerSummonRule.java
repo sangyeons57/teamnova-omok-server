@@ -6,7 +6,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
@@ -17,16 +17,18 @@ import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.rule.RuleTriggerKind;
 
 /**
- * Every two turns, spawn one JOKER stone at a random empty cell.
+ * 조커 돌 소환: 전체 턴 종료 시 두 턴마다 빈 칸에 조커 돌을 생성한다.
  */
-public class EveryTwoTurnJokerRule implements Rule {
+public final class JokerSummonRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
-        RuleId.EVERY_TWO_TURN_JOKER,
+        RuleId.JOKER_SUMMON,
         0
     );
+
+    private static final String LAST_ROUND_KEY = "rule:jokerSummon:lastRound";
 
     @Override
     public RuleMetadata getMetadata() {
@@ -34,8 +36,11 @@ public class EveryTwoTurnJokerRule implements Rule {
     }
 
     @Override
-    public void invoke(RulesContext context, RuleRuntimeContext runtime) {
-        if (context == null || runtime == null) {
+    public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        if (access == null || runtime == null) {
+            return;
+        }
+        if (runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED) {
             return;
         }
         GameSessionStateContext stateContext = runtime.stateContext();
@@ -48,33 +53,44 @@ public class EveryTwoTurnJokerRule implements Rule {
         if (view == null) {
             view = RuleTurnStateView.capture(stateContext, services.turnService());
         }
-        GameTurnService.TurnSnapshot turnSnapshot = view != null ? view.resolvedSnapshot() : null;
-
-        GameSessionTurnAccess turn = stateContext.turns();
-        int completedTurns = Math.max(0, turn.actionNumber() - 1);
-        if (completedTurns <= 0 || completedTurns % 2 != 0) return;
-
-        GameSessionBoardAccess board = stateContext.board();
-        int w = board.width();
-        int h = board.height();
-        List<Integer> empties = new ArrayList<>();
-        int total = w * h;
-        for (int i = 0; i < total; i++) {
-            if (board.stoneAt(i % w, i / w) == Stone.EMPTY) empties.add(i);
-        }
-        if (empties.isEmpty()) {
-            System.out.println("[RULE_LOG] EveryTwoTurnJokerRule no empty cell");
+        GameTurnService.TurnSnapshot snapshot = view != null ? view.resolvedSnapshot() : null;
+        if (snapshot == null) {
             return;
         }
+        int roundNumber = Math.max(0, snapshot.roundNumber());
+        if (roundNumber <= 0 || roundNumber % 2 != 0) {
+            return;
+        }
+        Object lastRound = access.getRuleData(LAST_ROUND_KEY);
+        if (lastRound instanceof Integer previous && previous == roundNumber) {
+            return;
+        }
+
+        GameSessionBoardAccess board = stateContext.board();
+        int width = board.width();
+        int height = board.height();
+        List<Integer> empties = new ArrayList<>();
+        int total = width * height;
+        for (int index = 0; index < total; index++) {
+            if (board.stoneAt(index % width, index / width) == Stone.EMPTY) {
+                empties.add(index);
+            }
+        }
+        if (empties.isEmpty()) {
+            access.putRuleData(LAST_ROUND_KEY, roundNumber);
+            return;
+        }
+
         int pick = empties.get(ThreadLocalRandom.current().nextInt(empties.size()));
-        int x = pick % w;
-        int y = pick / w;
-        StonePlacementMetadata metadata = turnSnapshot != null
-            ? StonePlacementMetadata.forRule(turnSnapshot, -1, null)
-            : StonePlacementMetadata.systemGenerated();
+        int x = pick % width;
+        int y = pick / width;
+        StonePlacementMetadata metadata = StonePlacementMetadata.forRule(snapshot, -1, null);
         services.boardService().setStone(board, x, y, Stone.JOKER, metadata);
-        System.out.println("[RULE_LOG] EveryTwoTurnJokerRule placed JOKER at (" + x + "," + y + ")");
         byte[] boardSnapshot = services.boardService().snapshot(board);
-        runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(boardSnapshot, System.currentTimeMillis()));
+        runtime.contextService().postGame().queueBoardSnapshot(
+            stateContext,
+            new BoardSnapshotUpdate(boardSnapshot, System.currentTimeMillis())
+        );
+        access.putRuleData(LAST_ROUND_KEY, roundNumber);
     }
 }

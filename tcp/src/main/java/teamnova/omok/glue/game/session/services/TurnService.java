@@ -39,7 +39,8 @@ public class TurnService implements GameTurnService {
         store.order(order);
         store.setCurrentPlayerIndex(0);
         store.counters(TurnCounters.first());
-        store.timing(TurnTiming.of(now, now + durationMillis));
+        long resolvedDuration = resolveDurationMillis(store);
+        store.timing(TurnTiming.of(now, now + resolvedDuration));
         return snapshot(store);
     }
 
@@ -55,13 +56,15 @@ public class TurnService implements GameTurnService {
         if (candidate.isEmpty()) {
             store.setCurrentPlayerIndex(-1);
             store.counters(store.counters().advanceWithoutActive());
-            store.timing(TurnTiming.of(now, now + durationMillis));
+            long resolvedDuration = resolveDurationMillis(store);
+            store.timing(TurnTiming.of(now, now + resolvedDuration));
             return snapshot(store);
         }
         TurnAdvanceStrategy.Result result = candidate.get();
         store.setCurrentPlayerIndex(result.nextIndex());
         store.counters(store.counters().advance(result.wrapped(), order.size()));
-        store.timing(TurnTiming.of(now, now + durationMillis));
+        long resolvedDuration = resolveDurationMillis(store);
+        store.timing(TurnTiming.of(now, now + resolvedDuration));
         return snapshot(store, result.wrapped());
     }
 
@@ -125,7 +128,8 @@ public class TurnService implements GameTurnService {
         int roundNumber = counters != null ? Math.max(1, counters.roundNumber()) : 1;
         int positionInRound = updatedOrder.size() <= 0 ? 0 : Math.min(updatedOrder.size(), targetIndex + 1);
         store.counters(new TurnCounters(actionNumber, roundNumber, positionInRound));
-        store.timing(TurnTiming.of(now, now + durationMillis));
+        long resolvedDuration = resolveDurationMillis(store);
+        store.timing(TurnTiming.of(now, now + resolvedDuration));
         return snapshot(store);
     }
 
@@ -165,5 +169,10 @@ public class TurnService implements GameTurnService {
         if (store == null) {
             throw new IllegalArgumentException("store must not be null");
         }
+    }
+
+    private long resolveDurationMillis(GameSessionTurnAccess store) {
+        long override = store.durationMillis();
+        return override > 0 ? override : durationMillis;
     }
 }

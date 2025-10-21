@@ -5,33 +5,37 @@ import java.util.List;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.rule.RuleTriggerKind;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.Stone;
 
 /**
- * Each turn, rotate player stones: 1->2, 2->3, 3->4, 4->1.
+ * 변환: 전체 턴 시작 시 플레이어 돌을 순서대로 다음 플레이어의 돌로 변환한다.
  */
-public class RotatePlayerStonesRule implements Rule {
+public final class SequentialConversionRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
-        RuleId.ROTATE_STONES,
-        0
+        RuleId.SEQUENTIAL_CONVERSION,
+        200
     );
 
     @Override
     public RuleMetadata getMetadata() { return METADATA; }
 
     @Override
-    public void invoke(RulesContext context, RuleRuntimeContext runtime) {
+    public void invoke(GameSessionRuleAccess context, RuleRuntimeContext runtime) {
         if (context == null || runtime == null) {
+            return;
+        }
+        if (runtime.triggerKind() != RuleTriggerKind.TURN_START) {
             return;
         }
         GameSessionStateContext stateContext = runtime.stateContext();
@@ -74,7 +78,7 @@ public class RotatePlayerStonesRule implements Rule {
             }
         }
         if (changed > 0) {
-            System.out.println("[RULE_LOG] RotatePlayerStonesRule rotated " + changed + " stones");
+            System.out.println("[RULE_LOG] SequentialConversionRule rotated " + changed + " stones");
             byte[] boardSnapshot = services.boardService().snapshot(board);
             runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(boardSnapshot, System.currentTimeMillis()));
         }

@@ -1,36 +1,43 @@
 package teamnova.omok.glue.game.session.model.store;
 
-import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.rule.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Holds mutable rule-selection state for a session.
  */
 public final class RulesStore {
-    private volatile RulesContext rulesContext;
-    private volatile int lowestParticipantScore;
-    private volatile int desiredRuleCount;
+    private final List<RuleId> ruleIds = new ArrayList<>();
+    private final Map<String, Object> data = new ConcurrentHashMap<>();
 
-    public RulesContext rulesContext() {
-        return rulesContext;
+    public RulesStore() {
     }
 
-    public void rulesContext(RulesContext rulesContext) {
-        this.rulesContext = rulesContext;
+    public void setRuleIds(List<RuleId> ruleIds) {
+        this.ruleIds.clear();
+        this.ruleIds.addAll(ruleIds);
     }
 
-    public int lowestParticipantScore() {
-        return lowestParticipantScore;
+    public List<RuleId> getRuleIds() {
+        return ruleIds;
     }
 
-    public void lowestParticipantScore(int lowestParticipantScore) {
-        this.lowestParticipantScore = lowestParticipantScore;
+    public Object getRuleData(String key) {
+        return data.get(key);
     }
 
-    public int desiredRuleCount() {
-        return desiredRuleCount;
+    public void putRuleData(String key, Object value) {
+        data.put(key, value);
+    }
+    public void clearRuleData() {
+        data.clear();
     }
 
-    public void desiredRuleCount(int desiredRuleCount) {
-        this.desiredRuleCount = desiredRuleCount;
+    public boolean isRuleEmpty() {
+        return ruleIds.isEmpty();
     }
+
 }

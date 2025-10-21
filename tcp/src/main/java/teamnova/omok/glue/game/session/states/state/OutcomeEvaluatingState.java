@@ -94,11 +94,11 @@ public final class OutcomeEvaluatingState implements BaseState {
         } else {
             turnCount = context.turns().actionNumber();
         }
-        cycle.session().lock().lock();
+        context.session().lock().lock();
         try {
-            cycle.session().markGameFinished(cycle.now(), turnCount);
+            context.session().markGameFinished(cycle.now(), turnCount);
         } finally {
-            cycle.session().lock().unlock();
+            context.session().lock().unlock();
         }
         contextService.turn().queueMoveResult(context, MoveResult.success(
                 cycle.stone(),

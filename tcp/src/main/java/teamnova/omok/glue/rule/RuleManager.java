@@ -40,72 +40,45 @@ public class RuleManager {
     /**
      * Prepare rules once for the session using DB scores.
      */
-    public RulesContext prepareRules(GameSession session) {
-        return prepareRules(session, Collections.emptyMap());
+    public List<RuleId> prepareRules() {
+        return prepareRules(Collections.emptyMap());
     }
 
     /**
      * Prepare rules once for the session using provided known scores.
      */
-    public RulesContext prepareRules(GameSession session, Map<String, Integer> knownScores) {
-        Objects.requireNonNull(session, "session");
-        Map<String, Integer> scores = resolveScores(session.getUserIds(), knownScores);
-        int lowestScore = scores.values().stream().min(Integer::compareTo).orElse(0);
-        session.setLowestParticipantScore(lowestScore);
+    public List<RuleId> prepareRules(Map<String, Integer> knownScores) {
+        int lowestScore = knownScores.values().stream().min(Integer::compareTo).orElse(0);
         int desiredRuleCount = selectionConfig.hasFixedRuleOverride()
             ? selectionConfig.fixedRuleIds().size()
             : deriveRuleCount(lowestScore);
-        session.setDesiredRuleCount(desiredRuleCount);
-        return selectAndBuildContext(session, lowestScore, desiredRuleCount);
+        return selectAndBuildContext(lowestScore, desiredRuleCount);
     }
 
-    private RulesContext selectAndBuildContext(GameSession session,
-                                     int lowestScore,
-                                     int desiredRuleCount) {
+    private List<RuleId> selectAndBuildContext(int lowestScore, int desiredRuleCount) {
         if (selectionConfig.hasFixedRuleOverride()) {
             List<Rule> fixed = selectionConfig.resolveFixedRules(registry);
             if (!fixed.isEmpty()) {
-                System.out.println("[RULE_LOG] Using fixed rule override for session " + session.sessionId().asUuid()
-                    + " -> " + selectionConfig.fixedRuleIds());
-                return RulesContext.fromRules(session, fixed, lowestScore);
+                return selectionConfig.fixedRuleIds();
             }
-            System.out.println("[RULE_LOG] Fixed rule override configured but no rules resolved; falling back to random selection");
             int fallbackCount = deriveRuleCount(lowestScore);
-            session.setDesiredRuleCount(fallbackCount);
             desiredRuleCount = fallbackCount;
         }
         List<Rule> candidates = registry.eligibleRules(lowestScore);
         if (candidates.isEmpty() || desiredRuleCount <= 0) {
-            System.out.println("[RULE_LOG] No eligible rules for session " + session.sessionId().asUuid());
-            return RulesContext.fromRules(session, List.of(), lowestScore);
+            return List.of();
         }
         Collections.shuffle(candidates, random);
         int count = Math.min(Math.max(desiredRuleCount, 0), Math.min(candidates.size(), MAX_RULES));
         List<Rule> selected = new ArrayList<>(candidates.subList(0, count));
-        System.out.println("[RULE_LOG] Selected " + selected.size() + " rules for session " + session.sessionId().asUuid()
-            + " (lowestScore=" + lowestScore + ", desired=" + desiredRuleCount + ")");
-        return RulesContext.fromRules(session, selected, lowestScore);
+
+        return selected.stream().map(rule -> rule.getMetadata().id).toList();
     }
 
     private int deriveRuleCount(int lowestScore) {
-        if (lowestScore <= 500) return 1;
-        if (lowestScore <= 1000) return 2;
-        if (lowestScore <= 2000) return 3;
-        return 4; // 2000~2500 or above capped to max 4
-    }
-
-    private Map<String, Integer> resolveScores(List<String> userIds,
-                                               Map<String, Integer> knownScores) {
-        Map<String, Integer> resolved = new HashMap<>();
-        for (String userId : userIds) {
-            int score = DEFAULT_SCORE;
-            if (knownScores != null && knownScores.containsKey(userId)) {
-                score = knownScores.get(userId);
-            } else {
-                score = DataManager.getInstance().getUserScore(userId, DEFAULT_SCORE).score();
-            }
-            resolved.put(userId, score);
-        }
-        return resolved;
+        if (lowestScore < 500) return 1;
+        if (lowestScore < 1000) return 2;
+        if (lowestScore < 2000) return 3;
+        return 4;
     }
 }

@@ -124,7 +124,7 @@ public final class PostGameEventProcessor {
             return;
         }
         GameSession newSession = new GameSession(participants);
-        newSession.setRulesContext(deps.ruleManager().prepareRules(newSession));
+        newSession.setRuleIds(deps.ruleManager().prepareRules());
         deps.repository().save(newSession);
         deps.runtime().ensure(newSession);
         deps.messenger().broadcastRematchStarted(oldSession, newSession, participants);

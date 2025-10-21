@@ -9,7 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
@@ -20,15 +20,18 @@ import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.rule.RuleTriggerKind;
 
-public class EveryFiveTurnBlockerRule implements Rule {
+/**
+ * 돌 변환: 전체 턴(라운드)이 5의 배수로 종료될 때마다 각 플레이어의 돌을 방해돌로 바꾼다.
+ */
+public class StoneConversionRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
-        RuleId.FIVE_TURN_RANDOM_BLOCKER,
+        RuleId.STONE_CONVERSION,
         0
     );
 
-    private static final String LAST_TRIGGER_KEY = "fiveTurnBlocker:lastTurn";
+    private static final String LAST_TRIGGER_KEY = "rule:stoneConversion:lastCompletedTurns";
 
     @Override
     public RuleMetadata getMetadata() {
@@ -36,11 +39,13 @@ public class EveryFiveTurnBlockerRule implements Rule {
     }
 
     @Override
-    public void invoke(RulesContext context, RuleRuntimeContext runtime) {
+    public void invoke(GameSessionRuleAccess context, RuleRuntimeContext runtime) {
         if (context == null || runtime == null) {
             return;
         }
-        System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule invoked");
+        if (runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED) {
+            return;
+        }
         GameSessionStateContext stateContext = runtime.stateContext();
         GameSessionServices services = runtime.services();
         if (stateContext == null || services == null) {
@@ -53,13 +58,15 @@ public class EveryFiveTurnBlockerRule implements Rule {
         }
         GameTurnService.TurnSnapshot turnSnapshot = view != null ? view.resolvedSnapshot() : null;
 
-        GameSessionTurnAccess turnStore = stateContext.turns();
-        int completedTurns = Math.max(0, turnStore.actionNumber() - 1);
-        if (completedTurns <= 0 || completedTurns % 5 != 0) {
+        if (turnSnapshot == null) {
             return;
         }
-        Object lastTrigger = context.getData(LAST_TRIGGER_KEY);
-        if (lastTrigger instanceof Integer lastTurn && lastTurn == completedTurns) {
+        int roundNumber = Math.max(0, turnSnapshot.roundNumber());
+        if (roundNumber <= 0 || roundNumber % 5 != 0) {
+            return;
+        }
+        Object lastTrigger = context.getRuleData(LAST_TRIGGER_KEY);
+        if (lastTrigger instanceof Integer lastRound && lastRound == roundNumber) {
             return;
         }
 
@@ -104,16 +111,16 @@ public class EveryFiveTurnBlockerRule implements Rule {
         }
 
         if (mutated) {
-            System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule placed blockers for players present");
+            System.out.println("[RULE_LOG] StoneConversionRule placed blockers for players present");
             byte[] snapshot = services.boardService().snapshot(boardStore);
             runtime.contextService().postGame().queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(
                 snapshot,
                 System.currentTimeMillis()
             ));
         } else {
-            System.out.println("[RULE_LOG] EveryFiveTurnBlockerRule no placement this turn");
+            System.out.println("[RULE_LOG] StoneConversionRule no placement this turn");
         }
 
-        context.putData(LAST_TRIGGER_KEY, completedTurns);
+        context.putRuleData(LAST_TRIGGER_KEY, roundNumber);
     }
 }

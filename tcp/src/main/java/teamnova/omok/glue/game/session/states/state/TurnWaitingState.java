@@ -57,7 +57,6 @@ public class TurnWaitingState implements BaseState {
         session.lock().lock();
         try {
             TurnCycleContext cycleContext = new TurnCycleContext(
-                context.session(),
                 event.userId(),
                 event.x(),
                 event.y(),
@@ -102,16 +101,7 @@ public class TurnWaitingState implements BaseState {
                         next,
                         previousPlayerId
                     );
-                    RuleTurnStateView view = RuleTurnStateView.fromAdvance(
-                        current,
-                        next,
-                        context.participants().getUserIds(),
-                        context.participants().disconnectedUsersView(),
-                        previousPlayerId,
-                        previousPlayerId != null
-                            ? context.participants().playerIndexOf(previousPlayerId)
-                            : -1
-                    );
+                    RuleTurnStateView view = RuleTurnStateView.fromAdvance(current, next);
                     contextService.turn().recordTurnTransition(
                         context,
                         new TurnTransition(current, next, view)

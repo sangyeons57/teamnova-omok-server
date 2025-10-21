@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
+import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
@@ -11,7 +12,6 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.GameSessionTurnContextService;
 import teamnova.omok.glue.rule.RuleRuntimeContext;
 import teamnova.omok.glue.rule.RuleTriggerKind;
-import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -48,20 +48,12 @@ public final class TurnStartingState implements BaseState {
 
     private RuleTurnStateView buildView(GameSessionStateContext context, TurnTransition transition) {
         if (transition != null && transition.nextSnapshot() != null) {
-            return RuleTurnStateView.fromTurnStart(
-                transition.nextSnapshot(),
-                context.participants().getUserIds(),
-                context.participants().disconnectedUsersView()
-            );
+            return RuleTurnStateView.fromTurnStart(transition.nextSnapshot());
         }
         return RuleTurnStateView.capture(context, services.turnService());
     }
 
     private void fireRules(GameSessionStateContext context, RuleTurnStateView view) {
-        RulesContext rulesContext = context.session().getRulesContext();
-        if (rulesContext == null) {
-            return;
-        }
         RuleRuntimeContext runtime = new RuleRuntimeContext(
             services,
             contextService,
@@ -69,6 +61,6 @@ public final class TurnStartingState implements BaseState {
             view,
             RuleTriggerKind.TURN_START
         );
-        rulesContext.activateRules(runtime, GameSessionStateType.TURN_WAITING);
+        RuleService.getInstance().activateRules(context.rules(), runtime);
     }
 }

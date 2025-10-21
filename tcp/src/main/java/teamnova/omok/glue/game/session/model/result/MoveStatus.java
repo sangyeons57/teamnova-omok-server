@@ -10,5 +10,6 @@ public enum MoveStatus {
     OUT_OF_TURN,
     OUT_OF_BOUNDS,
     CELL_OCCUPIED,
-    GAME_FINISHED
+    GAME_FINISHED,
+    RESTRICTED_ZONE
 }

@@ -1,11 +1,12 @@
 package teamnova.omok.glue.rule.rules;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.rule.RuleTriggerKind;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
@@ -19,15 +20,15 @@ import teamnova.omok.glue.game.session.model.Stone;
 public class GoCaptureRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.GO_CAPTURE,
-        0
+        1_900
     );
 
     @Override
     public RuleMetadata getMetadata() { return METADATA; }
 
     @Override
-    public void invoke(RulesContext context, RuleRuntimeContext runtime) {
-        if (context == null || runtime == null) {
+    public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        if (access == null || runtime == null || runtime.triggerKind() != RuleTriggerKind.POST_PLACEMENT) {
             return;
         }
         GameSessionStateContext stateContext = runtime.stateContext();

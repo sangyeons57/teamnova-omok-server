@@ -63,7 +63,7 @@ TODO
 : 턴 기반 추적을 위해 돌 배치 메타데이터(예: `TurnPlacementStore`)를 보드와 동기화해야 합니다. 배열 길이는 동일하되 `short/int` 값으로 턴 번호나 규칙 태그를 저장하는 방식이 적합합니다.
 
 주의사항  
-: `BoardService`뿐 아니라 규칙들이 직접 `setStone`을 호출하므로 (`src/main/java/teamnova/omok/glue/rule/rules/EveryFiveTurnBlockerRule.java:71`, `src/main/java/teamnova/omok/glue/rule/rules/GoCaptureRule.java:56`) 모든 쓰기 경로가 메타데이터도 갱신하도록 보장해야 합니다. 리셋 시 동기화 누락이 발생하지 않게 주의해야 합니다.
+: `BoardService`뿐 아니라 규칙들이 직접 `setStone`을 호출하므로 (`src/main/java/teamnova/omok/glue/rule/rules/StoneConversionRule.java`, `src/main/java/teamnova/omok/glue/rule/rules/GoCaptureRule.java`) 모든 쓰기 경로가 메타데이터도 갱신하도록 보장해야 합니다. 리셋 시 동기화 누락이 발생하지 않게 주의해야 합니다.
 
 권장 방식  
 : `GameSession`에 `TurnPlacementStore`를 추가하고, `BoardService`를 통해서만 돌 쓰기가 이뤄지도록 조정하면서 메타데이터를 함께 갱신합니다. 스냅샷 전송은 기존 바이트 배열을 유지하되, 개발용 API로 별도의 JSON/바이너리 덤프를 제공해 테스트 중 필요한 경우 참조하도록 합니다.

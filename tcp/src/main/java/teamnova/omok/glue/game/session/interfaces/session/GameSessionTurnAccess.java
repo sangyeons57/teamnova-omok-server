@@ -17,5 +17,7 @@ public interface GameSessionTurnAccess extends GameSessionAccessInterface {
     void setCurrentPlayerIndex(int currentPlayerIndex);
     TurnTiming timing();
     void timing(TurnTiming timing);
+    long durationMillis();
+    void durationMillis(long durationMillis);
     void reset();
 }

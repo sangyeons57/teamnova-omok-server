@@ -31,6 +31,6 @@ public final class GameSessionCreationService {
         Map<String, Integer> knownScores = new HashMap<>();
         group.tickets().forEach(ticket -> knownScores.put(ticket.id(), ticket.rating()));
 
-        session.setRulesContext(deps.ruleManager().prepareRules(session, knownScores));
+        session.setRuleIds(deps.ruleManager().prepareRules(knownScores));
     }
 }

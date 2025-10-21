@@ -10,7 +10,6 @@ import teamnova.omok.glue.data.model.UserData;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
-import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
@@ -36,7 +35,7 @@ import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.manager.DataManager;
-import teamnova.omok.glue.rule.RulesContext;
+import teamnova.omok.glue.rule.RuleId;
 
 /**
  * Represents an in-game session with participants and mutable runtime state.
@@ -50,11 +49,11 @@ public class GameSession implements GameSessionAccess {
     private final GameSessionId id;
     private final ParticipantsStore participantsStore;
     private final LifecycleStore lifecycleStore;
-    private final RulesStore rulesStore = new RulesStore();
     private final BoardStore boardStore;
     private final TurnPlacementStore placementStore;
-    private final TurnStore turnStore;
     private final OutcomeStore outcomeStore;
+    private final TurnStore turnStore = new TurnStore();
+    private final RulesStore rulesStore = new RulesStore();
     private final PostGameStore postGameStore = new PostGameStore();
     private final TurnRuntimeStore turnRuntimeStore = new TurnRuntimeStore();
     private final PostGameRuntimeStore postGameRuntimeStore = new PostGameRuntimeStore();
@@ -69,7 +68,6 @@ public class GameSession implements GameSessionAccess {
         this.lifecycleStore = new LifecycleStore(System.currentTimeMillis());
         this.boardStore = new BoardStore(BOARD_WIDTH, BOARD_HEIGHT);
         this.placementStore = new TurnPlacementStore(BOARD_WIDTH, BOARD_HEIGHT);
-        this.turnStore = new TurnStore();
         this.outcomeStore = new OutcomeStore(userIds);
         List<UserData> resolvedUsers = userIds.stream()
                 .map(userId -> DataManager.getInstance().findUser(userId, DataManager.getDefaultUser()))
@@ -85,24 +83,35 @@ public class GameSession implements GameSessionAccess {
         return lock;
     }
 
+
     @Override
-    public RulesContext getRulesContext() {
-        return rulesStore.rulesContext();
+    public void setRuleIds(List<RuleId> ruleIds) {
+        rulesStore.setRuleIds(ruleIds);
     }
 
     @Override
-    public void setRulesContext(RulesContext rulesContext) {
-        rulesStore.rulesContext(rulesContext);
+    public List<RuleId> getRuleIds() {
+        return rulesStore.getRuleIds();
     }
 
     @Override
-    public void setLowestParticipantScore(int score) {
-        rulesStore.lowestParticipantScore(score);
+    public Object getRuleData(String key) {
+        return rulesStore.getRuleData(key);
     }
 
     @Override
-    public void setDesiredRuleCount(int count) {
-        rulesStore.desiredRuleCount(count);
+    public void putRuleData(String key, Object value) {
+        rulesStore.putRuleData(key, value);
+    }
+
+    @Override
+    public void clearRuleData() {
+        rulesStore.clearRuleData();
+    }
+
+    @Override
+    public boolean isRuleEmpty() {
+        return rulesStore.isRuleEmpty();
     }
 
     @Override
@@ -363,6 +372,16 @@ public class GameSession implements GameSessionAccess {
     @Override
     public void timing(TurnTiming timing) {
         turnStore.timing(timing);
+    }
+
+    @Override
+    public long durationMillis() {
+        return turnStore.durationMillis();
+    }
+
+    @Override
+    public void durationMillis(long durationMillis) {
+        turnStore.durationMillis(durationMillis);
     }
 
     @Override

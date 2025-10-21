@@ -6,6 +6,7 @@ import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
+import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
@@ -13,7 +14,6 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.rule.RuleRuntimeContext;
 import teamnova.omok.glue.rule.RuleTriggerKind;
-import teamnova.omok.glue.rule.RulesContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -55,21 +55,14 @@ public final class TurnPersonalCompletedState implements BaseState {
             cycle.now()
         );
         cycle.snapshots().next(nextSnapshot);
-        RuleTurnStateView turnStateView = RuleTurnStateView.fromAdvance(
-            cycle.snapshots().current(),
-            nextSnapshot,
-            context.participants().getUserIds(),
-            context.participants().disconnectedUsersView(),
-            cycle.userId(),
-            context.participants().playerIndexOf(cycle.userId())
-        );
+        RuleTurnStateView turnStateView = RuleTurnStateView.fromAdvance(cycle.snapshots().current(), nextSnapshot);
         TurnTransition transition = new TurnTransition(
             cycle.snapshots().current(),
             nextSnapshot,
             turnStateView
         );
         contextService.turn().recordTurnTransition(context, transition);
-        fireRules(context, RuleTriggerKind.TURN_ADVANCE, turnStateView, GameSessionStateType.TURN_PERSONAL_COMPLETED);
+        fireRules(context, RuleTriggerKind.TURN_ADVANCE, turnStateView);
         contextService.turn().queueMoveResult(context, MoveResult.success(
             cycle.stone(),
             nextSnapshot,
@@ -86,12 +79,7 @@ public final class TurnPersonalCompletedState implements BaseState {
 
     private void fireRules(GameSessionStateContext context,
                            RuleTriggerKind trigger,
-                           RuleTurnStateView view,
-                           GameSessionStateType targetState) {
-        RulesContext rulesContext = context.session().getRulesContext();
-        if (rulesContext == null) {
-            return;
-        }
+                           RuleTurnStateView view) {
         RuleRuntimeContext runtime = new RuleRuntimeContext(
             services,
             contextService,
@@ -99,6 +87,6 @@ public final class TurnPersonalCompletedState implements BaseState {
             view,
             trigger
         );
-        rulesContext.activateRules(runtime, targetState);
+        RuleService.getInstance().activateRules(context.rules(), runtime);
     }
 }

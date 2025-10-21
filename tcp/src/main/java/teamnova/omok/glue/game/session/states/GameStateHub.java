@@ -22,7 +22,7 @@ import teamnova.omok.glue.game.session.states.state.PostGameDecisionWaitingState
 import teamnova.omok.glue.game.session.states.state.SessionRematchPreparingState;
 import teamnova.omok.glue.game.session.states.state.SessionTerminatingState;
 import teamnova.omok.glue.game.session.states.state.TurnPersonalCompletedState;
-import teamnova.omok.glue.game.session.states.state.TurnRoundCompletedState;
+import teamnova.omok.glue.game.session.states.state.TurnCompletedState;
 import teamnova.omok.glue.game.session.states.state.TurnStartingState;
 import teamnova.omok.glue.game.session.states.state.TurnWaitingState;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
@@ -60,13 +60,13 @@ public class GameStateHub {
     }
 
     private void registerStateConfig(GameSessionStateContextService contextService) {
-        registerState(new LobbyGameSessionState(contextService, services.boardService(), services.turnService()));
+        registerState(new LobbyGameSessionState(contextService, services));
         registerState(new TurnWaitingState(contextService, services.turnService()));
         registerState(new MoveValidatingState(contextService, services.boardService(), services.turnService()));
-        registerState(new MoveApplyingState(contextService, services.boardService()));
+        registerState(new MoveApplyingState(contextService, services));
         registerState(new OutcomeEvaluatingState(contextService, services.boardService(), services.scoreService()));
         registerState(new TurnPersonalCompletedState(contextService, services));
-        registerState(new TurnRoundCompletedState(contextService, services));
+        registerState(new TurnCompletedState(contextService, services));
         registerState(new TurnStartingState(contextService, services));
         registerState(new PostGameDecisionWaitingState(contextService, services.turnService()));
         registerState(new PostGameDecisionResolvingState(contextService));

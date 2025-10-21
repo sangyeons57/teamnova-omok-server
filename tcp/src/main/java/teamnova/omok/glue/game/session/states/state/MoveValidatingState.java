@@ -4,8 +4,6 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
@@ -13,6 +11,7 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
+import teamnova.omok.glue.rule.rules.ProtectiveZoneRule;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -123,6 +122,17 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
+        if (violatesProtectiveZone(context, x, y)) {
+            invalidate(context, MoveResult.invalid(
+                MoveStatus.RESTRICTED_ZONE,
+                currentSnapshot,
+                userId,
+                x,
+                y
+            ));
+            return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
+        }
+
         Stone stone = Stone.fromPlayerOrder(playerIndex);
         cycle.stone(stone);
         return StateStep.transition(GameSessionStateType.MOVE_APPLYING.toStateName());
@@ -131,5 +141,13 @@ public final class MoveValidatingState implements BaseState {
     private void invalidate(GameSessionStateContext context, MoveResult result) {
         contextService.turn().queueMoveResult(context, result);
         contextService.turn().clearTurnCycle(context);
+    }
+
+    private boolean violatesProtectiveZone(GameSessionStateContext context, int x, int y) {
+        if (context == null) {
+            return false;
+        }
+        Object state = context.rules().getRuleData(ProtectiveZoneRule.STORAGE_KEY);
+        return ProtectiveZoneRule.isRestricted(state, x, y);
     }
 }
