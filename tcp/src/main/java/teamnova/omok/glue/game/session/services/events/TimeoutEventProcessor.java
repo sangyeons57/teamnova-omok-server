@@ -7,7 +7,8 @@ import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.game.session.services.GameSessionDependencies;
 import teamnova.omok.glue.game.session.states.GameStateHub;
@@ -47,7 +48,7 @@ public final class TimeoutEventProcessor {
         session.lock().lock();
         try {
             if (session.isGameStarted() && !session.isGameFinished()) {
-                GameTurnService.TurnSnapshot current = deps.turnService().snapshot(session);
+                TurnSnapshot current = deps.turnService().snapshot(session);
                 shouldSubmit = current != null
                     && current.turnNumber() == expectedTurnNumber
                     && userId.equals(current.currentPlayerId());
@@ -96,10 +97,10 @@ public final class TimeoutEventProcessor {
         Objects.requireNonNull(event, "event");
         Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
         GameSessionStateContextService contextService = deps.contextService();
-        TurnTimeoutResult result = contextService.turn().consumeTimeoutResult(ctx);
-        if (result == null) {
+        TurnPersonalFrame frame = contextService.turn().consumeTimeoutOutcome(ctx);
+        if (frame == null || !frame.hasTimeoutOutcome()) {
             if (!session.isGameFinished()) {
-                GameTurnService.TurnSnapshot snapshot = deps.turnService().snapshot(session);
+                TurnSnapshot snapshot = deps.turnService().snapshot(session);
                 if (snapshot != null) {
                     scheduleTurnTimeout(session, snapshot, timeoutConsumer);
                 }
@@ -108,22 +109,24 @@ public final class TimeoutEventProcessor {
             return;
         }
         boolean waiting = manager.currentType() == GameSessionStateType.TURN_WAITING;
-        if (result.timedOut()) {
-            deps.messenger().broadcastTurnTimeout(session, result);
-            if (result.nextTurn() != null && waiting) {
-                scheduleTurnTimeout(session, result.nextTurn(), timeoutConsumer);
+        if (frame.timeoutTimedOut()) {
+            deps.messenger().broadcastTurnTimeout(session, frame);
+            if (frame.timeoutSnapshot() != null && waiting) {
+                scheduleTurnTimeout(session, frame.timeoutSnapshot(), timeoutConsumer);
             }
-        } else if (result.currentTurn() != null && waiting) {
-            scheduleTurnTimeout(session, result.currentTurn(), timeoutConsumer);
+        } else if (frame.timeoutSnapshot() != null && waiting) {
+            scheduleTurnTimeout(session, frame.timeoutSnapshot(), timeoutConsumer);
         }
         if (manager.currentType() == GameSessionStateType.COMPLETED) {
             cancelAllTimers(session.sessionId());
         }
+        frame.markTimeoutConsumed();
+        frame.clearTimeoutOutcome();
         postGameProcessor.drainSideEffects(ctx, timeoutConsumer);
     }
 
     public void scheduleTurnTimeout(GameSessionParticipantsAccess session,
-                                    GameTurnService.TurnSnapshot turnSnapshot,
+                                    TurnSnapshot turnSnapshot,
                                     TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(turnSnapshot, "turnSnapshot");

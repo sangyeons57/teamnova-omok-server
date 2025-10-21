@@ -5,10 +5,9 @@ import java.util.Objects;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
-import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
 import teamnova.omok.glue.game.session.services.RuleService;
-import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
@@ -62,7 +61,7 @@ public class LobbyGameSessionState implements BaseState {
                 boolean changed = context.participants().markReady(event.userId());
                 boolean allReady = context.participants().allReady();
                 boolean startedNow = false;
-                GameTurnService.TurnSnapshot snapshot = null;
+                TurnSnapshot snapshot = null;
                 if (allReady && !context.lifecycle().isGameStarted()) {
                     startedNow = true;
                     context.lifecycle().markGameStarted(event.timestamp());
@@ -71,10 +70,10 @@ public class LobbyGameSessionState implements BaseState {
                     snapshot = services.turnService()
                         .start(context.turns(), context.participants().getUserIds(), event.timestamp());
                     snapshot = applyGameStartRules(context, snapshot);
-                    RuleTurnStateView view = RuleTurnStateView.fromTurnStart(snapshot);
-                    contextService.turn().recordTurnTransition(
+                    contextService.turn().recordTurnSnapshot(
                         context,
-                        new TurnTransition(null, snapshot, view)
+                        snapshot,
+                        event.timestamp()
                     );
                 } else if (context.lifecycle().isGameStarted()) {
                     snapshot = services.turnService().snapshot(context.turns());
@@ -102,21 +101,19 @@ public class LobbyGameSessionState implements BaseState {
         return StateStep.stay();
     }
 
-    private GameTurnService.TurnSnapshot applyGameStartRules(GameSessionStateContext context,
-                                                             GameTurnService.TurnSnapshot snapshot) {
+    private TurnSnapshot applyGameStartRules(GameSessionStateContext context, TurnSnapshot snapshot) {
         if (snapshot == null) {
             return null;
         }
-        RuleTurnStateView view = RuleTurnStateView.fromTurnStart(snapshot);
         RuleRuntimeContext runtime = new RuleRuntimeContext(
             services,
             contextService,
             context,
-            view,
+            snapshot,
             RuleTriggerKind.GAME_START
         );
         RuleService.getInstance().activateRules(context.rules(), runtime);
-        GameTurnService.TurnSnapshot updated = services.turnService().snapshot(context.turns());
+        TurnSnapshot updated = services.turnService().snapshot(context.turns());
         return updated != null ? updated : snapshot;
     }
 }

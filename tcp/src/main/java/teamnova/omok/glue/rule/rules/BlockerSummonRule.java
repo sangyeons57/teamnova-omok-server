@@ -9,9 +9,9 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
-import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
@@ -49,7 +49,7 @@ public final class BlockerSummonRule implements Rule {
             return;
         }
 
-        GameTurnService.TurnSnapshot snapshot = resolveSnapshot(runtime, stateContext, services);
+        TurnSnapshot snapshot = resolveSnapshot(runtime, stateContext, services);
         if (snapshot == null) {
             return;
         }
@@ -84,12 +84,12 @@ public final class BlockerSummonRule implements Rule {
         access.putRuleData(LAST_ROUND_KEY, roundNumber);
     }
 
-    private GameTurnService.TurnSnapshot resolveSnapshot(RuleRuntimeContext runtime,
+    private TurnSnapshot resolveSnapshot(RuleRuntimeContext runtime,
                                                          GameSessionStateContext stateContext,
                                                          GameSessionServices services) {
-        RuleTurnStateView view = runtime.turnStateView();
-        if (view != null) {
-            return view.resolvedSnapshot();
+        TurnSnapshot snapshot = runtime.turnSnapshot();
+        if (snapshot != null) {
+            return snapshot;
         }
         return services.turnService().snapshot(stateContext.turns());
     }

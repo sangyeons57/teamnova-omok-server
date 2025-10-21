@@ -3,7 +3,8 @@ package teamnova.omok.glue.rule;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
-import teamnova.omok.glue.game.session.services.RuleTurnStateView;
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 
@@ -13,7 +14,7 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextServ
 public record RuleRuntimeContext(GameSessionServices services,
                                  GameSessionStateContextService contextService,
                                  GameSessionStateContext stateContext,
-                                 RuleTurnStateView turnStateView,
+                                 TurnSnapshot turnSnapshot,
                                  RuleTriggerKind triggerKind) {
     public RuleRuntimeContext {
         Objects.requireNonNull(services, "services");

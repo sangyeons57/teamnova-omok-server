@@ -6,6 +6,7 @@ import teamnova.omok.glue.client.session.services.ClientSessionDirectory;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.message.encoder.BoardSnapshotMessageEncoder;
 import teamnova.omok.glue.message.encoder.ErrorMessageEncoder;
@@ -25,10 +26,10 @@ import teamnova.omok.glue.message.encoder.TurnTimeoutMessageEncoder;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 
 /**
  * Encodes/dispatches messages that relate to in-game session events.
@@ -51,18 +52,18 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void broadcastGameStart(GameSessionAccess session, GameTurnService.TurnSnapshot turn) {
+    public void broadcastGameStart(GameSessionAccess session, TurnSnapshot turn) {
         directory.broadcast(session.getUserIds(), Type.GAME_SESSION_STARTED, GameSessionStartedMessageEncoder.encode(session, turn));
     }
 
     @Override
-    public void broadcastStonePlaced(GameSessionAccess session, MoveResult result) {
-        directory.broadcast(session.getUserIds(), Type.STONE_PLACED, StonePlacedMessageEncoder.encode(session, result));
+    public void broadcastStonePlaced(GameSessionAccess session, TurnPersonalFrame frame) {
+        directory.broadcast(session.getUserIds(), Type.STONE_PLACED, StonePlacedMessageEncoder.encode(session, frame));
     }
 
     @Override
-    public void broadcastTurnTimeout(GameSessionAccess session, TurnTimeoutResult result) {
-        directory.broadcast(session.getUserIds(), Type.TURN_TIMEOUT, TurnTimeoutMessageEncoder.encode(session, result));
+    public void broadcastTurnTimeout(GameSessionAccess session, TurnPersonalFrame frame) {
+        directory.broadcast(session.getUserIds(), Type.TURN_TIMEOUT, TurnTimeoutMessageEncoder.encode(session, frame));
     }
 
     @Override
@@ -106,8 +107,8 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
-    public void respondMove(String userId, long requestId, GameSessionAccess session, MoveResult result) {
-        directory.send(userId, Type.PLACE_STONE, requestId, MoveAckMessageEncoder.encode(session, result));
+    public void respondMove(String userId, long requestId, GameSessionAccess session, TurnPersonalFrame frame) {
+        directory.send(userId, Type.PLACE_STONE, requestId, MoveAckMessageEncoder.encode(session, frame));
     }
 
     @Override

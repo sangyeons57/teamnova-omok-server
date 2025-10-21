@@ -3,6 +3,7 @@ package teamnova.omok.glue.game.session.model.vo;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 
 /**
  * Captures immutable metadata about a stone placement, including the turn information and origin.
@@ -38,7 +39,7 @@ public record StonePlacementMetadata(int turnNumber,
         return EMPTY;
     }
 
-    public static StonePlacementMetadata forPlayer(GameTurnService.TurnSnapshot snapshot,
+    public static StonePlacementMetadata forPlayer(TurnSnapshot snapshot,
                                                    String userId,
                                                    int playerIndex) {
         Objects.requireNonNull(snapshot, "snapshot");
@@ -50,7 +51,7 @@ public record StonePlacementMetadata(int turnNumber,
         );
     }
 
-    public static StonePlacementMetadata forRule(GameTurnService.TurnSnapshot snapshot,
+    public static StonePlacementMetadata forRule(TurnSnapshot snapshot,
                                                  int playerIndex,
                                                  String userId) {
         Objects.requireNonNull(snapshot, "snapshot");

@@ -3,31 +3,31 @@ package teamnova.omok.glue.message.encoder;
 import java.nio.charset.StandardCharsets;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 
 public final class MoveAckMessageEncoder {
     private MoveAckMessageEncoder() {}
 
-    public static byte[] encode(GameSessionAccess session, MoveResult result) {
+    public static byte[] encode(GameSessionAccess session, TurnPersonalFrame frame) {
         StringBuilder sb = new StringBuilder(224);
         sb.append('{')
           .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
-          .append("\"status\":\"").append(result.status()).append('\"');
+          .append("\"status\":\"").append(frame.outcomeStatus()).append('\"');
         sb.append(',')
-          .append("\"x\":").append(result.x())
+          .append("\"x\":").append(frame.x())
           .append(',')
-          .append("\"y\":").append(result.y());
-        if (result.status() == MoveStatus.SUCCESS) {
+          .append("\"y\":").append(frame.y());
+        if (frame.outcomeStatus() == MoveStatus.SUCCESS) {
             sb.append(',')
-              .append("\"placedBy\":\"").append(MessageEncodingUtil.escape(result.userId())).append('\"')
+              .append("\"placedBy\":\"").append(MessageEncodingUtil.escape(frame.userId())).append('\"')
               .append(',')
-              .append("\"stone\":").append(result.placedAs().code());
+              .append("\"stone\":").append(frame.stone() != null ? frame.stone().code() : 0);
         }
         sb.append(',')
           .append("\"turn\":");
-        MessageEncodingUtil.appendTurn(sb, result.turnSnapshot());
+        MessageEncodingUtil.appendTurn(sb, frame.outcomeSnapshot());
         sb.append('}');
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }

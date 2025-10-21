@@ -7,23 +7,24 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import teamnova.omok.glue.data.model.UserData;
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
 import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
-import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.store.BoardStore;
 import teamnova.omok.glue.game.session.model.store.LifecycleStore;
 import teamnova.omok.glue.game.session.model.store.OutcomeStore;
 import teamnova.omok.glue.game.session.model.store.ParticipantsStore;
 import teamnova.omok.glue.game.session.model.store.PostGameRuntimeStore;
 import teamnova.omok.glue.game.session.model.store.PostGameStore;
+import teamnova.omok.glue.game.session.model.store.ReadyRuntimeStore;
 import teamnova.omok.glue.game.session.model.store.RulesStore;
 import teamnova.omok.glue.game.session.model.store.TurnPlacementStore;
 import teamnova.omok.glue.game.session.model.store.TurnRuntimeStore;
@@ -33,7 +34,6 @@ import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 import teamnova.omok.glue.game.session.model.vo.TurnCounters;
 import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.rule.RuleId;
 
@@ -56,6 +56,7 @@ public class GameSession implements GameSessionAccess {
     private final RulesStore rulesStore = new RulesStore();
     private final PostGameStore postGameStore = new PostGameStore();
     private final TurnRuntimeStore turnRuntimeStore = new TurnRuntimeStore();
+    private final ReadyRuntimeStore readyRuntimeStore = new ReadyRuntimeStore();
     private final PostGameRuntimeStore postGameRuntimeStore = new PostGameRuntimeStore();
     private final ReentrantLock lock = new ReentrantLock();
 
@@ -390,78 +391,74 @@ public class GameSession implements GameSessionAccess {
     }
 
     @Override
-    public TurnCycleContext getActiveTurnCycle() {
-        return turnRuntimeStore.getActiveTurnCycle();
-    }
-
-    @Override
-    public void setActiveTurnCycle(TurnCycleContext context) {
-        turnRuntimeStore.setActiveTurnCycle(context);
-    }
-
-    @Override
-    public void clearActiveTurnCycle() {
-        turnRuntimeStore.clearActiveTurnCycle();
-    }
-
-    @Override
-    public MoveResult getPendingMoveResult() {
-        return turnRuntimeStore.getPendingMoveResult();
-    }
-
-    @Override
-    public void setPendingMoveResult(MoveResult result) {
-        turnRuntimeStore.setPendingMoveResult(result);
-    }
-
-    @Override
-    public void clearPendingMoveResult() {
-        turnRuntimeStore.clearPendingMoveResult();
-    }
-
-    @Override
     public ReadyResult getPendingReadyResult() {
-        return turnRuntimeStore.getPendingReadyResult();
+        return readyRuntimeStore.pendingReadyResult();
     }
 
     @Override
     public void setPendingReadyResult(ReadyResult result) {
-        turnRuntimeStore.setPendingReadyResult(result);
+        readyRuntimeStore.pendingReadyResult(result);
     }
 
     @Override
     public void clearPendingReadyResult() {
-        turnRuntimeStore.clearPendingReadyResult();
+        readyRuntimeStore.clearPendingReadyResult();
     }
 
     @Override
-    public TurnTimeoutResult getPendingTimeoutResult() {
-        return turnRuntimeStore.getPendingTimeoutResult();
+    public void setPendingTimeoutFrame(TurnPersonalFrame frame) {
+        turnRuntimeStore.recordTimeoutOutcome(frame);
     }
 
     @Override
-    public void setPendingTimeoutResult(TurnTimeoutResult result) {
-        turnRuntimeStore.setPendingTimeoutResult(result);
+    public TurnPersonalFrame consumePendingTimeoutFrame() {
+        return turnRuntimeStore.consumeTimeoutOutcome();
     }
 
     @Override
-    public void clearPendingTimeoutResult() {
-        turnRuntimeStore.clearPendingTimeoutResult();
+    public TurnSnapshot getPendingTurnSnapshot() {
+        return turnRuntimeStore.peekSnapshot();
     }
 
     @Override
-    public TurnTransition getPendingTurnTransition() {
-        return turnRuntimeStore.getPendingTurnTransition();
+    public void setPendingTurnSnapshot(TurnSnapshot snapshot, long occurredAtMillis) {
+        turnRuntimeStore.enqueueSnapshot(snapshot, occurredAtMillis);
     }
 
     @Override
-    public void setPendingTurnTransition(TurnTransition transition) {
-        turnRuntimeStore.setPendingTurnTransition(transition);
+    public void clearPendingTurnSnapshot() {
+        turnRuntimeStore.pollSnapshot();
     }
 
     @Override
-    public void clearPendingTurnTransition() {
-        turnRuntimeStore.clearPendingTurnTransition();
+    public void resetPersonalTurnFrames() {
+        turnRuntimeStore.resetPersonalTurnFrames();
+    }
+
+    @Override
+    public TurnPersonalFrame beginPersonalTurnFrame(TurnSnapshot snapshot,
+                                                    long startedAt) {
+        return turnRuntimeStore.startPersonalTurnFrame(snapshot, startedAt);
+    }
+
+    @Override
+    public TurnPersonalFrame currentPersonalTurnFrame() {
+        return turnRuntimeStore.activePersonalTurnFrame();
+    }
+
+    @Override
+    public List<TurnPersonalFrame> personalTurnFrames() {
+        return turnRuntimeStore.personalTurnFrames();
+    }
+
+    @Override
+    public void setPendingMoveOutcome(TurnPersonalFrame frame) {
+        turnRuntimeStore.recordMoveOutcome(frame);
+    }
+
+    @Override
+    public TurnPersonalFrame consumePendingMoveOutcome() {
+        return turnRuntimeStore.consumeMoveOutcome();
     }
 
     @Override

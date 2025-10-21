@@ -12,9 +12,9 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipant
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
-import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
@@ -52,11 +52,10 @@ public class StoneConversionRule implements Rule {
             return;
         }
 
-        RuleTurnStateView view = runtime.turnStateView();
-        if (view == null) {
-            view = RuleTurnStateView.capture(stateContext, services.turnService());
+        TurnSnapshot turnSnapshot = runtime.turnSnapshot();
+        if (turnSnapshot == null) {
+            turnSnapshot = services.turnService().snapshot(stateContext.turns());
         }
-        GameTurnService.TurnSnapshot turnSnapshot = view != null ? view.resolvedSnapshot() : null;
 
         if (turnSnapshot == null) {
             return;

@@ -5,12 +5,12 @@ import java.util.Objects;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.rule.rules.ProtectiveZoneRule;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -43,103 +43,67 @@ public final class MoveValidatingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        TurnCycleContext cycle = contextService.turn().activeTurnCycle(context);
-        if (cycle == null) {
+        TurnPersonalFrame frame = contextService.turn().currentPersonalTurn(context);
+        if (frame == null || !frame.hasActiveMove()) {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
-        String userId = cycle.userId();
-        int x = cycle.x();
-        int y = cycle.y();
+        String userId = frame.userId();
+        int x = frame.x();
+        int y = frame.y();
 
         int playerIndex = context.participants().playerIndexOf(userId);
         if (playerIndex < 0) {
-            invalidate(context, MoveResult.invalid(
-                MoveStatus.INVALID_PLAYER,
-                null,
-                userId,
-                x,
-                y
-            ));
+            invalidate(context, frame, MoveStatus.INVALID_PLAYER, null);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
         if (!context.lifecycle().isGameStarted()) {
-            invalidate(context, MoveResult.invalid(
-                MoveStatus.GAME_NOT_STARTED,
-                null,
-                userId,
-                x,
-                y
-            ));
+            invalidate(context, frame, MoveStatus.GAME_NOT_STARTED, null);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        GameTurnService.TurnSnapshot currentSnapshot =
+        TurnSnapshot currentSnapshot =
             turnService.snapshot(context.turns());
-        cycle.snapshots().current(currentSnapshot);
+        frame.currentSnapshot(currentSnapshot);
 
         if (context.outcomes().isGameFinished()) {
-            invalidate(context, MoveResult.invalid(
-                MoveStatus.GAME_FINISHED,
-                currentSnapshot,
-                userId,
-                x,
-                y
-            ));
+            invalidate(context, frame, MoveStatus.GAME_FINISHED, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
         if (!boardService.isWithinBounds(context.board(), x, y)) {
-            invalidate(context, MoveResult.invalid(
-                MoveStatus.OUT_OF_BOUNDS,
-                currentSnapshot,
-                userId,
-                x,
-                y
-            ));
+            invalidate(context, frame, MoveStatus.OUT_OF_BOUNDS, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
         Integer currentIndex = turnService.currentPlayerIndex(context.turns());
         if (currentIndex == null || currentIndex != playerIndex) {
-            invalidate(context, MoveResult.invalid(
-                MoveStatus.OUT_OF_TURN,
-                currentSnapshot,
-                userId,
-                x,
-                y
-            ));
+            invalidate(context, frame, MoveStatus.OUT_OF_TURN, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
         if (!boardService.isEmpty(context.board(), x, y)) {
-            invalidate(context, MoveResult.invalid(
-                MoveStatus.CELL_OCCUPIED,
-                currentSnapshot,
-                userId,
-                x,
-                y
-            ));
+            invalidate(context, frame, MoveStatus.CELL_OCCUPIED, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
         if (violatesProtectiveZone(context, x, y)) {
-            invalidate(context, MoveResult.invalid(
-                MoveStatus.RESTRICTED_ZONE,
-                currentSnapshot,
-                userId,
-                x,
-                y
-            ));
+            invalidate(context, frame, MoveStatus.RESTRICTED_ZONE, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
         Stone stone = Stone.fromPlayerOrder(playerIndex);
-        cycle.stone(stone);
+        frame.stone(stone);
         return StateStep.transition(GameSessionStateType.MOVE_APPLYING.toStateName());
     }
 
-    private void invalidate(GameSessionStateContext context, MoveResult result) {
-        contextService.turn().queueMoveResult(context, result);
+    private void invalidate(GameSessionStateContext context,
+                            TurnPersonalFrame frame,
+                            MoveStatus status,
+                            TurnSnapshot snapshot) {
+        if (snapshot != null) {
+            frame.currentSnapshot(snapshot);
+        }
+        contextService.turn().finalizeMoveOutcome(context, status);
         contextService.turn().clearTurnCycle(context);
     }
 

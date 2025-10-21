@@ -9,8 +9,8 @@ import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
@@ -49,13 +49,13 @@ public final class ProtectiveZoneRule implements Rule {
         if (stateContext == null) {
             return;
         }
-        TurnCycleContext cycle = runtime.contextService().turn().activeTurnCycle(stateContext);
-        if (cycle == null) {
+        TurnPersonalFrame frame = runtime.contextService().turn().currentPersonalTurn(stateContext);
+        if (frame == null || !frame.hasActiveMove()) {
             return;
         }
         GameSessionBoardAccess board = stateContext.board();
         ZoneState state = getOrCreateState(access);
-        updateZoneForPlayer(state, board, cycle.userId(), cycle.x(), cycle.y());
+        updateZoneForPlayer(state, board, frame.userId(), frame.x(), frame.y());
     }
 
     public static boolean isRestricted(Object data, int x, int y) {

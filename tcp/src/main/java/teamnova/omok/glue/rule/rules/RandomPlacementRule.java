@@ -5,7 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
@@ -36,11 +36,11 @@ public final class RandomPlacementRule implements Rule {
         if (stateContext == null) {
             return;
         }
-        TurnCycleContext cycle = runtime.contextService().turn().activeTurnCycle(stateContext);
-        if (cycle == null) {
+        TurnPersonalFrame frame = runtime.contextService().turn().currentPersonalTurn(stateContext);
+        if (frame == null || !frame.hasActiveMove()) {
             return;
         }
-        Stone original = cycle.stone();
+        Stone original = frame.stone();
         if (original == null || !original.isPlayerStone()) {
             return;
         }
@@ -49,6 +49,6 @@ public final class RandomPlacementRule implements Rule {
             return; // 50% chance to keep the original stone
         }
         Stone newStone = (roll < 0.25d) ? Stone.BLOCKER : Stone.JOKER;
-        cycle.stone(newStone);
+        frame.stone(newStone);
     }
 }

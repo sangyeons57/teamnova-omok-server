@@ -5,14 +5,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
-import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
@@ -47,9 +48,12 @@ public final class RandomMoveRule implements Rule {
         if (stateContext == null || services == null) {
             return;
         }
-        RuleTurnStateView view = runtime.turnStateView();
-        int roundNumber = (view != null && view.resolvedSnapshot() != null)
-            ? view.resolvedSnapshot().roundNumber()
+        TurnSnapshot snapshot = runtime.turnSnapshot();
+        if (snapshot == null) {
+            snapshot = services.turnService().snapshot(stateContext.turns());
+        }
+        int roundNumber = snapshot != null
+            ? snapshot.roundNumber()
             : stateContext.turns().counters().roundNumber();
         Object last = acces.getRuleData(LAST_ROUND_KEY);
         if (last instanceof Integer processed && processed == roundNumber) {
@@ -67,17 +71,17 @@ public final class RandomMoveRule implements Rule {
         int attempts = Math.min(participants.getUserIds().size(), stones.size());
 
         boolean moved = false;
-        StonePlacementMetadata metadata = buildMetadata(view);
+        StonePlacementMetadata metadata = buildMetadata(snapshot);
         for (int i = 0; i < attempts; i++) {
             int[] pos = stones.get(i);
             moved |= tryMove(board, services, pos[0], pos[1], metadata);
         }
 
         if (moved) {
-            byte[] snapshot = services.boardService().snapshot(board);
+            byte[] bytes = services.boardService().snapshot(board);
             runtime.contextService()
                 .postGame()
-                .queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(snapshot, System.currentTimeMillis()));
+                .queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(bytes, System.currentTimeMillis()));
         }
         acces.putRuleData(LAST_ROUND_KEY, roundNumber);
     }
@@ -125,9 +129,9 @@ public final class RandomMoveRule implements Rule {
         return true;
     }
 
-    private StonePlacementMetadata buildMetadata(RuleTurnStateView view) {
-        if (view != null && view.resolvedSnapshot() != null) {
-            return StonePlacementMetadata.forRule(view.resolvedSnapshot(), -1, null);
+    private StonePlacementMetadata buildMetadata(TurnSnapshot snapshot) {
+        if (snapshot != null) {
+            return StonePlacementMetadata.forRule(snapshot, -1, null);
         }
         return StonePlacementMetadata.systemGenerated();
     }

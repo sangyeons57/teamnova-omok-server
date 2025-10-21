@@ -11,11 +11,11 @@ import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
+import teamnova.omok.glue.game.session.model.result.MoveStatus;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -45,8 +45,10 @@ public final class OutcomeEvaluatingState implements BaseState {
     @Override
     public <I extends StateContext> StateStep onEnter(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
-        TurnCycleContext cycle = contextService.turn().activeTurnCycle(ctx);
-        return (cycle == null) ? noneCycleProcess(ctx) : cycleProcess(ctx, cycle);
+        TurnPersonalFrame frame = contextService.turn().currentPersonalTurn(ctx);
+        return (frame == null || !frame.hasActiveMove())
+            ? noneCycleProcess(ctx)
+            : cycleProcess(ctx, frame);
     }
 
     private StateStep noneCycleProcess(GameSessionStateContext context) {
@@ -63,11 +65,11 @@ public final class OutcomeEvaluatingState implements BaseState {
         return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
     }
 
-    private StateStep cycleProcess(GameSessionStateContext context, TurnCycleContext cycle) {
+    private StateStep cycleProcess(GameSessionStateContext context, TurnPersonalFrame frame) {
         // 1) Normal win condition (e.g., five-in-a-row) still takes precedence
-        boolean finished = handleStonePlaced(context, cycle.userId(), cycle.x(), cycle.y(), cycle.stone());
+        boolean finished = handleStonePlaced(context, frame.userId(), frame.x(), frame.y(), frame.stone());
         if (finished) {
-            normalWinCondition(cycle, context);
+            normalWinCondition(frame, context);
             return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());
         }
 
@@ -87,26 +89,20 @@ public final class OutcomeEvaluatingState implements BaseState {
         return StateStep.transition(GameSessionStateType.TURN_PERSONAL_COMPLETED.toStateName());
     }
 
-    private void normalWinCondition(TurnCycleContext cycle, GameSessionStateContext context) {
+    private void normalWinCondition(TurnPersonalFrame frame, GameSessionStateContext context) {
         int turnCount;
-        if (cycle.snapshots().current() != null) {
-            turnCount = cycle.snapshots().current().turnNumber();
+        if (frame.currentSnapshot() != null) {
+            turnCount = frame.currentSnapshot().turnNumber();
         } else {
             turnCount = context.turns().actionNumber();
         }
         context.session().lock().lock();
         try {
-            context.session().markGameFinished(cycle.now(), turnCount);
+            context.session().markGameFinished(frame.requestedAtMillis(), turnCount);
         } finally {
             context.session().lock().unlock();
         }
-        contextService.turn().queueMoveResult(context, MoveResult.success(
-                cycle.stone(),
-                null,
-                cycle.userId(),
-                cycle.x(),
-                cycle.y()
-        ));
+        contextService.turn().finalizeMoveOutcome(context, MoveStatus.SUCCESS);
         contextService.postGame().queueGameCompletion(context, new GameCompletionNotice());
         contextService.turn().clearTurnCycle(context);
     }

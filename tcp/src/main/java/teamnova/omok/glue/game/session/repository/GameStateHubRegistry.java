@@ -10,6 +10,7 @@ import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
+import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.states.GameStateHub;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 

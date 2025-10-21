@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 
 /**
  * Stateless helpers for disconnect and cleanup operations on game sessions.
@@ -51,7 +52,7 @@ public final class GameSessionLifecycleService {
             try {
                 newlyDisconnected = session.markDisconnected(userId);
                 if (session.isGameStarted() && !session.isGameFinished()) {
-                    GameTurnService.TurnSnapshot snapshot =
+                    TurnSnapshot snapshot =
                         deps.turnService().snapshot(session);
                     if (snapshot != null && userId.equals(snapshot.currentPlayerId())) {
                         shouldSkip = true;

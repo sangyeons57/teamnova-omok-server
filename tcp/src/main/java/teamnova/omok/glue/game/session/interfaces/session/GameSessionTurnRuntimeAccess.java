@@ -1,39 +1,38 @@
 package teamnova.omok.glue.game.session.interfaces.session;
 
-import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
+import java.util.List;
+
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 
 public interface GameSessionTurnRuntimeAccess {
-    TurnCycleContext getActiveTurnCycle();
-
-    void setActiveTurnCycle(TurnCycleContext context);
-
-    void clearActiveTurnCycle();
-
-    MoveResult getPendingMoveResult();
-
-    void setPendingMoveResult(MoveResult result);
-
-    void clearPendingMoveResult();
-
     ReadyResult getPendingReadyResult();
 
     void setPendingReadyResult(ReadyResult result);
 
     void clearPendingReadyResult();
 
-    TurnTimeoutResult getPendingTimeoutResult();
+    void setPendingTimeoutFrame(TurnPersonalFrame frame);
 
-    void setPendingTimeoutResult(TurnTimeoutResult result);
+    TurnPersonalFrame consumePendingTimeoutFrame();
 
-    void clearPendingTimeoutResult();
+    TurnSnapshot getPendingTurnSnapshot();
 
-    TurnTransition getPendingTurnTransition();
+    void setPendingTurnSnapshot(TurnSnapshot snapshot, long occurredAtMillis);
 
-    void setPendingTurnTransition(TurnTransition transition);
+    void clearPendingTurnSnapshot();
 
-    void clearPendingTurnTransition();
+    void resetPersonalTurnFrames();
+
+    TurnPersonalFrame beginPersonalTurnFrame(TurnSnapshot snapshot,
+                                             long startedAt);
+
+    TurnPersonalFrame currentPersonalTurnFrame();
+
+    List<TurnPersonalFrame> personalTurnFrames();
+
+    void setPendingMoveOutcome(TurnPersonalFrame frame);
+
+    TurnPersonalFrame consumePendingMoveOutcome();
 }

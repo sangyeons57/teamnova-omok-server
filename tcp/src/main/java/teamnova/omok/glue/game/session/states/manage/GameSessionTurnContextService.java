@@ -2,46 +2,78 @@ package teamnova.omok.glue.game.session.states.manage;
 
 import java.util.Objects;
 
-import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
-import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
+import teamnova.omok.glue.game.session.model.result.MoveStatus;
 
 /**
  * Stateless operations for managing turn-related buffers within {@link GameSessionStateContext}.
  */
 public final class GameSessionTurnContextService {
 
-    public void beginTurnCycle(GameSessionStateContext context, TurnCycleContext turnCycle) {
+    public void resetPersonalTurns(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        Objects.requireNonNull(turnCycle, "turnCycle");
-        if (context.turnRuntime().getActiveTurnCycle() != null) {
-            throw new IllegalStateException("Turn cycle already in progress");
-        }
-        context.turnRuntime().setActiveTurnCycle(turnCycle);
-        context.turnRuntime().clearPendingMoveResult();
+        context.turnRuntime().resetPersonalTurnFrames();
     }
 
-    public TurnCycleContext activeTurnCycle(GameSessionStateContext context) {
+    public TurnPersonalFrame beginPersonalTurn(GameSessionStateContext context,
+                                               TurnSnapshot snapshot,
+                                               long startedAt) {
         Objects.requireNonNull(context, "context");
-        return context.turnRuntime().getActiveTurnCycle();
+        return context.turnRuntime().beginPersonalTurnFrame(snapshot, startedAt);
+    }
+
+    public TurnPersonalFrame currentPersonalTurn(GameSessionStateContext context) {
+        Objects.requireNonNull(context, "context");
+        return context.turnRuntime().currentPersonalTurnFrame();
+    }
+
+    public boolean hasActiveTurnCycle(GameSessionStateContext context) {
+        Objects.requireNonNull(context, "context");
+        TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
+        return frame != null && frame.hasActiveMove();
+    }
+
+    public void beginTurnCycle(GameSessionStateContext context,
+                               String userId,
+                               int x,
+                               int y,
+                               long requestedAtMillis) {
+        Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(userId, "userId");
+        TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
+        if (frame == null) {
+            throw new IllegalStateException("No active personal turn frame available");
+        }
+        if (frame.hasActiveMove()) {
+            throw new IllegalStateException("Turn cycle already in progress");
+        }
+        frame.beginMove(userId, x, y, requestedAtMillis);
     }
 
     public void clearTurnCycle(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        context.turnRuntime().clearActiveTurnCycle();
+        TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
+        if (frame != null) {
+            frame.endActiveMove();
+        }
     }
 
-    public void queueMoveResult(GameSessionStateContext context, MoveResult result) {
+    public void finalizeMoveOutcome(GameSessionStateContext context, MoveStatus status) {
         Objects.requireNonNull(context, "context");
-        context.turnRuntime().setPendingMoveResult(result);
+        Objects.requireNonNull(status, "status");
+        TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
+        if (frame == null) {
+            throw new IllegalStateException("No active personal turn frame available");
+        }
+        frame.resolveOutcome(status);
+        context.turnRuntime().setPendingMoveOutcome(frame);
     }
 
-    public MoveResult consumeMoveResult(GameSessionStateContext context) {
+    public TurnPersonalFrame consumeMoveOutcome(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        MoveResult result = context.turnRuntime().getPendingMoveResult();
-        context.turnRuntime().clearPendingMoveResult();
-        return result;
+        return context.turnRuntime().consumePendingMoveOutcome();
     }
 
     public void queueReadyResult(GameSessionStateContext context, ReadyResult result) {
@@ -56,33 +88,40 @@ public final class GameSessionTurnContextService {
         return result;
     }
 
-    public void queueTimeoutResult(GameSessionStateContext context, TurnTimeoutResult result) {
+    public void recordTimeoutOutcome(GameSessionStateContext context,
+                                     boolean timedOut,
+                                     TurnSnapshot snapshot,
+                                     String previousPlayerId) {
         Objects.requireNonNull(context, "context");
-        context.turnRuntime().setPendingTimeoutResult(result);
+        TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
+        if (frame == null) {
+            return;
+        }
+        frame.resolveTimeout(timedOut, snapshot, previousPlayerId);
+        context.turnRuntime().setPendingTimeoutFrame(frame);
     }
 
-    public TurnTimeoutResult consumeTimeoutResult(GameSessionStateContext context) {
+    public TurnPersonalFrame consumeTimeoutOutcome(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        TurnTimeoutResult result = context.turnRuntime().getPendingTimeoutResult();
-        context.turnRuntime().clearPendingTimeoutResult();
-        return result;
+        return context.turnRuntime().consumePendingTimeoutFrame();
     }
 
-    public void recordTurnTransition(GameSessionStateContext context,
-                                     TurnTransition transition) {
+    public void recordTurnSnapshot(GameSessionStateContext context,
+                                   TurnSnapshot snapshot,
+                                   long occurredAtMillis) {
         Objects.requireNonNull(context, "context");
-        context.turnRuntime().setPendingTurnTransition(transition);
+        context.turnRuntime().setPendingTurnSnapshot(snapshot, occurredAtMillis);
     }
 
-    public TurnTransition peekTurnTransition(GameSessionStateContext context) {
+    public TurnSnapshot peekTurnSnapshot(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        return context.turnRuntime().getPendingTurnTransition();
+        return context.turnRuntime().getPendingTurnSnapshot();
     }
 
-    public TurnTransition consumeTurnTransition(GameSessionStateContext context) {
+    public TurnSnapshot consumeTurnSnapshot(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
-        TurnTransition transition = context.turnRuntime().getPendingTurnTransition();
-        context.turnRuntime().clearPendingTurnTransition();
-        return transition;
+        TurnSnapshot snapshot = context.turnRuntime().getPendingTurnSnapshot();
+        context.turnRuntime().clearPendingTurnSnapshot();
+        return snapshot;
     }
 }

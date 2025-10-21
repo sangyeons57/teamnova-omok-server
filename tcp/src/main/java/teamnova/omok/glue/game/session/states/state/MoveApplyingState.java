@@ -2,14 +2,15 @@ package teamnova.omok.glue.game.session.states.state;
 
 import java.util.Objects;
 
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.services.RuleService;
-import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.rule.RuleRuntimeContext;
 import teamnova.omok.glue.rule.RuleTriggerKind;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
@@ -40,45 +41,45 @@ public final class MoveApplyingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        TurnCycleContext cycle = contextService.turn().activeTurnCycle(context);
-        if (cycle == null) {
+        TurnPersonalFrame frame = contextService.turn().currentPersonalTurn(context);
+        if (frame == null || !frame.hasActiveMove()) {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
         fireRules(context, RuleTriggerKind.PRE_PLACEMENT);
 
-        int x = cycle.x();
-        int y = cycle.y();
+        int x = frame.x();
+        int y = frame.y();
         if (!services.boardService().isWithinBounds(context.board(), x, y)
             || !services.boardService().isEmpty(context.board(), x, y)) {
             // fallback to original validated location if rule chose an invalid spot
-            cycle.updatePosition(cycle.originalX(), cycle.originalY());
-            x = cycle.x();
-            y = cycle.y();
+            frame.updatePosition(frame.originalX(), frame.originalY());
+            x = frame.x();
+            y = frame.y();
         }
 
-        int playerIndex = context.participants().playerIndexOf(cycle.userId());
+        int playerIndex = context.participants().playerIndexOf(frame.userId());
         StonePlacementMetadata metadata;
-        if (cycle.snapshots().current() != null) {
+        if (frame.currentSnapshot() != null) {
             metadata = StonePlacementMetadata.forPlayer(
-                cycle.snapshots().current(),
-                cycle.userId(),
+                frame.currentSnapshot(),
+                frame.userId(),
                 playerIndex
             );
         } else {
             metadata = StonePlacementMetadata.empty();
         }
-        services.boardService().setStone(context.board(), x, y, cycle.stone(), metadata);
+        services.boardService().setStone(context.board(), x, y, frame.stone(), metadata);
         fireRules(context, RuleTriggerKind.POST_PLACEMENT);
         return StateStep.transition(GameSessionStateType.OUTCOME_EVALUATING.toStateName());
     }
 
     private void fireRules(GameSessionStateContext context, RuleTriggerKind triggerKind) {
-        RuleTurnStateView view = RuleTurnStateView.capture(context, services.turnService());
+        TurnSnapshot snapshot = services.turnService().snapshot(context.turns());
         RuleRuntimeContext runtime = new RuleRuntimeContext(
             services,
             contextService,
             context,
-            view,
+            snapshot,
             triggerKind
         );
         RuleService.getInstance().activateRules(context.rules(), runtime);

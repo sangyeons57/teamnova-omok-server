@@ -3,21 +3,21 @@ package teamnova.omok.glue.game.session.interfaces;
 import java.util.List;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 
 public interface GameSessionMessenger {
     void broadcastJoin(GameSessionAccess session);
     void broadcastReady(GameSessionAccess session, ReadyResult result);
-    void broadcastGameStart(GameSessionAccess session, GameTurnService.TurnSnapshot turn);
-    void broadcastStonePlaced(GameSessionAccess session, MoveResult result);
-    void broadcastTurnTimeout(GameSessionAccess session, TurnTimeoutResult result);
+    void broadcastGameStart(GameSessionAccess session, TurnSnapshot turn);
+    void broadcastStonePlaced(GameSessionAccess session, TurnPersonalFrame frame);
+    void broadcastTurnTimeout(GameSessionAccess session, TurnPersonalFrame frame);
     void broadcastBoardSnapshot(GameSessionAccess session, BoardSnapshotUpdate update);
     void broadcastGameCompleted(GameSessionAccess session);
     void broadcastPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt);
@@ -26,7 +26,7 @@ public interface GameSessionMessenger {
     void broadcastRematchStarted(GameSessionAccess previous, GameSessionAccess rematch, List<String> participants);
     void broadcastPlayerDisconnected(GameSessionAccess session, String userId, String reason);
     void respondReady(String userId, long requestId, GameSessionAccess session, ReadyResult result);
-    void respondMove(String userId, long requestId, GameSessionAccess session, MoveResult result);
+    void respondMove(String userId, long requestId, GameSessionAccess session, TurnPersonalFrame frame);
     void respondPostGameDecision(String userId, long requestId, PostGameDecisionResult result);
     void respondError(String userId, Type type, long requestId, String message);
 }

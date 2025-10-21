@@ -11,6 +11,7 @@ import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 
 /**
@@ -31,7 +32,7 @@ public class TurnTimeoutCoordinator implements TurnTimeoutScheduler {
 
     @Override
     public void schedule(GameSessionParticipantsAccess session,
-                         GameTurnService.TurnSnapshot turnSnapshot,
+                         TurnSnapshot turnSnapshot,
                          TurnTimeoutConsumer consumer) {
         if (session == null || turnSnapshot == null || consumer == null) {
             return;

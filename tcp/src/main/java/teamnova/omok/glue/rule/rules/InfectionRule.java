@@ -6,13 +6,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
-import teamnova.omok.glue.game.session.services.RuleTurnStateView;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
@@ -59,21 +60,25 @@ public final class InfectionRule implements Rule {
             access.putRuleData(DATA_KEY, infections);
         }
 
-        boolean mutated = decayAndConvert(board, services, infections, runtime.turnStateView());
+        TurnSnapshot snapshot = runtime.turnSnapshot();
+        if (snapshot == null) {
+            snapshot = services.turnService().snapshot(stateContext.turns());
+        }
+        boolean mutated = decayAndConvert(board, services, infections, snapshot);
         mutated |= propagateInfections(board, services, infections);
 
         if (mutated) {
-            byte[] snapshot = services.boardService().snapshot(board);
+            byte[] bytes = services.boardService().snapshot(board);
             runtime.contextService()
                 .postGame()
-                .queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(snapshot, System.currentTimeMillis()));
+                .queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(bytes, System.currentTimeMillis()));
         }
     }
 
     private boolean decayAndConvert(GameSessionBoardAccess board,
                                     GameSessionServices services,
                                     Map<Integer, Integer> infections,
-                                    RuleTurnStateView view) {
+                                    TurnSnapshot snapshot) {
         boolean mutated = false;
         List<Integer> toConvert = new ArrayList<>();
         for (Map.Entry<Integer, Integer> entry : infections.entrySet()) {
@@ -84,7 +89,7 @@ public final class InfectionRule implements Rule {
                 entry.setValue(remaining);
             }
         }
-        StonePlacementMetadata metadata = buildMetadata(view);
+        StonePlacementMetadata metadata = buildMetadata(snapshot);
         for (Integer index : toConvert) {
             int width = board.width();
             int x = index % width;
@@ -177,9 +182,9 @@ public final class InfectionRule implements Rule {
         return result;
     }
 
-    private StonePlacementMetadata buildMetadata(RuleTurnStateView view) {
-        if (view != null && view.resolvedSnapshot() != null) {
-            return StonePlacementMetadata.forRule(view.resolvedSnapshot(), -1, null);
+    private StonePlacementMetadata buildMetadata(TurnSnapshot snapshot) {
+        if (snapshot != null) {
+            return StonePlacementMetadata.forRule(snapshot, -1, null);
         }
         return StonePlacementMetadata.systemGenerated();
     }

@@ -4,15 +4,13 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
-import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
-import teamnova.omok.glue.game.session.services.RuleTurnStateView;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -50,19 +48,23 @@ public class TurnWaitingState implements BaseState {
 
     private StateStep handleMove(GameSessionStateContext context,
                                  MoveEvent event) {
-        if (contextService.turn().activeTurnCycle(context) != null) {
+        TurnPersonalFrame frame = contextService.turn().currentPersonalTurn(context);
+        if (frame == null) {
+            return StateStep.stay();
+        }
+        if (frame.hasActiveMove()) {
             return StateStep.stay();
         }
         GameSessionAccess session = context.session();
         session.lock().lock();
         try {
-            TurnCycleContext cycleContext = new TurnCycleContext(
+            contextService.turn().beginTurnCycle(
+                context,
                 event.userId(),
                 event.x(),
                 event.y(),
                 event.timestamp()
             );
-            contextService.turn().beginTurnCycle(context, cycleContext);
             return StateStep.transition(GameSessionStateType.MOVE_VALIDATING.toStateName());
         } finally {
             session.lock().unlock();
@@ -72,59 +74,66 @@ public class TurnWaitingState implements BaseState {
     private StateStep handleTimeout(GameSessionStateContext context,
                                     TimeoutEvent event) {
         GameSessionAccess session = context.session();
-        TurnTimeoutResult result;
+        TurnPersonalFrame frame = contextService.turn().currentPersonalTurn(context);
+        TurnSnapshot currentSnapshot = null;
+        TurnSnapshot nextSnapshot = null;
+        String previousPlayerId = null;
+        boolean timedOut = false;
 
         boolean advanced = false;
         session.lock().lock();
         try {
             if (!context.lifecycle().isGameStarted()) {
-                result = TurnTimeoutResult.noop(null);
+                currentSnapshot = null;
             } else {
-                GameTurnService.TurnSnapshot current =
-                    turnService.snapshot(context.turns());
+                currentSnapshot = turnService.snapshot(context.turns());
                 if (context.outcomes().isGameFinished()) {
-                    result = TurnTimeoutResult.noop(current);
-                } else if (current.turnNumber() != event.expectedTurnNumber()) {
-                    result = TurnTimeoutResult.noop(current);
+                    timedOut = false;
+                } else if (currentSnapshot == null || currentSnapshot.turnNumber() != event.expectedTurnNumber()) {
+                    timedOut = false;
                 } else if (!turnService.isExpired(context.turns(), event.timestamp())) {
-                    result = TurnTimeoutResult.noop(current);
+                    timedOut = false;
                 } else {
-                    String previousPlayerId = current.currentPlayerId();
-                    GameTurnService.TurnSnapshot next = turnService
+                    timedOut = true;
+                    previousPlayerId = currentSnapshot.currentPlayerId();
+                    nextSnapshot = turnService
                         .advanceSkippingDisconnected(
                             context.turns(),
                             context.participants().disconnectedUsersView(),
                             event.timestamp()
                         );
-                    result = TurnTimeoutResult.timedOut(
-                        current,
-                        next,
-                        previousPlayerId
-                    );
-                    RuleTurnStateView view = RuleTurnStateView.fromAdvance(current, next);
-                    contextService.turn().recordTurnTransition(
-                        context,
-                        new TurnTransition(current, next, view)
-                    );
-                    advanced = true;
+                    contextService.turn().recordTurnSnapshot(context, nextSnapshot, event.timestamp());
+                    advanced = nextSnapshot != null;
                 }
             }
         } finally {
             session.lock().unlock();
         }
 
-        contextService.turn().queueTimeoutResult(context, result);
+        if (frame != null) {
+            TurnSnapshot outcomeSnapshot = timedOut
+                ? (nextSnapshot != null ? nextSnapshot : currentSnapshot)
+                : currentSnapshot;
+            if (timedOut || outcomeSnapshot != null) {
+                contextService.turn().recordTimeoutOutcome(
+                    context,
+                    timedOut,
+                    outcomeSnapshot,
+                    previousPlayerId
+                );
+            }
+        }
         if (context.outcomes().isGameFinished()) {
-            contextService.turn().consumeTurnTransition(context);
+            contextService.turn().consumeTurnSnapshot(context);
             return StateStep.transition(GameSessionStateType.COMPLETED.toStateName());
         }
         if (!advanced) {
             return StateStep.stay();
         }
-        TurnTransition transition = contextService.turn().peekTurnTransition(context);
-        GameSessionStateType nextState = (transition != null && transition.roundWrapped())
+        TurnSnapshot snapshot = contextService.turn().peekTurnSnapshot(context);
+        GameSessionStateType nextState = (snapshot != null && snapshot.wrapped())
             ? GameSessionStateType.TURN_ROUND_COMPLETED
-            : GameSessionStateType.TURN_STARTING;
+            : GameSessionStateType.TURN_PERSONAL_STARTING;
         return StateStep.transition(nextState.toStateName());
     }
 }

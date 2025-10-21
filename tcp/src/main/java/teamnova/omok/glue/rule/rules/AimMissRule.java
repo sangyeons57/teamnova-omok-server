@@ -7,8 +7,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
@@ -46,14 +46,14 @@ public final class AimMissRule implements Rule {
         if (stateContext == null || services == null) {
             return;
         }
-        TurnCycleContext cycle = runtime.contextService().turn().activeTurnCycle(stateContext);
-        if (cycle == null) {
+        TurnPersonalFrame frame = runtime.contextService().turn().currentPersonalTurn(stateContext);
+        if (frame == null || !frame.hasActiveMove()) {
             return;
         }
 
         GameSessionBoardAccess board = stateContext.board();
-        int baseX = cycle.originalX();
-        int baseY = cycle.originalY();
+        int baseX = frame.originalX();
+        int baseY = frame.originalY();
         List<int[]> candidates = new ArrayList<>();
         for (int[] offset : NEIGHBORS) {
             int nx = baseX + offset[0];
@@ -69,6 +69,6 @@ public final class AimMissRule implements Rule {
             return; // fallback to the original location already validated
         }
         int[] pick = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-        cycle.updatePosition(pick[0], pick[1]);
+        frame.updatePosition(pick[0], pick[1]);
     }
 }

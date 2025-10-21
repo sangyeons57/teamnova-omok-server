@@ -1,94 +1,88 @@
 package teamnova.omok.glue.game.session.model.store;
 
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnRuntimeAccess;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
-import teamnova.omok.glue.game.session.model.result.ReadyResult;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
-import teamnova.omok.glue.game.session.model.runtime.TurnTransition;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
+
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 
 /**
- * Holds transient turn-processing buffers for a {@link teamnova.omok.glue.game.session.model.GameSession}.
+ * Maintains per-overall-turn runtime data and personal turn frames.
  */
-public final class TurnRuntimeStore implements GameSessionTurnRuntimeAccess {
-    private TurnCycleContext activeTurnCycle;
-    private MoveResult pendingMoveResult;
-    private ReadyResult pendingReadyResult;
-    private TurnTimeoutResult pendingTimeoutResult;
-    private TurnTransition pendingTurnTransition;
+public final class TurnRuntimeStore {
 
-    @Override
-    public TurnCycleContext getActiveTurnCycle() {
-        return activeTurnCycle;
+    private final List<TurnPersonalFrame> personalTurns = new ArrayList<>();
+    private final Deque<TurnSnapshot> pendingSnapshots = new ArrayDeque<>();
+
+    private TurnPersonalFrame activeFrame;
+    private TurnPersonalFrame pendingOutcomeFrame;
+    private TurnPersonalFrame pendingTimeoutFrame;
+
+    public void enqueueSnapshot(TurnSnapshot snapshot, long timestampMillis) {
+        if (snapshot == null) {
+            return;
+        }
+        pendingSnapshots.addLast(snapshot);
     }
 
-    @Override
-    public void setActiveTurnCycle(TurnCycleContext context) {
-        this.activeTurnCycle = context;
+    public TurnSnapshot peekSnapshot() {
+        return pendingSnapshots.peekFirst();
     }
 
-    @Override
-    public void clearActiveTurnCycle() {
-        this.activeTurnCycle = null;
+    public TurnSnapshot pollSnapshot() {
+        return pendingSnapshots.pollFirst();
     }
 
-    @Override
-    public MoveResult getPendingMoveResult() {
-        return pendingMoveResult;
+    public void resetPersonalTurnFrames() {
+        personalTurns.clear();
+        activeFrame = null;
+        pendingOutcomeFrame = null;
+        pendingTimeoutFrame = null;
+        pendingSnapshots.clear();
     }
 
-    @Override
-    public void setPendingMoveResult(MoveResult result) {
-        this.pendingMoveResult = result;
+    public TurnPersonalFrame startPersonalTurnFrame(TurnSnapshot snapshot,
+                                                    long startedAt) {
+        TurnPersonalFrame frame = TurnPersonalFrame.fromSnapshot(snapshot, startedAt);
+        personalTurns.add(frame);
+        activeFrame = frame;
+        return frame;
     }
 
-    @Override
-    public void clearPendingMoveResult() {
-        this.pendingMoveResult = null;
+    public TurnPersonalFrame activePersonalTurnFrame() {
+        return activeFrame;
     }
 
-    @Override
-    public ReadyResult getPendingReadyResult() {
-        return pendingReadyResult;
+    public void recordMoveOutcome(TurnPersonalFrame frame) {
+        if (frame == null) {
+            throw new IllegalArgumentException("frame");
+        }
+        pendingOutcomeFrame = frame;
     }
 
-    @Override
-    public void setPendingReadyResult(ReadyResult result) {
-        this.pendingReadyResult = result;
+    public TurnPersonalFrame consumeMoveOutcome() {
+        TurnPersonalFrame frame = pendingOutcomeFrame;
+        pendingOutcomeFrame = null;
+        if (frame != null) {
+            frame.markOutcomeConsumed();
+        }
+        return frame;
     }
 
-    @Override
-    public void clearPendingReadyResult() {
-        this.pendingReadyResult = null;
+    public void recordTimeoutOutcome(TurnPersonalFrame frame) {
+        pendingTimeoutFrame = frame;
     }
 
-    @Override
-    public TurnTimeoutResult getPendingTimeoutResult() {
-        return pendingTimeoutResult;
+    public TurnPersonalFrame consumeTimeoutOutcome() {
+        TurnPersonalFrame frame = pendingTimeoutFrame;
+        pendingTimeoutFrame = null;
+        return frame;
     }
 
-    @Override
-    public void setPendingTimeoutResult(TurnTimeoutResult result) {
-        this.pendingTimeoutResult = result;
-    }
-
-    @Override
-    public void clearPendingTimeoutResult() {
-        this.pendingTimeoutResult = null;
-    }
-
-    @Override
-    public TurnTransition getPendingTurnTransition() {
-        return pendingTurnTransition;
-    }
-
-    @Override
-    public void setPendingTurnTransition(TurnTransition transition) {
-        this.pendingTurnTransition = transition;
-    }
-
-    @Override
-    public void clearPendingTurnTransition() {
-        this.pendingTurnTransition = null;
+    public List<TurnPersonalFrame> personalTurnFrames() {
+        return Collections.unmodifiableList(personalTurns);
     }
 }

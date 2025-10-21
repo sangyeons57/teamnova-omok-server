@@ -8,9 +8,9 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.game.session.states.manage.TurnCycleContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
@@ -50,21 +50,21 @@ public final class ReversiConversionRule implements Rule {
             return;
         }
 
-        TurnCycleContext cycle = runtime.contextService().turn().activeTurnCycle(stateContext);
-        if (cycle == null) {
+        TurnPersonalFrame frame = runtime.contextService().turn().currentPersonalTurn(stateContext);
+        if (frame == null || !frame.hasActiveMove()) {
             return;
         }
-        Stone placedStone = cycle.stone();
+        Stone placedStone = frame.stone();
         if (placedStone == null || !placedStone.isPlayerStone()) {
             return;
         }
         GameSessionBoardAccess board = stateContext.board();
-        int x = cycle.x();
-        int y = cycle.y();
+        int x = frame.x();
+        int y = frame.y();
 
         boolean flipped = false;
-        int actingPlayerIndex = stateContext.participants().playerIndexOf(cycle.userId());
-        StonePlacementMetadata metadata = buildMetadata(runtime, cycle, actingPlayerIndex);
+        int actingPlayerIndex = stateContext.participants().playerIndexOf(frame.userId());
+        StonePlacementMetadata metadata = buildMetadata(runtime, frame, actingPlayerIndex);
 
         for (int[] dir : DIRECTIONS) {
             List<int[]> path = collectFlippablePath(board, x, y, dir[0], dir[1], placedStone);
@@ -86,13 +86,13 @@ public final class ReversiConversionRule implements Rule {
     }
 
     private StonePlacementMetadata buildMetadata(RuleRuntimeContext runtime,
-                                                 TurnCycleContext cycle,
+                                                 TurnPersonalFrame frame,
                                                  int actingPlayerIndex) {
-        if (cycle.snapshots().current() != null) {
+        if (frame.currentSnapshot() != null) {
             return StonePlacementMetadata.forRule(
-                cycle.snapshots().current(),
+                frame.currentSnapshot(),
                 actingPlayerIndex,
-                cycle.userId()
+                frame.userId()
             );
         }
         return StonePlacementMetadata.systemGenerated();

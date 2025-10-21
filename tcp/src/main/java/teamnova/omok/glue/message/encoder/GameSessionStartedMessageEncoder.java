@@ -5,11 +5,12 @@ import java.nio.charset.StandardCharsets;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionLifecycleAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 
 public final class GameSessionStartedMessageEncoder {
     private GameSessionStartedMessageEncoder() {}
 
-    public static byte[] encode(GameSessionLifecycleAccess session, GameTurnService.TurnSnapshot turn) {
+    public static byte[] encode(GameSessionLifecycleAccess session, TurnSnapshot turn) {
         StringBuilder sb = new StringBuilder(256);
         sb.append('{')
           .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')

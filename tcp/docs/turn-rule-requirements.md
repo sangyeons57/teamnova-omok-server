@@ -6,17 +6,17 @@
 : 게임 세션은 `TurnStore`에 턴 순서(`TurnOrder`)와 카운터(`TurnCounters`) 및 현재 인덱스를 저장합니다 (`src/main/java/teamnova/omok/glue/game/session/model/TurnStore.java:12`, `src/main/java/teamnova/omok/glue/game/session/model/vo/TurnCounters.java:6`). `TurnService`는 시작/진행 시 스냅샷을 계산하고 타이밍을 갱신하며 (`src/main/java/teamnova/omok/glue/game/session/services/TurnService.java:35`), 규칙은 `RulesContext`를 통해 상태 컨텍스트와 서비스에 접근해 해당 정보를 읽을 수 있습니다 (`src/main/java/teamnova/omok/glue/rule/RulesContext.java:66`). 실제 규칙 구현도 `turn.actionNumber()` 등을 사용 중입니다 (`src/main/java/teamnova/omok/glue/rule/rules/PerTurnAdjacentBlockerRule.java:40`). 활성 사용자 수는 참가자 뷰에서 접속 끊김 정보를 제외해 계산 가능합니다 (`src/main/java/teamnova/omok/glue/game/session/model/ParticipantsStore.java:68`).
 
 추가 필요  
-: 규칙이 반복 계산 없이 턴 관련 스냅샷과 활성 사용자 정보를 공유받도록 읽기 전용 뷰 객체(예: `RuleTurnStateView`)를 노출하면 개발 편의성이 높습니다.
+: 규칙 실행 시점의 턴 스냅샷을 반복 계산 없이 전달하려면 상태 머신이 캡처한 `GameTurnService.TurnSnapshot`을 `RuleRuntimeContext.turnSnapshot()`으로 공유하면 됩니다. 이미 세션은 턴 전환마다 스냅샷을 큐잉하고 있으므로 이를 재사용하면 개발 편의성을 높일 수 있습니다.
 
 주의사항  
-: 상태 머신이 가진 실시간 스토어를 그대로 노출하면 동시성 문제가 생길 수 있으므로 규칙 훅이 실행되는 스레드에서만 새 뷰를 생성하고 재사용해야 합니다.
+: 실시간 스토어를 그대로 노출하면 동시성 문제가 생길 수 있으니, 스냅샷을 생성하는 시점은 상태 머신 스레드에서만 유지하고 규칙 측에서는 불변 데이터를 읽기만 해야 합니다.
 
 권장 방식  
-: `GameSessionServices`에 `RuleTurnStateView` 팩토리를 주입해 `TurnSnapshot`, 현재/비활성 사용자 목록, 라운드 번호를 한 번 계산하고 규칙으로 전달하도록 확장합니다.
+: `TurnRuntimeStore`가 보관하는 스냅샷을 `RuleRuntimeContext`에 주입했으므로 규칙은 `runtime.turnSnapshot()`으로 현재/다음 턴 상태를 얻고, 추가 정보가 필요하면 `GameSessionStateContext`를 통해 참가자/보드 뷰를 조회하도록 가이드를 정리합니다.
 
 TODO  
-: 1. `glue/game/session/services`에 `RuleTurnStateView`(가칭) 추가 및 단위 테스트 작성.  
-  2. 기존 규칙을 해당 뷰 사용으로 리팩터링하고 개발 가이드에 예시 추가.
+: 1. 규칙 개발 가이드에 `RuleRuntimeContext.turnSnapshot()` 사용 예제를 추가하고, 필요 시 파생 데이터(예: 활성 사용자 수)를 계산하는 헬퍼를 소개합니다.  
+  2. snapshot이 비어 있는 경우의 폴백 전략(즉시 `turnService.snapshot` 호출 등)을 문서화합니다.
 
 ## 요구사항 2: 전체 턴 종료 상태(모든 플레이어 소비 후 이벤트)
 
@@ -24,16 +24,16 @@ TODO
 : 턴 파이프라인은 `TurnFinalizingState`에서 다음 플레이어를 선택하고 결과를 큐잉하며 (`src/main/java/teamnova/omok/glue/game/session/states/state/TurnFinalizingState.java:38`), 이 진입 시점에 `TurnFinalizingSignal`이 규칙을 호출합니다 (`src/main/java/teamnova/omok/glue/game/session/states/signal/TurnFinalizingSignal.java:25`). 하지만 모든 플레이어가 한 번씩 행동한 라운드 완료 여부는 저장되지 않고, `TurnService.advanceSkippingDisconnected`가 반환한 `wrapped` 플래그도 외부에 전달되지 않습니다 (`src/main/java/teamnova/omok/glue/game/session/services/TurnService.java:47`, `src/main/java/teamnova/omok/glue/game/session/model/vo/TurnCounters.java:18`).
 
 추가 필요  
-: 라운드 종료를 알리는 별도 신호를 만들거나 `TurnCycleContext`에 `wrapped` 여부를 기록해 규칙이 전체 턴 종료와 단순 턴 종료를 구분할 수 있도록 해야 합니다. 이름은 `TurnRoundCompletedSignal` 정도가 직관적입니다.
+: 라운드 종료를 알리는 별도 신호를 만들거나 활성 `TurnPersonalFrame`에 `wrapped` 여부를 기록해 규칙이 전체 턴 종료와 단순 턴 종료를 구분할 수 있도록 해야 합니다. 이름은 `TurnRoundCompletedSignal` 정도가 직관적입니다.
 
 주의사항  
 : 모든 사용자가 끊겼을 때는 `advanceWithoutActive()`가 호출되어 포지션이 0으로 남으므로 (`src/main/java/teamnova/omok/glue/game/session/model/vo/TurnCounters.java:33`) 라운드 종료로 오인하지 않게 분기 처리가 필요합니다.
 
 권장 방식  
-: `TurnService.advanceSkippingDisconnected` 결과에서 `TurnAdvanceStrategy.Result.wrapped`를 `TurnCycleContext`에 저장하고, `TurnFinalizingState`가 이를 감지하면 별도 이벤트 버퍼(예: `contextService.turn().queueRoundCompletion`)를 채운 뒤 규칙에서 읽게 합니다. 동시에 `TurnRoundCompletedSignal`을 `LifecycleEventKind.ON_START`로 등록해 전체 턴 종료 전용 규칙을 구성할 수 있습니다.
+: `TurnService.advanceSkippingDisconnected` 결과에서 `TurnAdvanceStrategy.Result.wrapped`를 개인 턴 프레임에 저장하고, `TurnFinalizingState`가 이를 감지하면 별도 이벤트 버퍼(예: `contextService.turn().queueRoundCompletion`)를 채운 뒤 규칙에서 읽게 합니다. 동시에 `TurnRoundCompletedSignal`을 `LifecycleEventKind.ON_START`로 등록해 전체 턴 종료 전용 규칙을 구성할 수 있습니다.
 
 TODO  
-: 1. `TurnCycleContext`에 `wrapped` 필드를 추가하고 테스트로 라운드 증가 케이스를 검증.  
+: 1. `TurnPersonalFrame`에 `wrapped` 플래그를 보존하고 테스트로 라운드 증가 케이스를 검증.  
   2. `TurnRoundCompletedSignal` 구현과 규칙 샘플 추가, 문서화.
 
 ## 요구사항 3: 전체 턴 시작 이벤트
@@ -42,7 +42,7 @@ TODO
 : 게임 시작 시에는 `ReadyResult.firstTurn`으로 첫 턴 스냅샷을 돌려주지만 (`src/main/java/teamnova/omok/glue/game/session/model/result/ReadyResult.java:11`), 이후 턴이 시작될 때는 `TurnFinalizingState`가 만든 `TurnSnapshot`을 메시지/타임아웃 스케줄링에만 사용합니다 (`src/main/java/teamnova/omok/glue/game/session/states/state/TurnFinalizingState.java:49`, `src/main/java/teamnova/omok/glue/game/session/services/events/MoveEventProcessor.java:32`). `TURN_WAITING` 진입을 감지하는 신호는 없어서 규칙이나 외부 이벤트가 턴 시작을 훅킹할 수 없습니다.
 
 추가 필요  
-: 새 턴이 열릴 때 한 번만 호출되는 신호나 콜백(예: `TurnStartSignal`)을 추가해야 합니다. `TurnCycleContext`가 큐잉한 `nextSnapshot`을 활용하면 중복을 피할 수 있습니다.
+: 새 턴이 열릴 때 한 번만 호출되는 신호나 콜백(예: `TurnStartSignal`)을 추가해야 합니다. `TurnPersonalFrame`이 보존한 다음 스냅샷 정보를 활용하면 중복을 피할 수 있습니다.
 
 주의사항  
 : `MoveValidatingState`가 유효하지 않은 입력을 받으면 `TURN_WAITING`으로 즉시 되돌아가므로 (`src/main/java/teamnova/omok/glue/game/session/states/state/MoveValidatingState.java:77`) 정상적인 턴 시작과 오류 복귀를 구분해야 합니다. `activeTurnCycle`가 비어 있고 `nextSnapshot`이 존재할 때만 신호를 발생시키는 식으로 조건을 제한해야 합니다.

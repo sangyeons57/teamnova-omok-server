@@ -5,8 +5,9 @@ import java.util.Objects;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.services.GameSessionDependencies;
 import teamnova.omok.glue.game.session.states.GameStateHub;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
@@ -42,8 +43,8 @@ public final class MoveEventProcessor {
         Objects.requireNonNull(event, "event");
         GameSessionStateContextService contextService = deps.contextService();
         GameSessionAccess session = manager.session();
-        MoveResult result = contextService.turn().consumeMoveResult(ctx);
-        if (result == null) {
+        TurnPersonalFrame frame = contextService.turn().consumeMoveOutcome(ctx);
+        if (frame == null || frame.outcomeStatus() == null) {
             String message;
             if (!session.containsUser(event.userId())) {
                 message = "INVALID_PLAYER";
@@ -58,12 +59,13 @@ public final class MoveEventProcessor {
             postGameProcessor.drainSideEffects(ctx, timeoutConsumer);
             return;
         }
-        deps.messenger().respondMove(event.userId(), event.requestId(), session, result);
-        if (result.status() == MoveStatus.SUCCESS) {
-            deps.messenger().broadcastStonePlaced(session, result);
-            if (result.turnSnapshot() != null && manager.currentType() == GameSessionStateType.TURN_WAITING) {
-                timeoutProcessor.scheduleTurnTimeout(session, result.turnSnapshot(), timeoutConsumer);
-            } else if (result.turnSnapshot() == null) {
+        deps.messenger().respondMove(event.userId(), event.requestId(), session, frame);
+        if (frame.outcomeStatus() == MoveStatus.SUCCESS) {
+            deps.messenger().broadcastStonePlaced(session, frame);
+            TurnSnapshot snapshot = frame.outcomeSnapshot();
+            if (snapshot != null && manager.currentType() == GameSessionStateType.TURN_WAITING) {
+                timeoutProcessor.scheduleTurnTimeout(session, snapshot, timeoutConsumer);
+            } else if (snapshot == null) {
                 deps.turnTimeoutScheduler().cancel(session.sessionId());
             }
         }

@@ -21,5 +21,5 @@
 ## 4. 참고 경로
 - 전략 도입: `src/main/java/teamnova/omok/glue/game/session/interfaces/TurnAdvanceStrategy.java`, `.../services/SequentialTurnAdvanceStrategy.java`
 - 서비스 조정: `src/main/java/teamnova/omok/glue/game/session/services/TurnService.java`
-- 상태 반영: `src/main/java/teamnova/omok/glue/game/session/states/manage/TurnCycleContext.java`, `.../state/MoveValidatingState.java`, `.../state/TurnWaitingState.java`, `.../state/TurnFinalizingState.java`
+- 상태 반영: `src/main/java/teamnova/omok/glue/game/session/model/runtime/TurnPersonalFrame.java`, `.../state/MoveValidatingState.java`, `.../state/TurnWaitingState.java`, `.../state/TurnFinalizingState.java`
 - 메시지 인코딩: `src/main/java/teamnova/omok/glue/message/encoder/MessageEncodingUtil.java`

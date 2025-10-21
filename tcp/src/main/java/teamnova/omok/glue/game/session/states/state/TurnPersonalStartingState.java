@@ -18,15 +18,15 @@ import teamnova.omok.modules.state_machine.models.StateName;
 import teamnova.omok.modules.state_machine.models.StateStep;
 
 /**
- * Emits rule callbacks when an entire round completes (all players have acted once).
+ * Handles the start of an individual player's turn within an overall turn cycle.
  */
-public final class TurnCompletedState implements BaseState {
+public final class TurnPersonalStartingState implements BaseState {
     private final GameSessionStateContextService contextService;
     private final GameSessionTurnContextService turnContextService;
     private final GameSessionServices services;
 
-    public TurnCompletedState(GameSessionStateContextService contextService,
-                              GameSessionServices services) {
+    public TurnPersonalStartingState(GameSessionStateContextService contextService,
+                                     GameSessionServices services) {
         this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.turnContextService = contextService.turn();
         this.services = Objects.requireNonNull(services, "services");
@@ -34,18 +34,22 @@ public final class TurnCompletedState implements BaseState {
 
     @Override
     public StateName name() {
-        return GameSessionStateType.TURN_ROUND_COMPLETED.toStateName();
+        return GameSessionStateType.TURN_PERSONAL_STARTING.toStateName();
     }
 
     @Override
     public <I extends StateContext> StateStep onEnter(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
-        TurnSnapshot snapshot = turnContextService.peekTurnSnapshot(ctx);
-        if (snapshot == null || !snapshot.wrapped()) {
-            return StateStep.transition(GameSessionStateType.TURN_STARTING.toStateName());
+        TurnSnapshot snapshot = turnContextService.consumeTurnSnapshot(ctx);
+        if (snapshot == null) {
+            snapshot = services.turnService().snapshot(ctx.turns());
         }
+        if (snapshot == null) {
+            throw new IllegalStateException("No turn snapshot available for personal turn start");
+        }
+        turnContextService.beginPersonalTurn(ctx, snapshot, System.currentTimeMillis());
         fireRules(ctx, snapshot);
-        return StateStep.transition(GameSessionStateType.TURN_STARTING.toStateName());
+        return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
     }
 
     private void fireRules(GameSessionStateContext context, TurnSnapshot snapshot) {
@@ -54,7 +58,7 @@ public final class TurnCompletedState implements BaseState {
             contextService,
             context,
             snapshot,
-            RuleTriggerKind.TURN_ROUND_COMPLETED
+            RuleTriggerKind.TURN_START
         );
         RuleService.getInstance().activateRules(context.rules(), runtime);
     }

@@ -5,6 +5,7 @@ import java.util.Objects;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.PostGameDecisionEvent;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
@@ -12,12 +13,9 @@ import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.model.result.MoveResult;
-import teamnova.omok.glue.game.session.model.result.MoveStatus;
 import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.result.PostGameDecisionStatus;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
-import teamnova.omok.glue.game.session.model.result.TurnTimeoutResult;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -67,7 +65,7 @@ public class CompletedGameSessionState implements BaseState {
             return StateStep.stay();
         }
         boolean allReady = context.participants().allReady();
-        GameTurnService.TurnSnapshot snapshot =
+        TurnSnapshot snapshot =
             turnService.snapshot(context.turns());
         ReadyResult result = new ReadyResult(
             true,
@@ -83,40 +81,11 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handleMove(GameSessionStateContext context,
                                  MoveEvent event) {
-        GameSessionAccess session = context.session();
-        if (context.participants().playerIndexOf(event.userId()) < 0) {
-            contextService.turn().queueMoveResult(
-                context,
-                MoveResult.invalid(
-                    MoveStatus.INVALID_PLAYER,
-                    null,
-                    event.userId(),
-                    event.x(),
-                    event.y()
-                )
-            );
-            return StateStep.stay();
-        }
-        GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(context.turns());
-        contextService.turn().queueMoveResult(context, MoveResult.invalid(
-            MoveStatus.GAME_FINISHED,
-            snapshot,
-            event.userId(),
-            event.x(),
-            event.y()
-        ));
         return StateStep.stay();
     }
 
     private StateStep handleTimeout(GameSessionStateContext context,
                                     TimeoutEvent event) {
-        GameSessionAccess session = context.session();
-        GameTurnService.TurnSnapshot snapshot =
-            turnService.snapshot(context.turns());
-        contextService.turn().queueTimeoutResult(context,
-            TurnTimeoutResult.noop(snapshot)
-        );
         return StateStep.stay();
     }
 
