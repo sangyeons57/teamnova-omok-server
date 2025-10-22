@@ -69,12 +69,6 @@ public final class GameSessionTurnContextService {
             throw new IllegalStateException("No active personal turn frame available");
         }
         frame.resolveOutcome(status);
-        context.turnRuntime().setPendingMoveOutcome(frame);
-    }
-
-    public TurnPersonalFrame consumeMoveOutcome(GameSessionStateContext context) {
-        Objects.requireNonNull(context, "context");
-        return context.turnRuntime().consumePendingMoveOutcome();
     }
 
     public void queueReadyResult(GameSessionStateContext context, ReadyResult result) {

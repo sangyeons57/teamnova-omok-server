@@ -13,7 +13,6 @@ import teamnova.omok.modules.state_machine.models.StateName;
 /**
  * State-based signal handler for move/turn related side effects.
  * - Broadcasts TURN_STARTED when entering TURN_PERSONAL_START.
- *
  * Outbound I/O is centralized here instead of state classes to improve separation of concerns.
  */
 public final class MoveSignalHandler implements StateSignalListener {

@@ -452,16 +452,6 @@ public class GameSession implements GameSessionAccess {
     }
 
     @Override
-    public void setPendingMoveOutcome(TurnPersonalFrame frame) {
-        turnRuntimeStore.recordMoveOutcome(frame);
-    }
-
-    @Override
-    public TurnPersonalFrame consumePendingMoveOutcome() {
-        return turnRuntimeStore.consumeMoveOutcome();
-    }
-
-    @Override
     public PostGameDecisionResult getPendingDecisionResult() {
         return postGameRuntimeStore.getPendingDecisionResult();
     }

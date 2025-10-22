@@ -18,7 +18,6 @@ public final class TurnRuntimeStore {
     private final Deque<TurnSnapshot> pendingSnapshots = new ArrayDeque<>();
 
     private TurnPersonalFrame activeFrame;
-    private TurnPersonalFrame pendingOutcomeFrame;
     private TurnPersonalFrame pendingTimeoutFrame;
 
     public void enqueueSnapshot(TurnSnapshot snapshot, long timestampMillis) {
@@ -39,7 +38,6 @@ public final class TurnRuntimeStore {
     public void resetPersonalTurnFrames() {
         personalTurns.clear();
         activeFrame = null;
-        pendingOutcomeFrame = null;
         pendingTimeoutFrame = null;
         pendingSnapshots.clear();
     }
@@ -54,22 +52,6 @@ public final class TurnRuntimeStore {
 
     public TurnPersonalFrame activePersonalTurnFrame() {
         return activeFrame;
-    }
-
-    public void recordMoveOutcome(TurnPersonalFrame frame) {
-        if (frame == null) {
-            throw new IllegalArgumentException("frame");
-        }
-        pendingOutcomeFrame = frame;
-    }
-
-    public TurnPersonalFrame consumeMoveOutcome() {
-        TurnPersonalFrame frame = pendingOutcomeFrame;
-        pendingOutcomeFrame = null;
-        if (frame != null) {
-            frame.markOutcomeConsumed();
-        }
-        return frame;
     }
 
     public void recordTimeoutOutcome(TurnPersonalFrame frame) {

@@ -32,7 +32,4 @@ public interface GameSessionTurnRuntimeAccess {
 
     List<TurnPersonalFrame> personalTurnFrames();
 
-    void setPendingMoveOutcome(TurnPersonalFrame frame);
-
-    TurnPersonalFrame consumePendingMoveOutcome();
 }
