@@ -18,13 +18,7 @@ public interface StateMachineService {
 
     void submit(BaseEvent event, Consumer<StateContext> callback);
 
-    default void onTransition(Consumer<StateName> listener) { }
-
-    // Deprecated: state-scoped lifecycle listener with context exposure
-    @Deprecated
-    default void onStateLifecycle(StateLifecycleListener listener) { }
-
-    // New: context-less unified signal listener
+    // Unified signal listener (context-less)
     default void addStateSignalListener(StateSignalListener listener) { }
 
     void process(StateContext stateContext, long now);

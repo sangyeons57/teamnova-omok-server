@@ -31,8 +31,8 @@ import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
-import teamnova.omok.modules.state_machine.interfaces.StateContext;
-import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
+import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
+import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 
 public class GameStateHub {
@@ -59,8 +59,30 @@ public class GameStateHub {
         this.context = new GameSessionStateContext(session);
 
         this.stateMachine = StateMachineGateway.open();
-        this.stateMachine.onTransition(this::handleTransition);
-        registerLifecycleLogging();
+        this.stateMachine.addStateSignalListener(new StateSignalListener() {
+            @Override
+            public java.util.Set<LifecycleEventKind> events() { return java.util.Set.of(LifecycleEventKind.ON_EXIT, LifecycleEventKind.ON_START); }
+            @Override
+            public void onSignal(StateName state, LifecycleEventKind kind) {
+                if (kind == LifecycleEventKind.ON_EXIT) {
+                    GameSessionStateType type = GameSessionStateType.stateNameLookup(state);
+                    if (type != null) {
+                        GameSessionLogger.exit(context, type);
+                    }
+                } else if (kind == LifecycleEventKind.ON_START) {
+                    GameSessionStateType to = GameSessionStateType.stateNameLookup(state);
+                    if (to == null) {
+                        throw new IllegalStateException("Unrecognised state: " + state.name());
+                    }
+                    GameSessionStateType from = currentType;
+                    if (to != from) {
+                        GameSessionLogger.transition(context, from, to, "state-machine");
+                        GameSessionLogger.enter(context, to);
+                        currentType = to;
+                    }
+                }
+            }
+        });
         registerStateConfig(contextService);
 
         this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
@@ -86,40 +108,7 @@ public class GameStateHub {
         this.stateMachine.register(state);
     }
 
-    private void handleTransition(StateName stateName) {
-        GameSessionStateType resolved = GameSessionStateType.stateNameLookup(stateName);
-        if (resolved == null) {
-            throw new IllegalStateException("Unrecognised state: " + stateName.name());
-        }
-        if (resolved == currentType) {
-            return;
-        }
-        GameSessionStateType previous = currentType;
-        GameSessionLogger.transition(context, previous, resolved, "state-machine");
-        currentType = resolved;
-        // Rule triggering happens inside state implementations.
-    }
 
-    private void registerLifecycleLogging() {
-        for (GameSessionStateType type : GameSessionStateType.values()) {
-            stateMachine.onStateLifecycle(new StateLifecycleListener() {
-                @Override
-                public StateName state() {
-                    return type.toStateName();
-                }
-
-                @Override
-                public <I extends StateContext> void onEnter(I ctx) {
-                    GameSessionLogger.enter((GameSessionStateContext) ctx, type);
-                }
-
-                @Override
-                public <I extends StateContext> void onExit(I ctx) {
-                    GameSessionLogger.exit((GameSessionStateContext) ctx, type);
-                }
-            });
-        }
-    }
 
     public GameSessionStateType currentType() {
         return currentType;

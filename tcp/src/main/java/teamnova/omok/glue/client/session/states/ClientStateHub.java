@@ -18,6 +18,8 @@ import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
+import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
+import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 
 /**
@@ -33,7 +35,25 @@ public final class ClientStateHub {
         Objects.requireNonNull(session, "session");
         this.context = new ClientStateContext(session);
         this.stateMachine = StateMachineGateway.open();
-        this.stateMachine.onTransition(this::handleTransition);
+        this.stateMachine.addStateSignalListener(new StateSignalListener() {
+            private StateName pendingFrom;
+            @Override
+            public java.util.Set<LifecycleEventKind> events() {
+                return java.util.Set.of(LifecycleEventKind.ON_TRANSITION, LifecycleEventKind.ON_START);
+            }
+            @Override
+            public void onSignal(StateName state, LifecycleEventKind kind) {
+                if (kind == LifecycleEventKind.ON_TRANSITION) {
+                    // Remember the state we are leaving (from)
+                    pendingFrom = state;
+                } else if (kind == LifecycleEventKind.ON_START) {
+                    // ON_START delivers the target state (to). Use it to update currentType.
+                    // This pairs with the prior ON_TRANSITION for completeness.
+                    handleTransition(state);
+                    pendingFrom = null;
+                }
+            }
+        });
 
         registerState(new ConnectedClientState());
         registerState(new AuthenticatedClientState());

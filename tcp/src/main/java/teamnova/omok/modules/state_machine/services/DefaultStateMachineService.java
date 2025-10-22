@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
-import teamnova.omok.modules.state_machine.interfaces.StateLifecycleListener;
 import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.interfaces.StateMachineService;
@@ -19,18 +18,14 @@ public class DefaultStateMachineService implements StateMachineService {
 
     private final Map<StateName, BaseState> states;
     private final Queue<PendingEvent> eventQueue;
-    private final Map<StateName, List<StateLifecycleListener>> lifecycleListeners; // deprecated path
     private final List<StateSignalListener> signalListeners;
     private BaseState currentState;
-    private Consumer<StateName> transitionListener;
 
     public DefaultStateMachineService() {
         this.states = new java.util.concurrent.ConcurrentHashMap<>();
         this.eventQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
-        this.lifecycleListeners = new java.util.concurrent.ConcurrentHashMap<>();
         this.signalListeners = new CopyOnWriteArrayList<>();
         this.currentState = null;
-        this.transitionListener = stateName -> { };
     }
 
     @Override
@@ -42,10 +37,7 @@ public class DefaultStateMachineService implements StateMachineService {
             throw new IllegalStateException("No state registered for type " + stateName);
         }
         StateStep entryStep = currentState.onEnter(context);
-        notifyEnter(currentState.name(), context);
         notifySignal(currentState.name(), LifecycleEventKind.ON_START);
-        notifySignal(currentState.name(), LifecycleEventKind.ON_TRANSITION); // initial as transition into first state
-        notifyTransition(currentState.name());
         applyTransition(entryStep, context);
     }
 
@@ -67,20 +59,6 @@ public class DefaultStateMachineService implements StateMachineService {
     }
 
     @Override
-    public void onTransition(Consumer<StateName> listener) {
-        this.transitionListener = listener != null ? listener : stateName -> { };
-    }
-
-    @Override
-    public void onStateLifecycle(StateLifecycleListener listener) {
-        if (listener != null && listener.state() != null) {
-            lifecycleListeners
-                .computeIfAbsent(listener.state(), k -> new CopyOnWriteArrayList<>())
-                .add(listener);
-        }
-    }
-
-    @Override
     public void addStateSignalListener(StateSignalListener listener) {
         if (listener != null) {
             signalListeners.add(listener);
@@ -98,7 +76,6 @@ public class DefaultStateMachineService implements StateMachineService {
             return;
         }
         StateStep updateStep = currentState.onUpdate(context, now);
-        notifyUpdate(currentState.name(), context, now);
         notifySignal(currentState.name(), LifecycleEventKind.ON_UPDATE);
         applyTransition(updateStep, context);
     }
@@ -109,7 +86,6 @@ public class DefaultStateMachineService implements StateMachineService {
         }
         StateStep eventStep = currentState.onEvent(context, pending.event());
         // No outbound signal for external input event to avoid cycles
-        notifyEvent(currentState.name(), context, pending.event()); // deprecated path only
         applyTransition(eventStep, context);
         Consumer<StateContext> callback = pending.callback();
         if (callback != null) {
@@ -119,6 +95,7 @@ public class DefaultStateMachineService implements StateMachineService {
 
     private void applyTransition(StateStep step, StateContext context) {
         if (step != null && step.hasTransition()) {
+            notifyTransition(step.nextState());
             transitionDirect(step.nextState(), context);
         }
     }
@@ -134,52 +111,19 @@ public class DefaultStateMachineService implements StateMachineService {
         if (currentState != null) {
             StateName from = currentState.name();
             currentState.onExit(context);
-            notifyExit(from, context);
             notifySignal(from, LifecycleEventKind.ON_EXIT);
         }
         currentState = next;
         StateStep entryStep = currentState.onEnter(context);
-        notifyEnter(currentState.name(), context);
         notifySignal(currentState.name(), LifecycleEventKind.ON_START);
-        notifySignal(currentState.name(), LifecycleEventKind.ON_TRANSITION);
-        notifyTransition(stateName);
         applyTransition(entryStep, context);
     }
 
-    private void notifyEnter(StateName state, StateContext ctx) {
-        var ls = lifecycleListeners.get(state);
-        if (ls == null) return;
-        for (StateLifecycleListener l : ls) {
-            try { l.onEnter(ctx); } catch (Throwable t) { }
-        }
-    }
-
-    private void notifyExit(StateName state, StateContext ctx) {
-        var ls = lifecycleListeners.get(state);
-        if (ls == null) return;
-        for (StateLifecycleListener l : ls) {
-            try { l.onExit(ctx); } catch (Throwable t) { }
-        }
-    }
-
-    private void notifyUpdate(StateName state, StateContext ctx, long now) {
-        var ls = lifecycleListeners.get(state);
-        if (ls == null) return;
-        for (StateLifecycleListener l : ls) {
-            try { l.onUpdate(ctx, now); } catch (Throwable t) { }
-        }
-    }
-
-    private void notifyEvent(StateName state, StateContext ctx, BaseEvent ev) {
-        var ls = lifecycleListeners.get(state);
-        if (ls == null) return;
-        for (StateLifecycleListener l : ls) {
-            try { l.onEvent(ctx, ev); } catch (Throwable t) { }
-        }
-    }
 
     private void notifyTransition(StateName stateName) {
-        transitionListener.accept(stateName);
+        if (currentState != null) {
+            notifySignal(currentState.name(), LifecycleEventKind.ON_TRANSITION);
+        }
     }
 
     private void notifySignal(StateName state, LifecycleEventKind kind) {
