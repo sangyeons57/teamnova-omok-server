@@ -31,16 +31,29 @@ public enum GameSessionStateType {
     }
 
     public static GameSessionStateType stateNameLookup(StateName name) {
-        return switch (name.name()) {
+        String n = name.name();
+        return switch (n) {
+            // canonical lowercase names (match toStateName()) + legacy aliases
             case "lobby", "LOBBY" -> LOBBY;
-            case "turn_starting", "TURN_STARTING" -> TURN_START;
-            case "turn_personal_starting", "TURN_PERSONAL_STARTING" -> TURN_PERSONAL_START;
+
+            case "turn_start", "TURN_START", // canonical
+                 "turn_starting", "TURN_STARTING" -> TURN_START; // legacy alias
+
+            case "turn_personal_start", "TURN_PERSONAL_START", // canonical
+                 "turn_personal_starting", "TURN_PERSONAL_STARTING" -> TURN_PERSONAL_START; // legacy alias
+
             case "turn_waiting", "TURN_WAITING" -> TURN_WAITING;
             case "move_validating", "MOVE_VALIDATING" -> MOVE_VALIDATING;
             case "move_applying", "MOVE_APPLYING" -> MOVE_APPLYING;
-            case "outcome_evaluating", "OUTCOME_EVALUATING" -> TURN_PERSONAL_END;
-            case "turn_personal_completed", "TURN_PERSONAL_COMPLETED", "turn_finalizing", "TURN_FINALIZING" -> TURN_PERSONAL_END;
-            case "turn_round_completed", "TURN_ROUND_COMPLETED" -> TURN_END;
+
+            case "turn_personal_end", "TURN_PERSONAL_END", // canonical
+                 "outcome_evaluating", "OUTCOME_EVALUATING",
+                 "turn_personal_completed", "TURN_PERSONAL_COMPLETED",
+                 "turn_finalizing", "TURN_FINALIZING" -> TURN_PERSONAL_END; // legacy aliases
+
+            case "turn_end", "TURN_END", // canonical
+                 "turn_round_completed", "TURN_ROUND_COMPLETED" -> TURN_END; // legacy alias
+
             case "post_game_decision_waiting", "POST_GAME_DECISION_WAITING" -> POST_GAME_DECISION_WAITING;
             case "post_game_decision_resolving", "POST_GAME_DECISION_RESOLVING" -> POST_GAME_DECISION_RESOLVING;
             case "session_rematch_preparing", "SESSION_REMATCH_PREPARING" -> SESSION_REMATCH_PREPARING;
