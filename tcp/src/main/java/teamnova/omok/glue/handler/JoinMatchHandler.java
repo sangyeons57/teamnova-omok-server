@@ -21,6 +21,7 @@ public class JoinMatchHandler implements FrameHandler {
 
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
+        teamnova.omok.glue.client.session.log.ClientMessageLogger.inbound(session, teamnova.omok.glue.handler.register.Type.JOIN_MATCH, frame.requestId());
         if (!session.isAuthenticated()) {
             // ignore if not authenticated
             return;

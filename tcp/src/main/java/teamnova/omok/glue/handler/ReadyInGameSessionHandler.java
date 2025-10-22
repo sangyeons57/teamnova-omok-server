@@ -11,6 +11,7 @@ import teamnova.omok.glue.game.session.GameSessionManager;
 public class ReadyInGameSessionHandler implements FrameHandler {
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
+        teamnova.omok.glue.client.session.log.ClientMessageLogger.inbound(session, teamnova.omok.glue.handler.register.Type.READY_IN_GAME_SESSION, frame.requestId());
         if (!session.isAuthenticated()) {
             return;
         }
@@ -19,8 +20,7 @@ public class ReadyInGameSessionHandler implements FrameHandler {
 
         boolean accepted = gameSessionManager.submitReady(userId, frame.requestId());
         if (!accepted) {
-            ClientSessionManager.getInstance()
-                .gamePublisher()
+            ClientSessionManager.getInstance().gamePublisher()
                 .respondError(userId, Type.READY_IN_GAME_SESSION, frame.requestId(), "SESSION_NOT_FOUND");
         }
     }

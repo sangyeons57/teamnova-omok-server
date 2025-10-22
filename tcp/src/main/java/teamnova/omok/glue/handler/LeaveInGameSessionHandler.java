@@ -10,6 +10,7 @@ import teamnova.omok.glue.game.session.GameSessionManager;
 public class LeaveInGameSessionHandler implements FrameHandler {
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
+        teamnova.omok.glue.client.session.log.ClientMessageLogger.inbound(session, teamnova.omok.glue.handler.register.Type.LEAVE_IN_GAME_SESSION, frame.requestId());
         if (!session.isAuthenticated()) {
             return;
         }

@@ -20,6 +20,7 @@ public class PostGameDecisionHandler implements FrameHandler {
 
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
+        teamnova.omok.glue.client.session.log.ClientMessageLogger.inbound(session, teamnova.omok.glue.handler.register.Type.POST_GAME_DECISION, frame.requestId());
         if (!session.isAuthenticated()) {
             return;
         }

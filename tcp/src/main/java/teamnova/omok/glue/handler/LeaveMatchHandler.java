@@ -10,6 +10,7 @@ import teamnova.omok.glue.manager.MatchingManager;
 public class LeaveMatchHandler implements FrameHandler {
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
+        teamnova.omok.glue.client.session.log.ClientMessageLogger.inbound(session, teamnova.omok.glue.handler.register.Type.LEAVE_MATCH, frame.requestId());
         if (session == null || server == null || !session.isAuthenticated()) {
             return;
         }

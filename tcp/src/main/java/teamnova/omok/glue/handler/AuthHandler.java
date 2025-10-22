@@ -44,6 +44,7 @@ public class AuthHandler implements FrameHandler {
 
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
+        teamnova.omok.glue.client.session.log.ClientMessageLogger.inbound(session, teamnova.omok.glue.handler.register.Type.AUTH, frame.requestId());
         String jwt = decoder.decode(frame.payload());
         if (jwt == null || jwt.isBlank()) {
             ClientSessionManager.getInstance().onAuthenticationCleared(session);

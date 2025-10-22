@@ -70,6 +70,7 @@ public final class ClientSessionMessagePublisher {
         }
 
         private void send(Type type, long requestId, byte[] payload) {
+            teamnova.omok.glue.client.session.log.ClientMessageLogger.outbound(handle, type, requestId);
             handle.enqueueResponse(type, requestId, payload == null ? new byte[0] : payload);
         }
     }

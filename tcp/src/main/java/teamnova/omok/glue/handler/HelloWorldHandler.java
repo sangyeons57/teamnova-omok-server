@@ -17,6 +17,7 @@ public final class HelloWorldHandler implements FrameHandler {
 
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
+        teamnova.omok.glue.client.session.log.ClientMessageLogger.inbound(session, teamnova.omok.glue.handler.register.Type.HELLO, frame.requestId());
         String request = decoder.decode(frame.payload()).trim();
         if (request.isEmpty()) {
             return;
