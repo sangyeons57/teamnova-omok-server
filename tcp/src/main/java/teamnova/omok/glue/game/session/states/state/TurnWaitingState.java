@@ -62,6 +62,16 @@ public class TurnWaitingState implements BaseState {
                 String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
             return StateStep.stay();
         }
+        // Validate that the event user is the current player
+        TurnSnapshot snapshot = turnService.snapshot(context.turns());
+        if (snapshot == null || !event.userId().equals(snapshot.currentPlayerId())) {
+            GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
+                "reason=not-current-player",
+                snapshot == null
+                    ? "snapshot=null"
+                    : String.format("user=%s expected=%s", event.userId(), snapshot.currentPlayerId()));
+            return StateStep.stay();
+        }
         GameSessionAccess session = context.session();
         session.lock().lock();
         try {
@@ -70,7 +80,8 @@ public class TurnWaitingState implements BaseState {
                 event.userId(),
                 event.x(),
                 event.y(),
-                event.timestamp()
+                event.timestamp(),
+                event.requestId()
             );
             GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:accepted",
                 String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));

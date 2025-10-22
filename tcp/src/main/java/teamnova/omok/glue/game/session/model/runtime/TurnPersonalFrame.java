@@ -17,6 +17,7 @@ public final class TurnPersonalFrame {
     private int targetX;
     private int targetY;
     private long requestedAtMillis;
+    private long stonePlaceRequestId;
     private Stone stone;
 
     private MoveStatus outcomeStatus;
@@ -49,7 +50,7 @@ public final class TurnPersonalFrame {
         return moveActive;
     }
 
-    public void beginMove(String userId, int x, int y, long requestedAtMillis) {
+    public void beginMove(String userId, int x, int y, long requestedAtMillis, long requestId) {
         this.moveActive = true;
         this.userId = userId;
         this.originalX = x;
@@ -57,6 +58,7 @@ public final class TurnPersonalFrame {
         this.targetX = x;
         this.targetY = y;
         this.requestedAtMillis = requestedAtMillis;
+        this.stonePlaceRequestId = requestId;
         this.stone = null;
         this.currentSnapshot = null;
         this.nextSnapshot = null;
@@ -92,6 +94,10 @@ public final class TurnPersonalFrame {
 
     public long requestedAtMillis() {
         return requestedAtMillis;
+    }
+
+    public long stonePlaceRequestId() {
+        return stonePlaceRequestId;
     }
 
     public Stone stone() {

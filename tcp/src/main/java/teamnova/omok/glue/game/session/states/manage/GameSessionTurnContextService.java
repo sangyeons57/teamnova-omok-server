@@ -39,7 +39,8 @@ public final class GameSessionTurnContextService {
                                String userId,
                                int x,
                                int y,
-                               long requestedAtMillis) {
+                               long requestedAtMillis,
+                               long requestId) {
         Objects.requireNonNull(context, "context");
         Objects.requireNonNull(userId, "userId");
         TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
@@ -49,7 +50,7 @@ public final class GameSessionTurnContextService {
         if (frame.hasActiveMove()) {
             throw new IllegalStateException("Turn cycle already in progress");
         }
-        frame.beginMove(userId, x, y, requestedAtMillis);
+        frame.beginMove(userId, x, y, requestedAtMillis, requestId);
     }
 
     public void clearTurnCycle(GameSessionStateContext context) {

@@ -2,7 +2,6 @@ package teamnova.omok.glue.game.session.states.signal;
 
 import java.util.Set;
 
-import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
@@ -35,6 +34,7 @@ public final class MoveSignalHandler implements StateSignalListener {
     @Override
     public Set<StateName> states() {
         return java.util.Set.of(
+            GameSessionStateType.MOVE_APPLYING.toStateName(),
             GameSessionStateType.TURN_PERSONAL_START.toStateName()
         );
     }
@@ -43,6 +43,22 @@ public final class MoveSignalHandler implements StateSignalListener {
     public void onSignal(StateName state, LifecycleEventKind kind) {
         if (kind != LifecycleEventKind.ON_START) return;
         GameSessionStateType type = GameSessionStateType.stateNameLookup(state);
+        if (type == GameSessionStateType.MOVE_APPLYING) {
+            // Send ACK to the requester as soon as placement is applied to the board
+            TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
+            if (frame != null) {
+                services.messenger().respondMove(frame.userId(), frame.stonePlaceRequestId(), context.session(), frame);
+            }
+            // Broadcast board update after stone placement is applied
+            byte[] boardSnapshot = services.boardService().snapshot(context.board());
+            teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate update =
+                new teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate(
+                    boardSnapshot,
+                    System.currentTimeMillis()
+                );
+            services.messenger().broadcastBoardSnapshot(context.session(), update);
+            return;
+        }
         if (type == GameSessionStateType.TURN_PERSONAL_START) {
             TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
             TurnSnapshot snapshot = null;

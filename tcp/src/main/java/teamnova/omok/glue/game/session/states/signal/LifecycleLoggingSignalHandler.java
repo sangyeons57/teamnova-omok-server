@@ -39,9 +39,6 @@ public final class LifecycleLoggingSignalHandler implements StateSignalListener 
     @Override
     public void onSignal(StateName state, LifecycleEventKind kind) {
         GameSessionStateType type = GameSessionStateType.stateNameLookup(state);
-        if (type != null) {
-            GameSessionLogger.signal(context, type, kind);
-        }
         if (kind == LifecycleEventKind.ON_EXIT) {
             if (type != null) {
                 GameSessionLogger.exit(context, type);
