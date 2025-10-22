@@ -36,9 +36,15 @@ public class DefaultStateMachineService implements StateMachineService {
         if (currentState == null) {
             throw new IllegalStateException("No state registered for type " + stateName);
         }
-        StateStep entryStep = currentState.onEnter(context);
-        notifySignal(currentState.name(), LifecycleEventKind.ON_START);
-        applyTransition(entryStep, context);
+        try {
+            StateStep entryStep = currentState.onEnter(context);
+            notifySignal(currentState.name(), LifecycleEventKind.ON_START);
+            applyTransition(entryStep, context);
+        } catch (Throwable t) {
+            System.err.println("[STATE-MACHINE] onEnter failed during start for state=" + currentState.name().name() + ": " + t);
+            t.printStackTrace();
+            throw t;
+        }
     }
 
     @Override
@@ -75,28 +81,53 @@ public class DefaultStateMachineService implements StateMachineService {
         if (currentState == null) {
             return;
         }
-        StateStep updateStep = currentState.onUpdate(context, now);
-        notifySignal(currentState.name(), LifecycleEventKind.ON_UPDATE);
-        applyTransition(updateStep, context);
+        try {
+            StateStep updateStep = currentState.onUpdate(context, now);
+            notifySignal(currentState.name(), LifecycleEventKind.ON_UPDATE);
+            applyTransition(updateStep, context);
+        } catch (Throwable t) {
+            System.err.println("[STATE-MACHINE] onUpdate failed for state=" + currentState.name().name() + ": " + t);
+            t.printStackTrace();
+            throw t;
+        }
     }
 
     private void processPending(PendingEvent pending, StateContext context) {
         if (currentState == null) {
             return;
         }
-        StateStep eventStep = currentState.onEvent(context, pending.event());
-        // No outbound signal for external input event to avoid cycles
-        applyTransition(eventStep, context);
-        Consumer<StateContext> callback = pending.callback();
-        if (callback != null) {
-            callback.accept(context);
+        try {
+            StateStep eventStep = currentState.onEvent(context, pending.event());
+            // No outbound signal for external input event to avoid cycles
+            applyTransition(eventStep, context);
+        } catch (Throwable t) {
+            System.err.println("[STATE-MACHINE] onEvent failed for state=" + currentState.name().name() + 
+                ", event=" + String.valueOf(pending.event()) + ": " + t);
+            t.printStackTrace();
+            throw t;
+        } finally {
+            Consumer<StateContext> callback = pending.callback();
+            if (callback != null) {
+                try {
+                    callback.accept(context);
+                } catch (Throwable ct) {
+                    System.err.println("[STATE-MACHINE] callback failed after event processing: " + ct);
+                    ct.printStackTrace();
+                }
+            }
         }
     }
 
     private void applyTransition(StateStep step, StateContext context) {
         if (step != null && step.hasTransition()) {
-            notifyTransition(step.nextState());
-            transitionDirect(step.nextState(), context);
+            try {
+                notifyTransition(step.nextState());
+                transitionDirect(step.nextState(), context);
+            } catch (Throwable t) {
+                System.err.println("[STATE-MACHINE] applyTransition failed to nextState=" + step.nextState().name() + ": " + t);
+                t.printStackTrace();
+                throw t;
+            }
         }
     }
 
@@ -108,20 +139,36 @@ public class DefaultStateMachineService implements StateMachineService {
         if (next == currentState) {
             return;
         }
+        StateName from = currentState != null ? currentState.name() : null;
         if (currentState != null) {
-            StateName from = currentState.name();
-            currentState.onExit(context);
-            notifySignal(from, LifecycleEventKind.ON_EXIT);
+            try {
+                currentState.onExit(context);
+                notifySignal(from, LifecycleEventKind.ON_EXIT);
+            } catch (Throwable t) {
+                System.err.println("[STATE-MACHINE] onExit failed for state=" + from.name() + ": " + t);
+                t.printStackTrace();
+                throw t;
+            }
         }
         currentState = next;
-        StateStep entryStep = currentState.onEnter(context);
-        notifySignal(currentState.name(), LifecycleEventKind.ON_START);
-        applyTransition(entryStep, context);
+        try {
+            StateStep entryStep = currentState.onEnter(context);
+            notifySignal(currentState.name(), LifecycleEventKind.ON_START);
+            applyTransition(entryStep, context);
+        } catch (Throwable t) {
+            System.err.println("[STATE-MACHINE] onEnter failed for state=" + currentState.name().name() +
+                (from != null ? " (from=" + from.name() + ")" : "") + ": " + t);
+            t.printStackTrace();
+            throw t;
+        }
     }
 
 
     private void notifyTransition(StateName stateName) {
         if (currentState != null) {
+            try {
+                System.out.println("[STATE-MACHINE][transition] from=" + currentState.name().name() + " to=" + stateName.name());
+            } catch (Throwable ignored) { }
             notifySignal(currentState.name(), LifecycleEventKind.ON_TRANSITION);
         }
     }

@@ -100,8 +100,14 @@ public final class GameSessionManager implements Closeable,
 
     public void startTicker() {
         if (ticking.compareAndSet(false, true)) {
-            scheduler.scheduleAtFixedRate(() ->
-                runtime.tick(System.currentTimeMillis()),
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    runtime.tick(System.currentTimeMillis());
+                } catch (Throwable t) {
+                    System.err.println("[SESSION][ticker] Uncaught error in tick: " + t);
+                    t.printStackTrace();
+                }
+            },
                 0L,
                 DEFAULT_TICK_MILLIS,
                 TimeUnit.MILLISECONDS
