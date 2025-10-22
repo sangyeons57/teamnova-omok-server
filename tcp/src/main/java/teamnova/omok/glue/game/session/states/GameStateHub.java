@@ -1,12 +1,9 @@
 package teamnova.omok.glue.game.session.states;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
-import teamnova.omok.glue.game.session.interfaces.GameBoardService;
-import teamnova.omok.glue.game.session.interfaces.GameScoreService;
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
+import teamnova.omok.glue.game.session.interfaces.*;
+import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.model.GameSession;
@@ -14,6 +11,7 @@ import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
+import teamnova.omok.glue.game.session.states.signal.*;
 import teamnova.omok.glue.game.session.states.state.CompletedGameSessionState;
 import teamnova.omok.glue.game.session.states.state.LobbyGameSessionState;
 import teamnova.omok.glue.game.session.states.state.MoveApplyingState;
@@ -40,6 +38,7 @@ public class GameStateHub {
     private final Handle stateMachine;
     private final GameSessionStateContext context;
     private final GameSessionServices services;
+    private final GameSessionStateContextService contextService;
     private GameSessionStateType currentType;
 
     public GameStateHub(GameSession session,
@@ -47,7 +46,9 @@ public class GameStateHub {
                         GameTurnService turnService,
                         GameScoreService scoreService,
                         GameSessionStateContextService contextService,
-                        GameSessionMessenger messenger) {
+                        GameSessionMessenger messenger,
+                        TurnTimeoutScheduler turnTimeoutScheduler,
+                        DecisionTimeoutScheduler decisionTimeoutScheduler) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(boardService, "boardService");
         Objects.requireNonNull(turnService, "turnService");
@@ -55,35 +56,14 @@ public class GameStateHub {
         Objects.requireNonNull(contextService, "contextService");
         Objects.requireNonNull(messenger, "messenger");
 
-        this.services = new GameSessionServices(boardService, turnService, scoreService, messenger);
+        this.contextService = contextService;
+        this.services = new GameSessionServices(boardService, turnService, scoreService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler);
         this.context = new GameSessionStateContext(session);
 
         this.stateMachine = StateMachineGateway.open();
-        this.stateMachine.addStateSignalListener(new StateSignalListener() {
-            @Override
-            public java.util.Set<LifecycleEventKind> events() { return java.util.Set.of(LifecycleEventKind.ON_EXIT, LifecycleEventKind.ON_START); }
-            @Override
-            public void onSignal(StateName state, LifecycleEventKind kind) {
-                if (kind == LifecycleEventKind.ON_EXIT) {
-                    GameSessionStateType type = GameSessionStateType.stateNameLookup(state);
-                    if (type != null) {
-                        GameSessionLogger.exit(context, type);
-                    }
-                } else if (kind == LifecycleEventKind.ON_START) {
-                    GameSessionStateType to = GameSessionStateType.stateNameLookup(state);
-                    if (to == null) {
-                        throw new IllegalStateException("Unrecognised state: " + state.name());
-                    }
-                    GameSessionStateType from = currentType;
-                    if (to != from) {
-                        GameSessionLogger.transition(context, from, to, "state-machine");
-                        GameSessionLogger.enter(context, to);
-                        currentType = to;
-                    }
-                }
-            }
-        });
+        // Register lifecycle logging via dedicated handler file
         registerStateConfig(contextService);
+        registerSignalHandler();
 
         this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
     }
@@ -104,14 +84,29 @@ public class GameStateHub {
         registerState(new CompletedGameSessionState(contextService, services.turnService()));
     }
 
+    private void registerSignalHandler() {
+        // Register state-based signal handlers (outbound I/O)
+        registerSignalListener(new LifecycleLoggingSignalHandler(this, context));
+        registerSignalListener(new ReadySignalHandler(context, this.contextService, services));
+        registerSignalListener(new MoveSignalHandler(context, services));
+        registerSignalListener(new PostGameSignalHandler(context, this.contextService, services));
+        registerSignalListener(new TimeoutSignalHandler(context, services));
+    }
+
     private void registerState(BaseState state) {
         this.stateMachine.register(state);
     }
 
+    private void registerSignalListener(StateSignalListener listener) { this.stateMachine.addStateSignalListener(listener);}
 
 
     public GameSessionStateType currentType() {
         return currentType;
+    }
+
+    // Updater for lifecycle logging handler
+    public void updateCurrentType(GameSessionStateType next) {
+        this.currentType = next;
     }
 
     public GameSessionAccess session() {
@@ -119,13 +114,9 @@ public class GameStateHub {
     }
 
 
-    public void submit(BaseEvent event, Consumer<GameSessionStateContext> callback) {
+    public void submit(BaseEvent event) {
         Objects.requireNonNull(event, "event");
-        stateMachine.submit(event, ctx -> {
-            if (callback != null) {
-                callback.accept((GameSessionStateContext) ctx);
-            }
-        });
+        stateMachine.submit(event);
     }
 
     public void process(long now) {

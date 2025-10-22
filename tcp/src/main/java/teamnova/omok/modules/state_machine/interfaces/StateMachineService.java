@@ -1,7 +1,5 @@
 package teamnova.omok.modules.state_machine.interfaces;
 
-import java.util.function.Consumer;
-
 import teamnova.omok.modules.state_machine.models.StateName;
 
 public interface StateMachineService {
@@ -12,11 +10,7 @@ public interface StateMachineService {
 
     StateName currentState();
 
-    default void submit(BaseEvent event) {
-        submit(event, null);
-    }
-
-    void submit(BaseEvent event, Consumer<StateContext> callback);
+    void submit(BaseEvent event);
 
     // Unified signal listener (context-less)
     default void addStateSignalListener(StateSignalListener listener) { }

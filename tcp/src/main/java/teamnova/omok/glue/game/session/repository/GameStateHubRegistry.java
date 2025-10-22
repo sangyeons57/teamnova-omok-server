@@ -24,24 +24,30 @@ public final class GameStateHubRegistry implements GameSessionRuntime {
     private final GameScoreService scoreService;
     private final GameSessionStateContextService contextService;
     private final GameSessionMessenger messenger;
+    private final teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler turnTimeoutScheduler;
+    private final teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler decisionTimeoutScheduler;
 
     public GameStateHubRegistry(GameBoardService boardService,
                                 GameTurnService turnService,
                                 GameScoreService scoreService,
                                 GameSessionStateContextService contextService,
-                                GameSessionMessenger messenger) {
+                                GameSessionMessenger messenger,
+                                teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler turnTimeoutScheduler,
+                                teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler decisionTimeoutScheduler) {
         this.boardService = boardService;
         this.turnService = turnService;
         this.scoreService = scoreService;
         this.contextService = contextService;
         this.messenger = messenger;
+        this.turnTimeoutScheduler = turnTimeoutScheduler;
+        this.decisionTimeoutScheduler = decisionTimeoutScheduler;
     }
 
     @Override
     public GameStateHub ensure(GameSession session) {
         return managersById.computeIfAbsent(
             session.sessionId(),
-            id -> new GameStateHub(session, boardService, turnService, scoreService, contextService, messenger)
+            id -> new GameStateHub(session, boardService, turnService, scoreService, contextService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler)
         );
     }
 

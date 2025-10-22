@@ -140,7 +140,8 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
                              long requestId,
                              GameSessionAccess session,
                              ReadyResult result) {
-        byte[] payload = ReadyStateMessageEncoder.encode(session, result);
+        // Per new protocol: response only needs requestId; keep frame Type for debugging/correlation
+        byte[] payload = new byte[0];
         send(session, userId, Type.READY_IN_GAME_SESSION, requestId, payload);
     }
 
@@ -149,25 +150,25 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
                             long requestId,
                             GameSessionAccess session,
                             TurnPersonalFrame frame) {
-        byte[] payload = MoveAckMessageEncoder.encode(session, frame);
-        String detail = String.format("status=%s x=%d y=%d", frame.outcomeStatus(), frame.x(), frame.y());
-        send(session, userId, Type.PLACE_STONE, requestId, payload, detail);
+        // Per new protocol: response only needs requestId; keep frame Type for debugging/correlation
+        byte[] payload = new byte[0];
+        send(session, userId, Type.PLACE_STONE, requestId, payload);
     }
 
     @Override
     public void respondPostGameDecision(String userId,
                                         long requestId,
                                         PostGameDecisionResult result) {
-        byte[] payload = PostGameDecisionAckMessageEncoder.encode(result);
-        String detail = "status=" + result.status();
-        send(null, userId, Type.POST_GAME_DECISION, requestId, payload, detail);
+        // Per new protocol: response only needs requestId; keep frame Type for debugging/correlation
+        byte[] payload = new byte[0];
+        send(null, userId, Type.POST_GAME_DECISION, requestId, payload);
     }
 
     @Override
     public void respondError(String userId, Type type, long requestId, String message) {
-        byte[] payload = ErrorMessageEncoder.encode(message);
-        String detail = message != null ? "error=" + message : "error=unknown";
-        send(null, userId, type, requestId, payload, detail);
+        // Per new protocol: response only needs requestId; keep frame Type for debugging/correlation
+        byte[] payload = new byte[0];
+        send(null, userId, type, requestId, payload);
     }
 
     private void broadcast(GameSessionAccess session,

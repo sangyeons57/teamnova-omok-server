@@ -2,7 +2,6 @@ package teamnova.omok.modules.state_machine.services;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Consumer;
 
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
@@ -59,9 +58,9 @@ public class DefaultStateMachineService implements StateMachineService {
     }
 
     @Override
-    public void submit(BaseEvent event, Consumer<StateContext> callback) {
+    public void submit(BaseEvent event) {
         Objects.requireNonNull(event, "event");
-        eventQueue.offer(new PendingEvent(event, callback));
+        eventQueue.offer(new PendingEvent(event));
     }
 
     @Override
@@ -105,16 +104,6 @@ public class DefaultStateMachineService implements StateMachineService {
                 ", event=" + String.valueOf(pending.event()) + ": " + t);
             t.printStackTrace();
             throw t;
-        } finally {
-            Consumer<StateContext> callback = pending.callback();
-            if (callback != null) {
-                try {
-                    callback.accept(context);
-                } catch (Throwable ct) {
-                    System.err.println("[STATE-MACHINE] callback failed after event processing: " + ct);
-                    ct.printStackTrace();
-                }
-            }
         }
     }
 
@@ -183,5 +172,5 @@ public class DefaultStateMachineService implements StateMachineService {
         }
     }
 
-    private record PendingEvent(BaseEvent event, Consumer<StateContext> callback) { }
+    private record PendingEvent(BaseEvent event) { }
 }

@@ -47,7 +47,7 @@ public final class TurnPersonalStartState implements BaseState {
             throw new IllegalStateException("No turn snapshot available for personal turn start");
         }
         turnContextService.beginPersonalTurn(ctx, snapshot, System.currentTimeMillis());
-        services.messenger().broadcastTurnStarted(ctx.session(), snapshot);
+        // Outbound broadcast moved to MoveSignalHandler via lifecycle signal
         fireRules(ctx, snapshot);
         return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
     }

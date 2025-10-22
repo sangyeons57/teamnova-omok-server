@@ -1,7 +1,6 @@
 package teamnova.omok.modules.state_machine;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
@@ -58,11 +57,6 @@ public final class StateMachineGateway {
 
         public void submit(BaseEvent event) {
             delegate.submit(Objects.requireNonNull(event, "event"));
-        }
-
-        public void submit(BaseEvent event, Consumer<StateContext> callback) {
-            Objects.requireNonNull(event, "event");
-            delegate.submit(event, callback);
         }
 
         public void process(StateContext context, long now) {

@@ -33,6 +33,14 @@ public final class GameSessionLogger {
         logState(context, "transition", stateLabel(to), message, details);
     }
 
+    public static void signal(GameSessionStateContext context,
+                              GameSessionStateType state,
+                              teamnova.omok.modules.state_machine.models.LifecycleEventKind kind,
+                              String... details) {
+        String message = "signal=" + (kind != null ? kind.name() : "-");
+        logState(context, "signal", stateLabel(state), message, details);
+    }
+
     public static void enter(GameSessionStateContext context,
                              GameSessionStateType state,
                              String... details) {

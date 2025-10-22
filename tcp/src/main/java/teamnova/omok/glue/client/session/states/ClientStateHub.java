@@ -1,7 +1,6 @@
 package teamnova.omok.glue.client.session.states;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.states.event.AuthenticatedClientEvent;
@@ -95,16 +94,7 @@ public final class ClientStateHub {
 
     public void submit(BaseEvent event) {
         Objects.requireNonNull(event, "event");
-        submit(event, null);
-    }
-
-    public void submit(BaseEvent event, Consumer<ClientStateContext> callback) {
-        Objects.requireNonNull(event, "event");
-        stateMachine.submit(event, ctx -> {
-            if (callback != null) {
-                callback.accept((ClientStateContext) ctx);
-            }
-        });
+        stateMachine.submit(event);
     }
 
     public void process(long now) {

@@ -72,7 +72,7 @@ public final class GameSessionManager implements Closeable,
 
         GameSessionStateContextService contextService = new GameSessionStateContextService();
         GameSessionMessenger messenger = ClientSessionManager.getInstance().gamePublisher();
-        this.runtime = new GameStateHubRegistry(boardService, turnService, scoreService, contextService, messenger);
+        this.runtime = new GameStateHubRegistry(boardService, turnService, scoreService, contextService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler);
         this.dependencies = new GameSessionDependencies(
             repository,
             runtime,
@@ -131,22 +131,22 @@ public final class GameSessionManager implements Closeable,
 
     @Override
     public void handleClientDisconnected(String userId) {
-        GameSessionLifecycleService.handleClientDisconnected(dependencies, eventService, this, userId);
+        GameSessionLifecycleService.handleClientDisconnected(dependencies, eventService, userId);
     }
 
     @Override
     public boolean submitReady(String userId, long requestId) {
-        return eventService.submitReady(this, userId, requestId);
+        return eventService.submitReady(userId, requestId);
     }
 
     @Override
     public boolean submitMove(String userId, long requestId, int x, int y) {
-        return eventService.submitMove(this, userId, requestId, x, y);
+        return eventService.submitMove(userId, requestId, x, y);
     }
 
     @Override
     public boolean submitPostGameDecision(String userId, long requestId, PostGameDecision decision) {
-        return eventService.submitPostGameDecision(this, userId, requestId, decision);
+        return eventService.submitPostGameDecision(userId, requestId, decision);
     }
 
     @Override
@@ -156,7 +156,7 @@ public final class GameSessionManager implements Closeable,
 
     @Override
     public void skipTurnForDisconnected(GameSession session, String userId, int expectedTurnNumber) {
-        eventService.skipTurnForDisconnected(session, userId, expectedTurnNumber, this);
+        eventService.skipTurnForDisconnected(session, userId, expectedTurnNumber);
     }
 
     @Override
@@ -183,7 +183,7 @@ public final class GameSessionManager implements Closeable,
 
     @Override
     public void onTimeout(GameSessionId sessionId, int expectedTurnNumber) {
-        eventService.handleScheduledTimeout(sessionId, expectedTurnNumber, this);
+        eventService.handleScheduledTimeout(sessionId, expectedTurnNumber);
     }
 
     @Override

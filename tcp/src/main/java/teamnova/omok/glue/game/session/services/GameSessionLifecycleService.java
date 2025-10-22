@@ -37,12 +37,10 @@ public final class GameSessionLifecycleService {
     }
 
     public static void handleClientDisconnected(GameSessionDependencies deps,
-                                                SessionEventService events,
-                                                TurnTimeoutScheduler.TurnTimeoutConsumer timeoutConsumer,
-                                                String userId) {
+                                               SessionEventService events,
+                                               String userId) {
         Objects.requireNonNull(deps, "deps");
         Objects.requireNonNull(events, "events");
-        Objects.requireNonNull(timeoutConsumer, "timeoutConsumer");
         Objects.requireNonNull(userId, "userId");
         deps.repository().findByUserId(userId).ifPresent(session -> {
             boolean newlyDisconnected;
@@ -66,7 +64,7 @@ public final class GameSessionLifecycleService {
                 deps.messenger().broadcastPlayerDisconnected(session, userId, "DISCONNECTED");
             }
             if (shouldSkip && expectedTurn > 0) {
-                events.skipTurnForDisconnected(session, userId, expectedTurn, timeoutConsumer);
+                events.skipTurnForDisconnected(session, userId, expectedTurn);
             }
         });
     }
