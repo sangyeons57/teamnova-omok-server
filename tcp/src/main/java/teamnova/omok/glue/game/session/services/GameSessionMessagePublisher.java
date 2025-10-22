@@ -30,8 +30,8 @@ import teamnova.omok.glue.message.encoder.PostGameDecisionAckMessageEncoder;
 import teamnova.omok.glue.message.encoder.PostGameDecisionPromptMessageEncoder;
 import teamnova.omok.glue.message.encoder.PostGameDecisionUpdateMessageEncoder;
 import teamnova.omok.glue.message.encoder.ReadyStateMessageEncoder;
-import teamnova.omok.glue.message.encoder.StonePlacedMessageEncoder;
-import teamnova.omok.glue.message.encoder.TurnTimeoutMessageEncoder;
+import teamnova.omok.glue.message.encoder.TurnEndedMessageEncoder;
+import teamnova.omok.glue.message.encoder.TurnStartedMessageEncoder;
 
 /**
  * Encodes and dispatches messages that relate to in-game session events.
@@ -58,21 +58,30 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
 
     @Override
     public void broadcastGameStart(GameSessionAccess session, TurnSnapshot turn) {
-        byte[] payload = GameSessionStartedMessageEncoder.encode(session, turn);
+        byte[] payload = GameSessionStartedMessageEncoder.encode(session);
         broadcast(session, Type.GAME_SESSION_STARTED, payload,
             turn != null ? "player=" + turn.currentPlayerId() : "player=-");
     }
 
     @Override
-    public void broadcastStonePlaced(GameSessionAccess session, TurnPersonalFrame frame) {
-        byte[] payload = StonePlacedMessageEncoder.encode(session, frame);
-        broadcast(session, Type.STONE_PLACED, payload, String.format("user=%s x=%d y=%d", frame.userId(), frame.x(), frame.y()));
+    public void broadcastTurnStarted(GameSessionAccess session, TurnSnapshot snapshot) {
+        byte[] payload = TurnStartedMessageEncoder.encode(session, snapshot);
+        broadcast(session, Type.TURN_STARTED, payload,
+            snapshot != null ? "player=" + snapshot.currentPlayerId() : "player=-");
     }
 
     @Override
-    public void broadcastTurnTimeout(GameSessionAccess session, TurnPersonalFrame frame) {
-        byte[] payload = TurnTimeoutMessageEncoder.encode(session, frame);
-        broadcast(session, Type.TURN_TIMEOUT, payload, "timedOut=" + frame.timeoutTimedOut());
+    public void broadcastTurnEnded(GameSessionAccess session, TurnPersonalFrame frame) {
+        byte[] payload = TurnEndedMessageEncoder.encode(session, frame);
+        String detail;
+        if (frame.timeoutTimedOut()) {
+            detail = String.format("cause=TIMEOUT user=%s", frame.userId());
+        } else if (frame.outcomeStatus() != null) {
+            detail = String.format("cause=MOVE user=%s status=%s", frame.userId(), frame.outcomeStatus());
+        } else {
+            detail = "cause=UNKNOWN";
+        }
+        broadcast(session, Type.TURN_ENDED, payload, detail);
     }
 
     @Override
@@ -150,9 +159,7 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
                                         long requestId,
                                         PostGameDecisionResult result) {
         byte[] payload = PostGameDecisionAckMessageEncoder.encode(result);
-        String detail = result != null
-            ? "status=" + result.status()
-            : "status=unknown";
+        String detail = "status=" + result.status();
         send(null, userId, Type.POST_GAME_DECISION, requestId, payload, detail);
     }
 

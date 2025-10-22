@@ -25,9 +25,6 @@ public final class MoveAckMessageEncoder {
               .append(',')
               .append("\"stone\":").append(frame.stone() != null ? frame.stone().code() : 0);
         }
-        sb.append(',')
-          .append("\"turn\":");
-        MessageEncodingUtil.appendTurn(sb, frame.outcomeSnapshot());
         sb.append('}');
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }

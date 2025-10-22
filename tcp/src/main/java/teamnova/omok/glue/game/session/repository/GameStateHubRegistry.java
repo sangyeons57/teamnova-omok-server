@@ -6,11 +6,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
+import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
-import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.states.GameStateHub;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 
@@ -23,22 +23,25 @@ public final class GameStateHubRegistry implements GameSessionRuntime {
     private final GameTurnService turnService;
     private final GameScoreService scoreService;
     private final GameSessionStateContextService contextService;
+    private final GameSessionMessenger messenger;
 
     public GameStateHubRegistry(GameBoardService boardService,
                                 GameTurnService turnService,
                                 GameScoreService scoreService,
-                                GameSessionStateContextService contextService) {
+                                GameSessionStateContextService contextService,
+                                GameSessionMessenger messenger) {
         this.boardService = boardService;
         this.turnService = turnService;
         this.scoreService = scoreService;
         this.contextService = contextService;
+        this.messenger = messenger;
     }
 
     @Override
     public GameStateHub ensure(GameSession session) {
         return managersById.computeIfAbsent(
             session.sessionId(),
-            id -> new GameStateHub(session, boardService, turnService, scoreService, contextService)
+            id -> new GameStateHub(session, boardService, turnService, scoreService, contextService, messenger)
         );
     }
 

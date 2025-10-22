@@ -72,7 +72,7 @@ public final class MoveApplyingState implements BaseState {
         GameSessionLogger.event(context, GameSessionStateType.MOVE_APPLYING, "StonePlaced",
             String.format("user=%s x=%d y=%d stone=%s", frame.userId(), x, y, frame.stone()));
         fireRules(context, RuleTriggerKind.POST_PLACEMENT);
-        return StateStep.transition(GameSessionStateType.OUTCOME_EVALUATING.toStateName());
+        return StateStep.transition(GameSessionStateType.TURN_PERSONAL_END.toStateName());
     }
 
     private void fireRules(GameSessionStateContext context, RuleTriggerKind triggerKind) {

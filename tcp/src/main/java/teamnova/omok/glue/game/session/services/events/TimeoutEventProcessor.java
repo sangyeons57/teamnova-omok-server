@@ -3,7 +3,6 @@ package teamnova.omok.glue.game.session.services.events;
 import java.util.Objects;
 import java.util.Optional;
 
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
@@ -109,12 +108,7 @@ public final class TimeoutEventProcessor {
             return;
         }
         boolean waiting = manager.currentType() == GameSessionStateType.TURN_WAITING;
-        if (frame.timeoutTimedOut()) {
-            deps.messenger().broadcastTurnTimeout(session, frame);
-            if (frame.timeoutSnapshot() != null && waiting) {
-                scheduleTurnTimeout(session, frame.timeoutSnapshot(), timeoutConsumer);
-            }
-        } else if (frame.timeoutSnapshot() != null && waiting) {
+        if (frame.timeoutSnapshot() != null && waiting) {
             scheduleTurnTimeout(session, frame.timeoutSnapshot(), timeoutConsumer);
         }
         if (manager.currentType() == GameSessionStateType.COMPLETED) {

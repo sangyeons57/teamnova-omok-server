@@ -22,10 +22,7 @@ public final class ReadyStateMessageEncoder {
           .append(',')
           .append("\"allReady\":").append(result.allReady())
           .append(',')
-          .append("\"gameStarted\":").append(session.isGameStarted())
-          .append(',')
-          .append("\"turn\":");
-        MessageEncodingUtil.appendTurn(sb, result.firstTurn());
+          .append("\"gameStarted\":").append(session.isGameStarted());
         sb.append('}');
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }

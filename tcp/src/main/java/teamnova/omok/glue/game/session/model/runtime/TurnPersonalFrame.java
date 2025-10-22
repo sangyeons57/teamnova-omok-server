@@ -24,8 +24,8 @@ public final class TurnPersonalFrame {
 
     private boolean timeoutResolved;
     private boolean timeoutTimedOut;
-    private String timeoutPreviousPlayerId;
     private boolean timeoutConsumed;
+    private long timeoutOccurredAtMillis;
 
     private TurnSnapshot currentSnapshot;
     private TurnSnapshot nextSnapshot;
@@ -43,10 +43,6 @@ public final class TurnPersonalFrame {
             frame.currentSnapshot = snapshot;
         }
         return frame;
-    }
-
-    public long startedAt() {
-        return startedAt;
     }
 
     public boolean hasActiveMove() {
@@ -114,10 +110,6 @@ public final class TurnPersonalFrame {
         this.currentSnapshot = snapshot;
     }
 
-    public TurnSnapshot nextSnapshot() {
-        return nextSnapshot;
-    }
-
     public void nextSnapshot(TurnSnapshot snapshot) {
         this.nextSnapshot = snapshot;
     }
@@ -151,12 +143,14 @@ public final class TurnPersonalFrame {
         return currentSnapshot;
     }
 
-    public void resolveTimeout(boolean timedOut, TurnSnapshot snapshot, String previousPlayerId) {
+    public void resolveTimeout(boolean timedOut,
+                               TurnSnapshot snapshot,
+                               long occurredAtMillis) {
         this.timeoutResolved = true;
         this.timeoutTimedOut = timedOut;
         this.timeoutSnapshot = snapshot;
-        this.timeoutPreviousPlayerId = previousPlayerId;
         this.timeoutConsumed = false;
+        this.timeoutOccurredAtMillis = occurredAtMillis;
     }
 
     public boolean hasTimeoutOutcome() {
@@ -171,10 +165,6 @@ public final class TurnPersonalFrame {
         return timeoutSnapshot;
     }
 
-    public String timeoutPreviousPlayerId() {
-        return timeoutPreviousPlayerId;
-    }
-
     public void markTimeoutConsumed() {
         this.timeoutConsumed = true;
     }
@@ -183,7 +173,11 @@ public final class TurnPersonalFrame {
         this.timeoutResolved = false;
         this.timeoutTimedOut = false;
         this.timeoutSnapshot = null;
-        this.timeoutPreviousPlayerId = null;
         this.timeoutConsumed = false;
+        this.timeoutOccurredAtMillis = 0L;
+    }
+
+    public long timeoutOccurredAtMillis() {
+        return timeoutOccurredAtMillis;
     }
 }

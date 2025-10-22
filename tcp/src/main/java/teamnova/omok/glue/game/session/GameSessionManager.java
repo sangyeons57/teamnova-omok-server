@@ -10,15 +10,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.client.session.ClientSessionManager;
-import teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler;
-import teamnova.omok.glue.game.session.interfaces.GameBoardService;
-import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.interfaces.manager.GameSessionEventProcessor;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.manager.GameSessionOperations;
-import teamnova.omok.glue.game.session.interfaces.GameSessionRepository;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
@@ -76,12 +71,13 @@ public final class GameSessionManager implements Closeable,
 
 
         GameSessionStateContextService contextService = new GameSessionStateContextService();
-        this.runtime = new GameStateHubRegistry(boardService, turnService, scoreService, contextService);
+        GameSessionMessenger messenger = ClientSessionManager.getInstance().gamePublisher();
+        this.runtime = new GameStateHubRegistry(boardService, turnService, scoreService, contextService, messenger);
         this.dependencies = new GameSessionDependencies(
             repository,
             runtime,
             turnService,
-            ClientSessionManager.getInstance().gamePublisher(),
+            messenger,
             turnTimeoutScheduler,
             decisionTimeoutScheduler,
             ruleManager,

@@ -4,7 +4,6 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
@@ -61,7 +60,6 @@ public final class MoveEventProcessor {
         }
         deps.messenger().respondMove(event.userId(), event.requestId(), session, frame);
         if (frame.outcomeStatus() == MoveStatus.SUCCESS) {
-            deps.messenger().broadcastStonePlaced(session, frame);
             TurnSnapshot snapshot = frame.outcomeSnapshot();
             if (snapshot != null && manager.currentType() == GameSessionStateType.TURN_WAITING) {
                 timeoutProcessor.scheduleTurnTimeout(session, snapshot, timeoutConsumer);

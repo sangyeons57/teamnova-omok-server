@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
+import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 
 /**
@@ -11,10 +12,12 @@ import teamnova.omok.glue.game.session.interfaces.GameTurnService;
  */
 public record GameSessionServices(GameBoardService boardService,
                                   GameTurnService turnService,
-                                  GameScoreService scoreService) {
+                                  GameScoreService scoreService,
+                                  GameSessionMessenger messenger) {
     public GameSessionServices {
         Objects.requireNonNull(boardService, "boardService");
         Objects.requireNonNull(turnService, "turnService");
         Objects.requireNonNull(scoreService, "scoreService");
+        Objects.requireNonNull(messenger, "messenger");
     }
 }

@@ -17,11 +17,11 @@ public final class GameSessionTurnContextService {
         context.turnRuntime().resetPersonalTurnFrames();
     }
 
-    public TurnPersonalFrame beginPersonalTurn(GameSessionStateContext context,
-                                               TurnSnapshot snapshot,
-                                               long startedAt) {
+    public void beginPersonalTurn(GameSessionStateContext context,
+                                  TurnSnapshot snapshot,
+                                  long startedAt) {
         Objects.requireNonNull(context, "context");
-        return context.turnRuntime().beginPersonalTurnFrame(snapshot, startedAt);
+        context.turnRuntime().beginPersonalTurnFrame(snapshot, startedAt);
     }
 
     public TurnPersonalFrame currentPersonalTurn(GameSessionStateContext context) {
@@ -91,13 +91,13 @@ public final class GameSessionTurnContextService {
     public void recordTimeoutOutcome(GameSessionStateContext context,
                                      boolean timedOut,
                                      TurnSnapshot snapshot,
-                                     String previousPlayerId) {
+                                     long occurredAtMillis) {
         Objects.requireNonNull(context, "context");
         TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
         if (frame == null) {
             return;
         }
-        frame.resolveTimeout(timedOut, snapshot, previousPlayerId);
+        frame.resolveTimeout(timedOut, snapshot, occurredAtMillis);
         context.turnRuntime().setPendingTimeoutFrame(frame);
     }
 

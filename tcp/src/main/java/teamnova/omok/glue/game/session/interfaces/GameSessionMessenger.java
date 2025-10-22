@@ -16,8 +16,8 @@ public interface GameSessionMessenger {
     void broadcastJoin(GameSessionAccess session);
     void broadcastReady(GameSessionAccess session, ReadyResult result);
     void broadcastGameStart(GameSessionAccess session, TurnSnapshot turn);
-    void broadcastStonePlaced(GameSessionAccess session, TurnPersonalFrame frame);
-    void broadcastTurnTimeout(GameSessionAccess session, TurnPersonalFrame frame);
+    void broadcastTurnStarted(GameSessionAccess session, TurnSnapshot snapshot);
+    void broadcastTurnEnded(GameSessionAccess session, TurnPersonalFrame frame);
     void broadcastBoardSnapshot(GameSessionAccess session, BoardSnapshotUpdate update);
     void broadcastGameCompleted(GameSessionAccess session);
     void broadcastPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt);

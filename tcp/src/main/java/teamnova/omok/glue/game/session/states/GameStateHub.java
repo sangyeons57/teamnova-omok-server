@@ -6,6 +6,7 @@ import java.util.function.Consumer;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameScoreService;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.model.GameSession;
@@ -17,7 +18,6 @@ import teamnova.omok.glue.game.session.states.state.CompletedGameSessionState;
 import teamnova.omok.glue.game.session.states.state.LobbyGameSessionState;
 import teamnova.omok.glue.game.session.states.state.MoveApplyingState;
 import teamnova.omok.glue.game.session.states.state.MoveValidatingState;
-import teamnova.omok.glue.game.session.states.state.OutcomeEvaluatingState;
 import teamnova.omok.glue.game.session.states.state.PostGameDecisionResolvingState;
 import teamnova.omok.glue.game.session.states.state.PostGameDecisionWaitingState;
 import teamnova.omok.glue.game.session.states.state.SessionRematchPreparingState;
@@ -46,14 +46,16 @@ public class GameStateHub {
                         GameBoardService boardService,
                         GameTurnService turnService,
                         GameScoreService scoreService,
-                        GameSessionStateContextService contextService) {
+                        GameSessionStateContextService contextService,
+                        GameSessionMessenger messenger) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(boardService, "boardService");
         Objects.requireNonNull(turnService, "turnService");
         Objects.requireNonNull(scoreService, "scoreService");
         Objects.requireNonNull(contextService, "contextService");
+        Objects.requireNonNull(messenger, "messenger");
 
-        this.services = new GameSessionServices(boardService, turnService, scoreService);
+        this.services = new GameSessionServices(boardService, turnService, scoreService, messenger);
         this.context = new GameSessionStateContext(session);
 
         this.stateMachine = StateMachineGateway.open();
@@ -71,7 +73,6 @@ public class GameStateHub {
         registerState(new TurnWaitingState(contextService, services.turnService()));
         registerState(new MoveValidatingState(contextService, services.boardService(), services.turnService()));
         registerState(new MoveApplyingState(contextService, services));
-        registerState(new OutcomeEvaluatingState(contextService, services.boardService(), services.scoreService()));
         registerState(new TurnPersonalEndState(contextService, services));
         registerState(new TurnEndState(contextService, services));
         registerState(new PostGameDecisionWaitingState(contextService, services.turnService()));

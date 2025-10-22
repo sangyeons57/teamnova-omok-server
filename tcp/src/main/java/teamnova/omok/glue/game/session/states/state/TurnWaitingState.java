@@ -84,69 +84,54 @@ public class TurnWaitingState implements BaseState {
                                     TimeoutEvent event) {
         GameSessionAccess session = context.session();
         TurnPersonalFrame frame = contextService.turn().currentPersonalTurn(context);
+        if (frame == null) {
+            GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "TimeoutIgnored",
+                "reason=no-active-frame",
+                "expectedTurn=" + event.expectedTurnNumber());
+            return StateStep.stay();
+        }
         TurnSnapshot currentSnapshot = null;
-        TurnSnapshot nextSnapshot = null;
-        String previousPlayerId = null;
         boolean timedOut = false;
+        boolean gameFinished = context.outcomes().isGameFinished();
 
-        boolean advanced = false;
         session.lock().lock();
         try {
-            if (context.lifecycle().isGameStarted()) {
+            if (context.lifecycle().isGameStarted() && !gameFinished) {
                 currentSnapshot = turnService.snapshot(context.turns());
-                if (context.outcomes().isGameFinished()) {
-                    timedOut = false;
-                } else if (currentSnapshot == null || currentSnapshot.turnNumber() != event.expectedTurnNumber()) {
-                    timedOut = false;
-                } else if (!turnService.isExpired(context.turns(), event.timestamp())) {
-                    timedOut = false;
-                } else {
+                if (currentSnapshot != null
+                    && currentSnapshot.turnNumber() == event.expectedTurnNumber()
+                    && turnService.isExpired(context.turns(), event.timestamp())) {
                     timedOut = true;
-                    previousPlayerId = currentSnapshot.currentPlayerId();
-                    nextSnapshot = turnService
-                        .advanceSkippingDisconnected(
-                            context.turns(),
-                            context.participants().disconnectedUsersView(),
-                            event.timestamp()
-                        );
-                    contextService.turn().recordTurnSnapshot(context, nextSnapshot, event.timestamp());
-                    advanced = nextSnapshot != null;
+                    frame.currentSnapshot(currentSnapshot);
                 }
             }
         } finally {
             session.lock().unlock();
         }
 
-        if (frame != null) {
-            TurnSnapshot outcomeSnapshot = timedOut
-                ? (nextSnapshot != null ? nextSnapshot : currentSnapshot)
-                : currentSnapshot;
-            if (timedOut || outcomeSnapshot != null) {
+        if (!timedOut) {
+            GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "TimeoutIgnored",
+                "reason=stale-or-not-expired",
+                currentSnapshot == null ? "currentSnapshot=null"
+                    : String.format("currentTurn=%s expectedTurn=%d",
+                        currentSnapshot.currentPlayerId(), event.expectedTurnNumber()));
+            if (currentSnapshot != null) {
                 contextService.turn().recordTimeoutOutcome(
                     context,
-                    timedOut,
-                    outcomeSnapshot,
-                    previousPlayerId
+                    false,
+                    currentSnapshot,
+                    event.timestamp()
                 );
             }
-        }
-        GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "TimeoutProcessed",
-            String.format("timedOut=%s previous=%s", timedOut, previousPlayerId),
-            currentSnapshot == null ? "currentSnapshot=null"
-                : String.format("currentTurn=%s", currentSnapshot.currentPlayerId()),
-            nextSnapshot == null ? "nextSnapshot=null"
-                : String.format("nextTurn=%s wrapped=%s", nextSnapshot.currentPlayerId(), nextSnapshot.wrapped()));
-        if (context.outcomes().isGameFinished()) {
-            contextService.turn().consumeTurnSnapshot(context);
-            return StateStep.transition(GameSessionStateType.COMPLETED.toStateName());
-        }
-        if (!advanced) {
             return StateStep.stay();
         }
-        TurnSnapshot snapshot = contextService.turn().peekTurnSnapshot(context);
-        GameSessionStateType nextState = (snapshot != null && snapshot.wrapped())
-            ? GameSessionStateType.TURN_END
-            : GameSessionStateType.TURN_PERSONAL_START;
-        return StateStep.transition(nextState.toStateName());
+
+        contextService.turn().recordTimeoutOutcome(
+            context,
+            true,
+            currentSnapshot,
+            event.timestamp()
+        );
+        return StateStep.transition(GameSessionStateType.TURN_PERSONAL_END.toStateName());
     }
 }
