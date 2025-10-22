@@ -87,7 +87,7 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     @Override
     public void broadcastBoardSnapshot(GameSessionAccess session, BoardSnapshotUpdate update) {
         byte[] payload = BoardSnapshotMessageEncoder.encode(session, update);
-        broadcast(session, Type.BOARD_SNAPSHOT, payload);
+        broadcast(session, Type.BOARD_UPDATED, payload);
     }
 
     @Override
