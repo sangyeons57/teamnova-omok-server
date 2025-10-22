@@ -2,7 +2,6 @@ package teamnova.omok.glue.game.session.states.state;
 
 import java.util.Objects;
 
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.services.RuleService;
@@ -20,13 +19,13 @@ import teamnova.omok.modules.state_machine.models.StateStep;
 /**
  * Handles the start of an individual player's turn within an overall turn cycle.
  */
-public final class TurnPersonalStartingState implements BaseState {
+public final class TurnPersonalStartState implements BaseState {
     private final GameSessionStateContextService contextService;
     private final GameSessionTurnContextService turnContextService;
     private final GameSessionServices services;
 
-    public TurnPersonalStartingState(GameSessionStateContextService contextService,
-                                     GameSessionServices services) {
+    public TurnPersonalStartState(GameSessionStateContextService contextService,
+                                  GameSessionServices services) {
         this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.turnContextService = contextService.turn();
         this.services = Objects.requireNonNull(services, "services");
@@ -34,7 +33,7 @@ public final class TurnPersonalStartingState implements BaseState {
 
     @Override
     public StateName name() {
-        return GameSessionStateType.TURN_PERSONAL_STARTING.toStateName();
+        return GameSessionStateType.TURN_PERSONAL_START.toStateName();
     }
 
     @Override

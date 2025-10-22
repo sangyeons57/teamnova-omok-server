@@ -92,7 +92,7 @@ public final class OutcomeEvaluatingState implements BaseState {
         }
 
         // 3) Not finished: proceed to finalize the turn
-        return StateStep.transition(GameSessionStateType.TURN_PERSONAL_COMPLETED.toStateName());
+        return StateStep.transition(GameSessionStateType.TURN_PERSONAL_END.toStateName());
     }
 
     private void normalWinCondition(TurnPersonalFrame frame, GameSessionStateContext context) {

@@ -22,13 +22,13 @@ import teamnova.omok.modules.state_machine.models.StateStep;
 /**
  * Handles completion of the active player's turn and prepares information for subsequent stages.
  */
-public final class TurnPersonalCompletedState implements BaseState {
+public final class TurnPersonalEndState implements BaseState {
     private final GameSessionStateContextService contextService;
     private final GameSessionServices services;
     private final GameTurnService turnService;
 
-    public TurnPersonalCompletedState(GameSessionStateContextService contextService,
-                                      GameSessionServices services) {
+    public TurnPersonalEndState(GameSessionStateContextService contextService,
+                                GameSessionServices services) {
         this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.services = Objects.requireNonNull(services, "services");
         this.turnService = Objects.requireNonNull(services.turnService(), "turnService");
@@ -36,7 +36,7 @@ public final class TurnPersonalCompletedState implements BaseState {
 
     @Override
     public StateName name() {
-        return GameSessionStateType.TURN_PERSONAL_COMPLETED.toStateName();
+        return GameSessionStateType.TURN_PERSONAL_END.toStateName();
     }
 
     @Override
@@ -58,14 +58,14 @@ public final class TurnPersonalCompletedState implements BaseState {
         contextService.turn().recordTurnSnapshot(context, nextSnapshot, frame.requestedAtMillis());
         fireRules(context, RuleTriggerKind.TURN_ADVANCE, nextSnapshot);
         contextService.turn().finalizeMoveOutcome(context, MoveStatus.SUCCESS);
-        GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_COMPLETED, "TurnFinalized",
+        GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_END, "TurnFinalized",
             String.format("user=%s nextPlayer=%s wrapped=%s", frame.userId(),
                 nextSnapshot != null ? nextSnapshot.currentPlayerId() : "-",
                 nextSnapshot != null && nextSnapshot.wrapped()));
         contextService.turn().clearTurnCycle(context);
         GameSessionStateType nextState = nextSnapshot != null && nextSnapshot.wrapped()
-            ? GameSessionStateType.TURN_ROUND_COMPLETED
-            : GameSessionStateType.TURN_PERSONAL_STARTING;
+            ? GameSessionStateType.TURN_END
+            : GameSessionStateType.TURN_PERSONAL_START;
         return StateStep.transition(nextState.toStateName());
     }
 

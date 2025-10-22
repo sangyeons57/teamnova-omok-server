@@ -145,8 +145,8 @@ public class TurnWaitingState implements BaseState {
         }
         TurnSnapshot snapshot = contextService.turn().peekTurnSnapshot(context);
         GameSessionStateType nextState = (snapshot != null && snapshot.wrapped())
-            ? GameSessionStateType.TURN_ROUND_COMPLETED
-            : GameSessionStateType.TURN_PERSONAL_STARTING;
+            ? GameSessionStateType.TURN_END
+            : GameSessionStateType.TURN_PERSONAL_START;
         return StateStep.transition(nextState.toStateName());
     }
 }

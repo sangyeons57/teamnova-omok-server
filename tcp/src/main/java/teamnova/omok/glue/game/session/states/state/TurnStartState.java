@@ -13,22 +13,22 @@ import teamnova.omok.modules.state_machine.models.StateStep;
 /**
  * Marks the start of a new overall turn cycle and prepares runtime buffers.
  */
-public final class TurnStartingState implements BaseState {
+public final class TurnStartState implements BaseState {
     private final GameSessionStateContextService contextService;
 
-    public TurnStartingState(GameSessionStateContextService contextService) {
+    public TurnStartState(GameSessionStateContextService contextService) {
         this.contextService = Objects.requireNonNull(contextService, "contextService");
     }
 
     @Override
     public StateName name() {
-        return GameSessionStateType.TURN_STARTING.toStateName();
+        return GameSessionStateType.TURN_START.toStateName();
     }
 
     @Override
     public <I extends StateContext> StateStep onEnter(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
         contextService.turn().resetPersonalTurns(ctx);
-        return StateStep.transition(GameSessionStateType.TURN_PERSONAL_STARTING.toStateName());
+        return StateStep.transition(GameSessionStateType.TURN_PERSONAL_START.toStateName());
     }
 }

@@ -2,7 +2,6 @@ package teamnova.omok.glue.game.session.states.state;
 
 import java.util.Objects;
 
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
@@ -96,7 +95,7 @@ public class LobbyGameSessionState implements BaseState {
             return StateStep.stay();
         }
         if (result.gameStartedNow()) {
-            return StateStep.transition(GameSessionStateType.TURN_STARTING.toStateName());
+            return StateStep.transition(GameSessionStateType.TURN_START.toStateName());
         }
         return StateStep.stay();
     }

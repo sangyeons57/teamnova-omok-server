@@ -22,10 +22,10 @@ import teamnova.omok.glue.game.session.states.state.PostGameDecisionResolvingSta
 import teamnova.omok.glue.game.session.states.state.PostGameDecisionWaitingState;
 import teamnova.omok.glue.game.session.states.state.SessionRematchPreparingState;
 import teamnova.omok.glue.game.session.states.state.SessionTerminatingState;
-import teamnova.omok.glue.game.session.states.state.TurnPersonalCompletedState;
-import teamnova.omok.glue.game.session.states.state.TurnPersonalStartingState;
-import teamnova.omok.glue.game.session.states.state.TurnCompletedState;
-import teamnova.omok.glue.game.session.states.state.TurnStartingState;
+import teamnova.omok.glue.game.session.states.state.TurnPersonalEndState;
+import teamnova.omok.glue.game.session.states.state.TurnPersonalStartState;
+import teamnova.omok.glue.game.session.states.state.TurnEndState;
+import teamnova.omok.glue.game.session.states.state.TurnStartState;
 import teamnova.omok.glue.game.session.states.state.TurnWaitingState;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
@@ -66,14 +66,14 @@ public class GameStateHub {
 
     private void registerStateConfig(GameSessionStateContextService contextService) {
         registerState(new LobbyGameSessionState(contextService, services));
-        registerState(new TurnStartingState(contextService));
-        registerState(new TurnPersonalStartingState(contextService, services));
+        registerState(new TurnStartState(contextService));
+        registerState(new TurnPersonalStartState(contextService, services));
         registerState(new TurnWaitingState(contextService, services.turnService()));
         registerState(new MoveValidatingState(contextService, services.boardService(), services.turnService()));
         registerState(new MoveApplyingState(contextService, services));
         registerState(new OutcomeEvaluatingState(contextService, services.boardService(), services.scoreService()));
-        registerState(new TurnPersonalCompletedState(contextService, services));
-        registerState(new TurnCompletedState(contextService, services));
+        registerState(new TurnPersonalEndState(contextService, services));
+        registerState(new TurnEndState(contextService, services));
         registerState(new PostGameDecisionWaitingState(contextService, services.turnService()));
         registerState(new PostGameDecisionResolvingState(contextService));
         registerState(new SessionRematchPreparingState(contextService));
