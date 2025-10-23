@@ -7,8 +7,6 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionParticipantsAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionPostGameAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
@@ -80,7 +78,6 @@ public final class PostGameDecisionWaitingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        GameSessionAccess session = context.session();
         context.postGame().resetPostGameDecisions();
         long now = System.currentTimeMillis();
         long deadline = now + GameSession.POST_GAME_DECISION_DURATION_MILLIS;
@@ -99,7 +96,6 @@ public final class PostGameDecisionWaitingState implements BaseState {
 
     private StateStep handleDecision(GameSessionStateContext context,
                                      PostGameDecisionEvent event) {
-        GameSessionAccess session = context.session();
         if (!context.participants().containsUser(event.userId())) {
             contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 event.userId(),

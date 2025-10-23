@@ -4,7 +4,6 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.PostGameDecisionEvent;
@@ -59,7 +58,6 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handleReady(GameSessionStateContext context,
                                   ReadyEvent event) {
-        GameSessionAccess session = context.session();
         if (!context.participants().containsUser(event.userId())) {
             contextService.turn().queueReadyResult(context, ReadyResult.invalid(event.userId(), event.requestId()));
             return StateStep.stay();
@@ -92,7 +90,6 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handlePostGameDecision(GameSessionStateContext context,
                                              PostGameDecisionEvent event) {
-        GameSessionAccess session = context.session();
         contextService.postGame().queueDecisionResult(context,
             PostGameDecisionResult.rejected(
                 event.userId(),

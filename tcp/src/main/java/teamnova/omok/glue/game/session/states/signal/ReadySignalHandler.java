@@ -2,7 +2,6 @@ package teamnova.omok.glue.game.session.states.signal;
 
 import java.util.Set;
 
-import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
@@ -14,7 +13,7 @@ import teamnova.omok.modules.state_machine.models.StateName;
 /**
  * Handles READY flow via state-based signals.
  * - LOBBY ON_UPDATE: drain ReadyResult and respond/broadcast accordingly.
- * - TURN_START ON_START: broadcast game-start and schedule first turn timeout.
+ * - GAME_SESSION_STARTED is broadcast exactly once here when all players become ready.
  */
 public final class ReadySignalHandler implements StateSignalListener {
     private final GameSessionStateContext context;
@@ -31,14 +30,13 @@ public final class ReadySignalHandler implements StateSignalListener {
 
     @Override
     public Set<LifecycleEventKind> events() {
-        return java.util.Set.of(LifecycleEventKind.ON_UPDATE, LifecycleEventKind.ON_START);
+        return java.util.Set.of(LifecycleEventKind.ON_UPDATE);
     }
 
     @Override
     public Set<StateName> states() {
         return java.util.Set.of(
-            GameSessionStateType.LOBBY.toStateName(),
-            GameSessionStateType.TURN_START.toStateName()
+            GameSessionStateType.LOBBY.toStateName()
         );
     }
 
@@ -47,8 +45,6 @@ public final class ReadySignalHandler implements StateSignalListener {
         GameSessionStateType type = GameSessionStateType.stateNameLookup(state);
         if (type == GameSessionStateType.LOBBY && kind == LifecycleEventKind.ON_UPDATE) {
             handleLobbyUpdate();
-        } else if (type == GameSessionStateType.TURN_START && kind == LifecycleEventKind.ON_START) {
-            handleTurnStart();
         }
     }
 
@@ -63,18 +59,9 @@ public final class ReadySignalHandler implements StateSignalListener {
         if (result.stateChanged()) {
             services.messenger().broadcastReady(context.session(), result);
         }
-        // If game started now, game start broadcast will run on TURN_START ON_START
-    }
-
-    private void handleTurnStart() {
-        TurnSnapshot turn = contextService.turn().peekTurnSnapshot(context);
-        if (turn == null) {
-            turn = services.turnService().snapshot(context.turns());
-        }
-        services.messenger().broadcastGameStart(context.session(), turn);
-        if (turn != null) {
-            services.turnTimeoutScheduler().schedule(context.session(), turn,
-                teamnova.omok.glue.game.session.GameSessionManager.getInstance());
+        // If game starts now, broadcast GAME_SESSION_STARTED once here (leaving Lobby)
+        if (result.gameStartedNow()) {
+            services.messenger().broadcastGameStart(context.session(), result.firstTurn());
         }
     }
 }
