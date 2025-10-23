@@ -39,9 +39,11 @@ import teamnova.omok.glue.message.encoder.TurnStartedMessageEncoder;
  */
 public final class GameSessionMessagePublisher implements GameSessionMessenger {
     private final ClientSessionDirectory directory;
+    private final teamnova.omok.glue.game.session.interfaces.GameBoardService boardService;
 
-    public GameSessionMessagePublisher(ClientSessionDirectory directory) {
+    public GameSessionMessagePublisher(ClientSessionDirectory directory, teamnova.omok.glue.game.session.interfaces.GameBoardService boardService) {
         this.directory = Objects.requireNonNull(directory, "directory");
+        this.boardService = Objects.requireNonNull(boardService, "boardService");
     }
 
     @Override
@@ -84,8 +86,11 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
         broadcast(session, Type.TURN_ENDED, payload, detail);
     }
 
+
     @Override
-    public void broadcastBoardSnapshot(GameSessionAccess session, BoardSnapshotUpdate update) {
+    public void broadcastBoardSnapshot(GameSessionAccess session) {
+        byte[] boardBytes = boardService.snapshot(session);
+        BoardSnapshotUpdate update = new BoardSnapshotUpdate(boardBytes, System.currentTimeMillis());
         byte[] payload = BoardSnapshotMessageEncoder.encode(session, update);
         broadcast(session, Type.BOARD_UPDATED, payload);
     }

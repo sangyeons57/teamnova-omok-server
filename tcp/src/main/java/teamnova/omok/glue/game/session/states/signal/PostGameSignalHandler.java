@@ -79,7 +79,7 @@ public final class PostGameSignalHandler implements StateSignalListener {
 
     private void drainWaiting() {
         BoardSnapshotUpdate board = contextService.postGame().consumeBoardSnapshot(context);
-        if (board != null) services.messenger().broadcastBoardSnapshot(context.session(), board);
+        if (board != null) services.messenger().broadcastBoardSnapshot(context.session());
         GameCompletionNotice notice = contextService.postGame().consumeGameCompletion(context);
         if (notice != null) services.messenger().broadcastGameCompleted(context.session());
         PostGameDecisionPrompt prompt = contextService.postGame().consumeDecisionPrompt(context);

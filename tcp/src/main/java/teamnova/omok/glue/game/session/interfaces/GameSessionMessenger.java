@@ -5,7 +5,6 @@ import java.util.List;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
@@ -18,7 +17,8 @@ public interface GameSessionMessenger {
     void broadcastGameStart(GameSessionAccess session, TurnSnapshot turn);
     void broadcastTurnStarted(GameSessionAccess session, TurnSnapshot snapshot);
     void broadcastTurnEnded(GameSessionAccess session, TurnPersonalFrame frame);
-    void broadcastBoardSnapshot(GameSessionAccess session, BoardSnapshotUpdate update);
+    // Convenience overload: broadcast current board snapshot using only session
+    void broadcastBoardSnapshot(GameSessionAccess session);
     void broadcastGameCompleted(GameSessionAccess session);
     void broadcastPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt);
     void broadcastPostGameDecisionUpdate(GameSessionAccess session, PostGameDecisionUpdate update);

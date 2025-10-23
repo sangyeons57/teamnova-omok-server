@@ -48,14 +48,8 @@ public final class MoveSignalHandler implements StateSignalListener {
             if (frame != null) {
                 services.messenger().respondMove(frame.userId(), frame.stonePlaceRequestId(), context.session(), frame);
             }
-            // Broadcast board update after stone placement is applied
-            byte[] boardSnapshot = services.boardService().snapshot(context.board());
-            teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate update =
-                new teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate(
-                    boardSnapshot,
-                    System.currentTimeMillis()
-                );
-            services.messenger().broadcastBoardSnapshot(context.session(), update);
+            // Broadcast board update after stone placement is applied (one-liner via messenger)
+            services.messenger().broadcastBoardSnapshot(context.session());
             return;
         }
         if (type == GameSessionStateType.TURN_PERSONAL_START) {
