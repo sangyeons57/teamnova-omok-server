@@ -14,7 +14,32 @@ public final class TurnStartedMessageEncoder {
           .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
           .append("\"turn\":");
-        MessageEncodingUtil.appendTurn(sb, snapshot);
+
+        if (snapshot == null) {
+            sb.append("null");
+        } else {
+            sb.append('{')
+                    .append("\"number\":").append(snapshot.turnNumber())
+                    .append(',')
+                    .append("\"round\":").append(snapshot.roundNumber())
+                    .append(',')
+                    .append("\"position\":").append(snapshot.positionInRound())
+                    .append(',')
+                    .append("\"playerIndex\":").append(snapshot.currentPlayerIndex())
+                    .append(',')
+                    .append("\"currentPlayerId\":");
+            if (snapshot.currentPlayerId() == null) {
+                sb.append("null");
+            } else {
+                sb.append('\"').append(MessageEncodingUtil.escape(snapshot.currentPlayerId())).append('\"');
+            }
+            sb.append(',')
+                    .append("\"startAt\":").append(snapshot.turnStartAt())
+                    .append(',')
+                    .append("\"endAt\":").append(snapshot.turnEndAt())
+                    .append('}');
+
+        }
         sb.append('}');
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }

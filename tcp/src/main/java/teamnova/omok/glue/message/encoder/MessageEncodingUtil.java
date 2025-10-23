@@ -21,31 +21,4 @@ final class MessageEncodingUtil {
         }
         return sb.toString();
     }
-
-    static void appendTurn(StringBuilder sb, TurnSnapshot turn) {
-        if (turn == null) {
-            sb.append("null");
-            return;
-        }
-        sb.append('{')
-          .append("\"number\":").append(turn.turnNumber())
-          .append(',')
-          .append("\"round\":").append(turn.roundNumber())
-          .append(',')
-          .append("\"position\":").append(turn.positionInRound())
-          .append(',')
-          .append("\"playerIndex\":").append(turn.currentPlayerIndex())
-          .append(',')
-          .append("\"currentPlayerId\":");
-        if (turn.currentPlayerId() == null) {
-            sb.append("null");
-        } else {
-            sb.append('\"').append(escape(turn.currentPlayerId())).append('\"');
-        }
-        sb.append(',')
-          .append("\"startAt\":").append(turn.turnStartAt())
-          .append(',')
-          .append("\"endAt\":").append(turn.turnEndAt())
-          .append('}');
-    }
 }
