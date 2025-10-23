@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.modules.matching.models.MatchGroup;
 
@@ -26,6 +27,14 @@ public final class GameSessionCreationService {
 
         deps.repository().save(session);
         deps.runtime().ensure(session);
+
+        // Bind participants' client sessions to this new game session for scoped messaging
+        for (String uid : session.getUserIds()) {
+            ClientSessionManager.getInstance()
+                .findSession(uid)
+                .ifPresent(handle -> handle.bindGameSession(session.sessionId()));
+        }
+
         deps.messenger().broadcastJoin(session);
 
         Map<String, Integer> knownScores = new HashMap<>();

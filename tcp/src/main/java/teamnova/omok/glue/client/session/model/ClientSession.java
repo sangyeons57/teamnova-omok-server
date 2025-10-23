@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.client.session.states.manage.ClientStateType;
 import teamnova.omok.glue.game.session.model.PlayerResult;
+import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 
 /**
  * Holds authentication attributes and per-client match metrics.
@@ -14,6 +15,9 @@ public final class ClientSession {
     private volatile String role;
     private volatile String scope;
     private volatile ClientStateType stateType = ClientStateType.CONNECTED;
+
+    // Currently bound in-game session for scoping outbound traffic
+    private volatile GameSessionId currentGameSessionId;
 
     private final Object metricsLock = new Object();
     private int totalWins;
@@ -57,6 +61,24 @@ public final class ClientSession {
 
     public void updateState(ClientStateType type) {
         this.stateType = Objects.requireNonNull(type, "type");
+    }
+
+    public GameSessionId currentGameSessionId() {
+        return currentGameSessionId;
+    }
+
+    public void bindGameSession(GameSessionId id) {
+        this.currentGameSessionId = id;
+    }
+
+    public void unbindGameSession(GameSessionId id) {
+        if (Objects.equals(this.currentGameSessionId, id)) {
+            this.currentGameSessionId = null;
+        }
+    }
+
+    public void clearGameSession() {
+        this.currentGameSessionId = null;
     }
 
     /**

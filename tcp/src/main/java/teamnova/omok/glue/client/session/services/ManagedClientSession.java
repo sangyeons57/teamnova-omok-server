@@ -11,6 +11,7 @@ import teamnova.omok.core.nio.NioClientConnection;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.core.nio.codec.DecodeFrame;
 import teamnova.omok.glue.game.session.model.PlayerResult;
+import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionLifecycleListener;
@@ -104,6 +105,21 @@ public final class ManagedClientSession implements ClientSessionHandle {
     @Override
     public ClientSession model() {
         return model;
+    }
+
+    @Override
+    public void bindGameSession(teamnova.omok.glue.game.session.model.vo.GameSessionId id) {
+        model.bindGameSession(id);
+    }
+
+    @Override
+    public void unbindGameSession(teamnova.omok.glue.game.session.model.vo.GameSessionId id) {
+        model.unbindGameSession(id);
+    }
+
+    @Override
+    public GameSessionId currentGameSessionId() {
+        return model.currentGameSessionId();
     }
 
     ClientStateHub stateHub() {

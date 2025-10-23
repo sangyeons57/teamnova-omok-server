@@ -182,7 +182,11 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
                            String... details) {
         List<String> recipients = session != null ? session.getUserIds() : List.of();
         logOutbound(session, type, "broadcast", 0L, recipients, details);
-        directory.broadcast(recipients, type, payload);
+        if (session != null) {
+            directory.broadcast(session, recipients, type, payload);
+        } else {
+            directory.broadcast(recipients, type, payload);
+        }
     }
 
     private void send(GameSessionAccess session,
@@ -194,7 +198,11 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
         Collection<String> recipients =
             userId != null ? Collections.singletonList(userId) : Collections.emptyList();
         logOutbound(session, type, "send", requestId, recipients, details);
-        directory.send(userId, type, requestId, payload);
+        if (session != null) {
+            directory.send(session, userId, type, requestId, payload);
+        } else {
+            directory.send(userId, type, requestId, payload);
+        }
     }
 
     private void logOutbound(GameSessionAccess session,

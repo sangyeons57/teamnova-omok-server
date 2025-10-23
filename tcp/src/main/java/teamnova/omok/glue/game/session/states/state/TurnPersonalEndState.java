@@ -157,25 +157,15 @@ public final class TurnPersonalEndState implements BaseState {
                 detail, "mode=disconnected-loss");
             applyDisconnectedAsLoss(context);
         }
-        finalizeSession(context);
+        // Do not finalize the session here. Outcomes are set; TurnEndState will perform the actual
+        // game-finished marking and post-game transition to keep a single authority for finalization.
         return true;
     }
 
     private void completeWinningTurn(GameSessionStateContext context, TurnPersonalFrame frame) {
-        int turnCount;
-        if (frame.currentSnapshot() != null) {
-            turnCount = frame.currentSnapshot().turnNumber();
-        } else {
-            turnCount = context.turns().actionNumber();
-        }
-        context.session().lock().lock();
-        try {
-            context.session().markGameFinished(frame.requestedAtMillis(), turnCount);
-        } finally {
-            context.session().lock().unlock();
-        }
+        // Only finalize the personal move outcome here; do not mark the whole game as finished.
+        // TurnEndState will be the sole authority to mark game completion and transition to Post-Game.
         turnContextService.finalizeMoveOutcome(context, MoveStatus.SUCCESS);
-        contextService.postGame().queueGameCompletion(context, new GameCompletionNotice());
         turnContextService.clearTurnCycle(context);
     }
 

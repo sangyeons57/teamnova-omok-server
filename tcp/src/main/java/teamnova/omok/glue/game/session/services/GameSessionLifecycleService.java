@@ -2,6 +2,7 @@ package teamnova.omok.glue.game.session.services;
 
 import java.util.Objects;
 
+import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
@@ -33,7 +34,17 @@ public final class GameSessionLifecycleService {
                 deps.messenger().broadcastPlayerDisconnected(session, userId, "LEFT");
             }
         });
-        deps.repository().removeByUserId(userId).ifPresent(deps.runtime()::remove);
+        deps.repository().removeByUserId(userId).ifPresent(removed -> {
+            deps.runtime().remove(removed);
+            // Explicitly unbind the user's client session from this game session
+            try {
+                ClientSessionManager.getInstance()
+                    .findSession(userId)
+                    .ifPresent(h -> h.unbindGameSession(removed.sessionId()));
+            } catch (Throwable ignore) {
+                // best-effort unbind; do not block cleanup
+            }
+        });
     }
 
     public static void handleClientDisconnected(GameSessionDependencies deps,
