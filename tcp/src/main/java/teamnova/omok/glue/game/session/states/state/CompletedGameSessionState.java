@@ -93,7 +93,8 @@ public class CompletedGameSessionState implements BaseState {
         contextService.postGame().queueDecisionResult(context,
             PostGameDecisionResult.rejected(
                 event.userId(),
-                PostGameDecisionStatus.SESSION_CLOSED
+                PostGameDecisionStatus.SESSION_CLOSED,
+                event.requestId()
             )
         );
         return StateStep.stay();

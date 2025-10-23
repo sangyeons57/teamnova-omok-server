@@ -99,7 +99,8 @@ public final class PostGameDecisionWaitingState implements BaseState {
         if (!context.participants().containsUser(event.userId())) {
             contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 event.userId(),
-                PostGameDecisionStatus.INVALID_PLAYER
+                PostGameDecisionStatus.INVALID_PLAYER,
+                event.requestId()
             ));
             return StateStep.stay();
         }
@@ -108,14 +109,16 @@ public final class PostGameDecisionWaitingState implements BaseState {
         if (deadline > 0 && now > deadline) {
             contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 event.userId(),
-                PostGameDecisionStatus.TIME_WINDOW_CLOSED
+                PostGameDecisionStatus.TIME_WINDOW_CLOSED,
+                event.requestId()
             ));
             return StateStep.stay();
         }
         if (context.postGame().hasPostGameDecision(event.userId())) {
             contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 event.userId(),
-                PostGameDecisionStatus.ALREADY_DECIDED
+                PostGameDecisionStatus.ALREADY_DECIDED,
+                event.requestId()
             ));
             return StateStep.stay();
         }
@@ -123,7 +126,8 @@ public final class PostGameDecisionWaitingState implements BaseState {
         if (!recorded) {
             contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
                 event.userId(),
-                PostGameDecisionStatus.ALREADY_DECIDED
+                PostGameDecisionStatus.ALREADY_DECIDED,
+                event.requestId()
             ));
             return StateStep.stay();
         }
@@ -138,7 +142,7 @@ public final class PostGameDecisionWaitingState implements BaseState {
             }
         }
         contextService.postGame().queueDecisionResult(context,
-            PostGameDecisionResult.accepted(event.userId(), event.decision())
+            PostGameDecisionResult.accepted(event.userId(), event.requestId(), event.decision())
         );
         contextService.postGame().queueDecisionUpdate(context, snapshotUpdate(context));
         if (allDecided(context)) {

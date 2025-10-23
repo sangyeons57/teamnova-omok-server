@@ -49,7 +49,7 @@ public class PostGameDecisionHandler implements FrameHandler {
     private void respondImmediate(long requestId,
                                   String userId,
                                   PostGameDecisionStatus status) {
-        PostGameDecisionResult result = PostGameDecisionResult.rejected(userId, status);
+        PostGameDecisionResult result = PostGameDecisionResult.rejected(userId, status, requestId);
         ClientSessionManager.getInstance()
             .gamePublisher()
             .respondPostGameDecision(userId, requestId, result);

@@ -39,7 +39,7 @@ public final class PostGameSignalHandler implements StateSignalListener {
 
     @Override
     public Set<LifecycleEventKind> events() {
-        return java.util.Set.of(LifecycleEventKind.ON_START);
+        return java.util.Set.of(LifecycleEventKind.ON_START, LifecycleEventKind.ON_UPDATE);
     }
 
     @Override
@@ -55,13 +55,25 @@ public final class PostGameSignalHandler implements StateSignalListener {
     public void onSignal(StateName state, LifecycleEventKind kind) {
         GameSessionStateType type = GameSessionStateType.stateNameLookup(state);
         if (type == GameSessionStateType.POST_GAME_DECISION_WAITING) {
-            drainWaiting();
+            if (kind == LifecycleEventKind.ON_START) {
+                drainWaiting();
+            }
+            // ON_UPDATE: drain decision results (ACKs) and incremental updates
+            if (kind == LifecycleEventKind.ON_UPDATE) {
+                drainDecisionAcksAndUpdates();
+            }
         } else if (type == GameSessionStateType.POST_GAME_DECISION_RESOLVING) {
             // All players have decided before deadline; ensure the decision timer is cancelled.
-            services.decisionTimeoutScheduler().cancel(context.session().sessionId());
-            drainResolving();
+            if (kind == LifecycleEventKind.ON_START) {
+                services.decisionTimeoutScheduler().cancel(context.session().sessionId());
+                // Drain any remaining acks/updates before resolution broadcast
+                drainDecisionAcksAndUpdates();
+                drainResolving();
+            }
         } else if (type == GameSessionStateType.COMPLETED) {
-            cancelAllTimers();
+            if (kind == LifecycleEventKind.ON_START) {
+                cancelAllTimers();
+            }
         }
     }
 
@@ -83,6 +95,22 @@ public final class PostGameSignalHandler implements StateSignalListener {
                     } catch (Throwable ignored) { }
                 });
             }
+        }
+        // Also drain any pending decision ACKs/updates queued during onEnter
+        drainDecisionAcksAndUpdates();
+    }
+
+    private void drainDecisionAcksAndUpdates() {
+        // Drain decision results: send ACK per requestId
+        while (true) {
+            var result = contextService.postGame().consumeDecisionResult(context);
+            if (result == null) break;
+            services.messenger().respondPostGameDecision(result.userId(), result.requestId(), result);
+        }
+        // Drain decision update snapshot if queued
+        var update = contextService.postGame().consumeDecisionUpdate(context);
+        if (update != null) {
+            services.messenger().broadcastPostGameDecisionUpdate(context.session(), update);
         }
     }
 
