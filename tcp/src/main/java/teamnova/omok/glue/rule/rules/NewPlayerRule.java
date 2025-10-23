@@ -1,10 +1,10 @@
 package teamnova.omok.glue.rule.rules;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
  * 새로운 플레이어: 비플레이어 돌을 가상의 플레이어 소유로 간주하여 승패를 판정한다.

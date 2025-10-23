@@ -8,11 +8,11 @@ import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RuleTriggerKind;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 방해 금지: 돌이 놓인 직후 판 전체에서 방해돌을 제거한다.

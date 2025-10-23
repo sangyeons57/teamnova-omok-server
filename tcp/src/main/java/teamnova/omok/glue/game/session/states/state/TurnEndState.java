@@ -15,8 +15,8 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextServ
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.states.manage.GameSessionTurnContextService;
 import teamnova.omok.glue.manager.DataManager;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RuleTriggerKind;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;

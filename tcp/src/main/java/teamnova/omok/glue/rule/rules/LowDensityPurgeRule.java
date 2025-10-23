@@ -1,10 +1,10 @@
 package teamnova.omok.glue.rule.rules;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
  * 뭉쳐야 산다: 5턴마다 주변에 돌이 가장 적은 돌들을 제거한다.

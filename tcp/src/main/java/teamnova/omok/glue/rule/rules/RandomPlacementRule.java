@@ -6,11 +6,11 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RuleTriggerKind;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 랜덤: 각 플레이어 돌이 50% 확률로 방해돌 또는 조커돌로 변형되도록 처리한다.

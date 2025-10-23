@@ -4,12 +4,12 @@ import java.util.Arrays;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.rule.BoardSnapshotTransformingRule;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RuleTriggerKind;
+import teamnova.omok.glue.rule.api.BoardSnapshotTransformingRule;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 난 검은색이 좋아: 모든 플레이어의 돌이 검은 돌처럼 보이도록 스냅샷을 변환한다.

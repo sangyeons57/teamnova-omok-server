@@ -1,4 +1,7 @@
-package teamnova.omok.glue.rule;
+package teamnova.omok.glue.rule.runtime;
+
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
 
 import java.util.ArrayList;
 import java.util.Collections;

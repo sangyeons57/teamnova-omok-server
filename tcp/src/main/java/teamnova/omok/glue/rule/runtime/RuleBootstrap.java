@@ -1,4 +1,4 @@
-package teamnova.omok.glue.rule;
+package teamnova.omok.glue.rule.runtime;
 
 import java.util.Objects;
 

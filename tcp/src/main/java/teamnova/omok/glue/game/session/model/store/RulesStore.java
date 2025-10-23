@@ -1,6 +1,7 @@
 package teamnova.omok.glue.game.session.model.store;
 
-import teamnova.omok.glue.rule.*;
+import teamnova.omok.glue.rule.api.RuleId;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

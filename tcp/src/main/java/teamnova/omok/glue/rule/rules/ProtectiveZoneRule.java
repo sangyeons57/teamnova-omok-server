@@ -11,11 +11,11 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
-import teamnova.omok.glue.rule.RuleTriggerKind;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 보호 조치: 각 플레이어가 마지막에 둔 돌 주변 한 칸을 금지 구역으로 만든다.

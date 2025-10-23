@@ -1,10 +1,10 @@
 package teamnova.omok.glue.rule.rules;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
  * 진화: 돌 생성 후 10턴이 지나면 자동으로 조커 돌로 변환한다.

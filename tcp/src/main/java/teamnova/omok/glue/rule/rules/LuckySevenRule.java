@@ -1,10 +1,10 @@
 package teamnova.omok.glue.rule.rules;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleMetadata;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
  * 럭키 7: 7의 배수 턴에 승리 조건을 달성한 플레이어를 패배 처리한다.

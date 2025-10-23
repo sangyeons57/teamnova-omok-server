@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import teamnova.omok.glue.data.model.UserData;
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
@@ -35,7 +34,7 @@ import teamnova.omok.glue.game.session.model.vo.TurnCounters;
 import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
 import teamnova.omok.glue.manager.DataManager;
-import teamnova.omok.glue.rule.RuleId;
+import teamnova.omok.glue.rule.api.RuleId;
 
 /**
  * Represents an in-game session with participants and mutable runtime state.
