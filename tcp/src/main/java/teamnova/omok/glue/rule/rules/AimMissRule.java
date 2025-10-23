@@ -18,7 +18,6 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 /**
  * 에임 미스: 플레이어가 지정한 위치 대신 주변 8칸 중 랜덤한 위치에 돌을 둔다.
  * 호출 시점: 돌이 배치되기 전에.
- *
  * 통과 (2025.10.23)
  */
 public final class AimMissRule implements Rule {

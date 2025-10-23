@@ -54,7 +54,7 @@ public final class BlackViewRule implements Rule, BoardSnapshotTransformingRule 
         for (int i = 0; i < masked.length; i++) {
             Stone stone = Stone.fromByte(masked[i]);
             if (stone.isPlayerStone()) {
-                masked[i] = Stone.PLAYER1.code();
+                masked[i] = Stone.BLOCKER.code();
             }
         }
         return masked;
