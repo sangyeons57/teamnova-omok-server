@@ -1,11 +1,13 @@
 package teamnova.omok.glue.game.session.model.store;
 
-import teamnova.omok.glue.rule.api.RuleId;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.runtime.GameSessionRuleBindings;
 
 /**
  * Holds mutable rule-selection state for a session.
@@ -13,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class RulesStore {
     private final List<RuleId> ruleIds = new ArrayList<>();
     private final Map<String, Object> data = new ConcurrentHashMap<>();
+    private volatile GameSessionRuleBindings ruleBindings = GameSessionRuleBindings.empty();
 
     public RulesStore() {
     }
@@ -24,6 +27,14 @@ public final class RulesStore {
 
     public List<RuleId> getRuleIds() {
         return ruleIds;
+    }
+
+    public void setRuleBindings(GameSessionRuleBindings ruleBindings) {
+        this.ruleBindings = Objects.requireNonNull(ruleBindings, "ruleBindings");
+    }
+
+    public GameSessionRuleBindings getRuleBindings() {
+        return ruleBindings;
     }
 
     public Object getRuleData(String key) {
