@@ -3,6 +3,7 @@ package teamnova.omok.glue.game.session.services;
 import java.util.List;
 import java.util.Objects;
 
+import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRepository;
 import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
@@ -32,7 +33,15 @@ public final class GameSessionRematchService {
         runtime.ensure(rematch);
         // Notify both sessions: a rematch has been created
         messenger.broadcastRematchStarted(previous, rematch, participants);
-        // Optionally, also broadcast join for the new session so clients can transition immediately
+
+        // Bind participants' client sessions to the new rematch for session-scoped routing
+        for (String uid : participants) {
+            ClientSessionManager.getInstance()
+                .findSession(uid)
+                .ifPresent(handle -> handle.bindGameSession(rematch.sessionId()));
+        }
+
+        // Broadcast join for the new session so clients can transition immediately
         messenger.broadcastJoin(rematch);
         return rematch;
     }
