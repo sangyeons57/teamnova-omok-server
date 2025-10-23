@@ -1,14 +1,22 @@
 package teamnova.omok.glue.rule.rules;
 
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
+import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
+import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.Rule;
 import teamnova.omok.glue.rule.RuleId;
 import teamnova.omok.glue.rule.RuleMetadata;
 import teamnova.omok.glue.rule.RuleRuntimeContext;
+import teamnova.omok.glue.rule.RuleTriggerKind;
 
 /**
- * 조커: 모든 방해돌을 조커 돌로 변환한다.
- * 호출 시점: 게임 진행 중.
+ * 조커: 돌 배치 직후 판 위의 모든 방해돌을 조커 돌로 승격한다.
+ * 호출 시점: 돌이 배치된 후.
  */
 public final class JokerPromotionRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
@@ -23,8 +31,41 @@ public final class JokerPromotionRule implements Rule {
 
     @Override
     public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        // Not implemented: automatically promoting all blockers to jokers alters balance
-        // with no clear trigger cadence (continuous vs. one-shot). The board service
-        // would also need coordinated metadata updates. This behaviour is deferred.
+        if (access == null || runtime == null || runtime.triggerKind() != RuleTriggerKind.POST_PLACEMENT) {
+            return;
+        }
+        GameSessionStateContext stateContext = runtime.stateContext();
+        GameSessionServices services = runtime.services();
+        if (stateContext == null || services == null) {
+            return;
+        }
+
+        GameSessionBoardAccess board = stateContext.board();
+        TurnSnapshot snapshot = runtime.turnSnapshot();
+        if (snapshot == null) {
+            snapshot = services.turnService().snapshot(stateContext.turns());
+        }
+        StonePlacementMetadata metadata = snapshot != null
+            ? StonePlacementMetadata.forRule(snapshot, -1, null)
+            : StonePlacementMetadata.systemGenerated();
+
+        int width = board.width();
+        int height = board.height();
+        boolean mutated = false;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (board.stoneAt(x, y) == Stone.BLOCKER) {
+                    services.boardService().setStone(board, x, y, Stone.JOKER, metadata);
+                    mutated = true;
+                }
+            }
+        }
+
+        if (mutated) {
+            byte[] snapshotBytes = services.boardService().snapshot(board);
+            runtime.contextService()
+                .postGame()
+                .queueBoardSnapshot(stateContext, new BoardSnapshotUpdate(snapshotBytes, System.currentTimeMillis()));
+        }
     }
 }

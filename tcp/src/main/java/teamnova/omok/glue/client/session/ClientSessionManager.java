@@ -14,9 +14,11 @@ import teamnova.omok.glue.client.session.services.ClientSessionDirectory;
 import teamnova.omok.glue.client.session.services.ClientSessionLifecycleService;
 import teamnova.omok.glue.client.session.services.ClientSessionMessagePublisher;
 import teamnova.omok.glue.game.session.model.PlayerResult;
-import teamnova.omok.glue.game.session.services.GameSessionMessagePublisher;
 import teamnova.omok.glue.game.session.services.BoardService;
+import teamnova.omok.glue.game.session.services.GameSessionMessagePublisher;
+import teamnova.omok.glue.game.session.services.RuleAwareBoardSnapshotTransformer;
 import teamnova.omok.glue.handler.register.Type;
+import teamnova.omok.glue.rule.RuleRegistry;
 
 /**
  * Singleton facade that exposes session operations while delegating implementation
@@ -38,7 +40,11 @@ public final class ClientSessionManager implements ClientSessionLifecycleListene
 
     private final ClientSessionDirectory directory = new ClientSessionDirectory();
     private final ClientSessionMessagePublisher clientPublisher = new ClientSessionMessagePublisher();
-    private final GameSessionMessagePublisher gamePublisher = new GameSessionMessagePublisher(directory, new BoardService());
+    private final GameSessionMessagePublisher gamePublisher = new GameSessionMessagePublisher(
+        directory,
+        new BoardService(),
+        new RuleAwareBoardSnapshotTransformer(RuleRegistry.getInstance())
+    );
     private final ClientSessionLifecycleService lifecycleService = new ClientSessionLifecycleService(directory, clientPublisher);
 
     private ClientSessionManager() {

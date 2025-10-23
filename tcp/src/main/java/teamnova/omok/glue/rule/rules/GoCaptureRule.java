@@ -13,9 +13,8 @@ import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.Stone;
 
 /**
- * Simplified Go-like capture rule: any individual stone that has no orthogonal liberty
- * (adjacent EMPTY) is removed at the end of each turn. Group liberties are not computed for
- * simplicity; this is a per-stone check.
+ * 바둑: 직교 방향으로 자유(빈칸)가 없는 돌은 턴 종료 시 제거한다.
+ * 단순화를 위해 연결 그룹 대신 각 돌의 개별 자유만 검사한다.
  */
 public class GoCaptureRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
