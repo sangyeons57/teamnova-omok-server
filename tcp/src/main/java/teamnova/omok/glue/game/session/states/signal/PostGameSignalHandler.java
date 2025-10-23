@@ -2,11 +2,15 @@ package teamnova.omok.glue.game.session.states.signal;
 
 import java.util.Set;
 
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
+import teamnova.omok.glue.game.session.services.GameSessionRematchService;
+import teamnova.omok.glue.game.session.states.GameStateHub;
+import teamnova.omok.glue.game.session.states.event.DecisionTimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
@@ -20,11 +24,14 @@ import teamnova.omok.modules.state_machine.models.StateName;
 public final class PostGameSignalHandler implements StateSignalListener {
     private final GameSessionStateContext context;
     private final GameSessionStateContextService contextService;
-    private final teamnova.omok.glue.game.session.model.dto.GameSessionServices services;
+    private final GameSessionServices services;
+    private final GameStateHub hub;
 
-    public PostGameSignalHandler(GameSessionStateContext context,
+    public PostGameSignalHandler(GameStateHub hub,
+                                 GameSessionStateContext context,
                                  GameSessionStateContextService contextService,
-                                 teamnova.omok.glue.game.session.model.dto.GameSessionServices services) {
+                                 GameSessionServices services) {
+        this.hub = hub;
         this.context = context;
         this.contextService = contextService;
         this.services = services;
@@ -50,6 +57,8 @@ public final class PostGameSignalHandler implements StateSignalListener {
         if (type == GameSessionStateType.POST_GAME_DECISION_WAITING) {
             drainWaiting();
         } else if (type == GameSessionStateType.POST_GAME_DECISION_RESOLVING) {
+            // All players have decided before deadline; ensure the decision timer is cancelled.
+            services.decisionTimeoutScheduler().cancel(context.session().sessionId());
             drainResolving();
         } else if (type == GameSessionStateType.COMPLETED) {
             cancelAllTimers();
@@ -64,7 +73,16 @@ public final class PostGameSignalHandler implements StateSignalListener {
         PostGameDecisionPrompt prompt = contextService.postGame().consumeDecisionPrompt(context);
         if (prompt != null) {
             services.messenger().broadcastPostGamePrompt(context.session(), prompt);
-            // Decision timeout scheduling can be added here if a repository/runtime is injectable
+            // Schedule decision timeout at the recorded deadline to auto-resolve
+            long deadline = contextService.postGame().decisionDeadline(context);
+            if (deadline > 0) {
+                var sessionId = context.session().sessionId();
+                services.decisionTimeoutScheduler().schedule(sessionId, deadline, () -> {
+                    try {
+                        hub.submit(new DecisionTimeoutEvent(deadline));
+                    } catch (Throwable ignored) { }
+                });
+            }
         }
     }
 
@@ -73,7 +91,20 @@ public final class PostGameSignalHandler implements StateSignalListener {
         if (update != null) services.messenger().broadcastPostGameDecisionUpdate(context.session(), update);
         PostGameResolution resolution = contextService.postGame().consumePostGameResolution(context);
         if (resolution != null) {
-            // Resolution side-effects (rematch/session termination) are performed within state transitions.
+            switch (resolution.type()) {
+                case REMATCH -> {
+                    // Create a new session for rematch participants and notify clients
+                    GameSessionRematchService.createAndBroadcast(
+                        services,
+                        context.session(),
+                        resolution.rematchParticipants()
+                    );
+                }
+                case TERMINATE -> {
+                    // Announce termination and who is disconnected
+                    services.messenger().broadcastSessionTerminated(context.session(), resolution.disconnected());
+                }
+            }
         }
     }
 

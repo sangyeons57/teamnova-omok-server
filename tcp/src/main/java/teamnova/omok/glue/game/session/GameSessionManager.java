@@ -72,7 +72,7 @@ public final class GameSessionManager implements Closeable,
 
         GameSessionStateContextService contextService = new GameSessionStateContextService();
         GameSessionMessenger messenger = ClientSessionManager.getInstance().gamePublisher();
-        this.runtime = new GameStateHubRegistry(boardService, turnService, scoreService, contextService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler);
+        this.runtime = new GameStateHubRegistry(repository, boardService, turnService, scoreService, contextService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler);
         this.dependencies = new GameSessionDependencies(
             repository,
             runtime,

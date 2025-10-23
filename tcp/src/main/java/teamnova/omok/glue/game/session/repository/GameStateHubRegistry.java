@@ -4,11 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import teamnova.omok.glue.game.session.interfaces.GameBoardService;
-import teamnova.omok.glue.game.session.interfaces.GameScoreService;
-import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
-import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
+import teamnova.omok.glue.game.session.interfaces.*;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.game.session.states.GameStateHub;
@@ -26,14 +22,17 @@ public final class GameStateHubRegistry implements GameSessionRuntime {
     private final GameSessionMessenger messenger;
     private final teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler turnTimeoutScheduler;
     private final teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler decisionTimeoutScheduler;
+    private final teamnova.omok.glue.game.session.interfaces.GameSessionRepository repository;
 
-    public GameStateHubRegistry(GameBoardService boardService,
+    public GameStateHubRegistry(GameSessionRepository repository,
+                                GameBoardService boardService,
                                 GameTurnService turnService,
                                 GameScoreService scoreService,
                                 GameSessionStateContextService contextService,
                                 GameSessionMessenger messenger,
                                 teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler turnTimeoutScheduler,
                                 teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler decisionTimeoutScheduler) {
+        this.repository = repository;
         this.boardService = boardService;
         this.turnService = turnService;
         this.scoreService = scoreService;
@@ -47,7 +46,7 @@ public final class GameStateHubRegistry implements GameSessionRuntime {
     public GameStateHub ensure(GameSession session) {
         return managersById.computeIfAbsent(
             session.sessionId(),
-            id -> new GameStateHub(session, boardService, turnService, scoreService, contextService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler)
+            id -> new GameStateHub(session, boardService, turnService, scoreService, contextService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler, repository, this)
         );
     }
 

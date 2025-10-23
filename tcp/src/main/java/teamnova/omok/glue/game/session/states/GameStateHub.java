@@ -30,8 +30,6 @@ import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
-import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
-import teamnova.omok.modules.state_machine.models.StateName;
 
 public class GameStateHub {
 
@@ -48,7 +46,9 @@ public class GameStateHub {
                         GameSessionStateContextService contextService,
                         GameSessionMessenger messenger,
                         TurnTimeoutScheduler turnTimeoutScheduler,
-                        DecisionTimeoutScheduler decisionTimeoutScheduler) {
+                        DecisionTimeoutScheduler decisionTimeoutScheduler,
+                        GameSessionRepository repository,
+                        GameSessionRuntime runtime) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(boardService, "boardService");
         Objects.requireNonNull(turnService, "turnService");
@@ -57,7 +57,7 @@ public class GameStateHub {
         Objects.requireNonNull(messenger, "messenger");
 
         this.contextService = contextService;
-        this.services = new GameSessionServices(boardService, turnService, scoreService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler);
+        this.services = new GameSessionServices(boardService, turnService, scoreService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler, repository, runtime);
         this.context = new GameSessionStateContext(session);
 
         this.stateMachine = StateMachineGateway.open();
@@ -89,7 +89,7 @@ public class GameStateHub {
         registerSignalListener(new LifecycleLoggingSignalHandler(this, context));
         registerSignalListener(new ReadySignalHandler(context, this.contextService, services));
         registerSignalListener(new MoveSignalHandler(context, services));
-        registerSignalListener(new PostGameSignalHandler(context, this.contextService, services));
+        registerSignalListener(new PostGameSignalHandler(this, context, this.contextService, services));
         registerSignalListener(new TimeoutSignalHandler(context, services));
     }
 

@@ -12,12 +12,17 @@ import teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler;
 /**
  * 게임 세션 처리에 필요한 서비스 모음.
  */
+import teamnova.omok.glue.game.session.interfaces.GameSessionRepository;
+import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
+
 public record GameSessionServices(GameBoardService boardService,
                                   GameTurnService turnService,
                                   GameScoreService scoreService,
                                   GameSessionMessenger messenger,
                                   TurnTimeoutScheduler turnTimeoutScheduler,
-                                  DecisionTimeoutScheduler decisionTimeoutScheduler) {
+                                  DecisionTimeoutScheduler decisionTimeoutScheduler,
+                                  GameSessionRepository repository,
+                                  GameSessionRuntime runtime) {
     public GameSessionServices {
         Objects.requireNonNull(boardService, "boardService");
         Objects.requireNonNull(turnService, "turnService");
@@ -25,5 +30,7 @@ public record GameSessionServices(GameBoardService boardService,
         Objects.requireNonNull(messenger, "messenger");
         Objects.requireNonNull(turnTimeoutScheduler, "turnTimeoutScheduler");
         Objects.requireNonNull(decisionTimeoutScheduler, "decisionTimeoutScheduler");
+        Objects.requireNonNull(repository, "repository");
+        Objects.requireNonNull(runtime, "runtime");
     }
 }

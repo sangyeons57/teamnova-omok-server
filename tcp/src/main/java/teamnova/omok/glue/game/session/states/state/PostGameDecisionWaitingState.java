@@ -127,6 +127,16 @@ public final class PostGameDecisionWaitingState implements BaseState {
             ));
             return StateStep.stay();
         }
+        // If the player chose to LEAVE, mark them disconnected immediately
+        if (event.decision() == PostGameDecision.LEAVE) {
+            var session = context.session();
+            session.lock().lock();
+            try {
+                session.markDisconnected(event.userId());
+            } finally {
+                session.lock().unlock();
+            }
+        }
         contextService.postGame().queueDecisionResult(context,
             PostGameDecisionResult.accepted(event.userId(), event.decision())
         );
@@ -187,6 +197,14 @@ public final class PostGameDecisionWaitingState implements BaseState {
         for (String userId : context.participants().getUserIds()) {
             if (!context.postGame().hasPostGameDecision(userId)) {
                 context.postGame().recordPostGameDecision(userId, PostGameDecision.LEAVE);
+                // Mark undecided users as disconnected on timeout expiry
+                var session = context.session();
+                session.lock().lock();
+                try {
+                    session.markDisconnected(userId);
+                } finally {
+                    session.lock().unlock();
+                }
             }
         }
     }
