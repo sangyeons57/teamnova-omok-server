@@ -38,8 +38,8 @@ public final class GameSessionManager implements Closeable,
 
     private static GameSessionManager INSTANCE;
 
-    public static GameSessionManager Init(RuleManager ruleManager) {
-        INSTANCE = new GameSessionManager(ruleManager);
+    public static GameSessionManager Init(RuleManager ruleManager, ClientSessionManager clientSessionManager) {
+        INSTANCE = new GameSessionManager(ruleManager, clientSessionManager);
         return INSTANCE;
     }
 
@@ -56,8 +56,9 @@ public final class GameSessionManager implements Closeable,
     private final ScheduledExecutorService scheduler;
     private final AtomicBoolean ticking = new AtomicBoolean(false);
 
-    private GameSessionManager(RuleManager ruleManager) {
+    private GameSessionManager(RuleManager ruleManager, ClientSessionManager clientSessionManager) {
         Objects.requireNonNull(ruleManager, "ruleManager");
+        Objects.requireNonNull(clientSessionManager, "clientSessionManager");
 
         InMemoryGameSessionRepository repository = new InMemoryGameSessionRepository();
 
@@ -71,7 +72,7 @@ public final class GameSessionManager implements Closeable,
 
 
         GameSessionStateContextService contextService = new GameSessionStateContextService();
-        GameSessionMessenger messenger = ClientSessionManager.getInstance().gamePublisher();
+        GameSessionMessenger messenger = clientSessionManager.gamePublisher();
         this.runtime = new GameStateHubRegistry(repository, boardService, turnService, scoreService, contextService, messenger, turnTimeoutScheduler, decisionTimeoutScheduler);
         this.dependencies = new GameSessionDependencies(
             repository,

@@ -23,7 +23,7 @@ public final class Main {
         DataManager dataManager = DataManager.Init();
         ClientSessionManager clientSessionManager = ClientSessionManager.Init();
         RuleManager ruleManager = RuleManager.Init(RuleRegistry.getInstance());
-        GameSessionManager gameSessionManager = GameSessionManager.Init(RuleManager.getInstance());
+        GameSessionManager gameSessionManager = GameSessionManager.Init(RuleManager.getInstance(), ClientSessionManager.getInstance());
         MatchingManager matchingManager = MatchingManager.Init(gameSessionManager);
         UserSessionManager userSessionManager = UserSessionManager.Init();
 
