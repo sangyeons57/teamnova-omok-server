@@ -24,6 +24,7 @@ import teamnova.omok.glue.game.session.services.*;
 import teamnova.omok.glue.game.session.services.coordinator.DecisionTimeoutCoordinator;
 import teamnova.omok.glue.game.session.services.coordinator.TurnTimeoutCoordinator;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
+import teamnova.omok.glue.rule.runtime.RuleEngine;
 import teamnova.omok.glue.rule.runtime.RuleManager;
 import teamnova.omok.modules.matching.models.MatchGroup;
 
@@ -38,8 +39,10 @@ public final class GameSessionManager implements Closeable,
 
     private static GameSessionManager INSTANCE;
 
-    public static GameSessionManager Init(RuleManager ruleManager, ClientSessionManager clientSessionManager) {
-        INSTANCE = new GameSessionManager(ruleManager, clientSessionManager);
+    public static GameSessionManager Init(RuleManager ruleManager,
+                                         RuleEngine ruleEngine,
+                                         ClientSessionManager clientSessionManager) {
+        INSTANCE = new GameSessionManager(ruleManager, ruleEngine, clientSessionManager);
         return INSTANCE;
     }
 
@@ -56,8 +59,11 @@ public final class GameSessionManager implements Closeable,
     private final ScheduledExecutorService scheduler;
     private final AtomicBoolean ticking = new AtomicBoolean(false);
 
-    private GameSessionManager(RuleManager ruleManager, ClientSessionManager clientSessionManager) {
+    private GameSessionManager(RuleManager ruleManager,
+                              RuleEngine ruleEngine,
+                              ClientSessionManager clientSessionManager) {
         Objects.requireNonNull(ruleManager, "ruleManager");
+        Objects.requireNonNull(ruleEngine, "ruleEngine");
         Objects.requireNonNull(clientSessionManager, "clientSessionManager");
 
         InMemoryGameSessionRepository repository = new InMemoryGameSessionRepository();
@@ -81,6 +87,7 @@ public final class GameSessionManager implements Closeable,
             messenger,
             turnTimeoutScheduler,
             decisionTimeoutScheduler,
+            ruleEngine,
             ruleManager,
             contextService
         );

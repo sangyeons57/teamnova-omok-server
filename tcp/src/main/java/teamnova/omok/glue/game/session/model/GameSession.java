@@ -35,6 +35,7 @@ import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
 import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.runtime.GameSessionRuleBindings;
 
 /**
  * Represents an in-game session with participants and mutable runtime state.
@@ -92,6 +93,16 @@ public class GameSession implements GameSessionAccess {
     @Override
     public List<RuleId> getRuleIds() {
         return rulesStore.getRuleIds();
+    }
+
+    @Override
+    public void setRuleBindings(GameSessionRuleBindings ruleBindings) {
+        rulesStore.setRuleBindings(ruleBindings);
+    }
+
+    @Override
+    public GameSessionRuleBindings getRuleBindings() {
+        return rulesStore.getRuleBindings();
     }
 
     @Override

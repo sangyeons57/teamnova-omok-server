@@ -18,7 +18,6 @@ import teamnova.omok.glue.game.session.services.BoardService;
 import teamnova.omok.glue.game.session.services.GameSessionMessagePublisher;
 import teamnova.omok.glue.game.session.services.RuleAwareBoardSnapshotTransformer;
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.rule.runtime.RuleRegistry;
 
 /**
  * Singleton facade that exposes session operations while delegating implementation
@@ -43,7 +42,7 @@ public final class ClientSessionManager implements ClientSessionLifecycleListene
     private final GameSessionMessagePublisher gamePublisher = new GameSessionMessagePublisher(
         directory,
         new BoardService(),
-        new RuleAwareBoardSnapshotTransformer(RuleRegistry.getInstance())
+        new RuleAwareBoardSnapshotTransformer()
     );
     private final ClientSessionLifecycleService lifecycleService = new ClientSessionLifecycleService(directory, clientPublisher);
 

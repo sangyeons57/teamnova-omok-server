@@ -8,6 +8,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.modules.matching.models.MatchGroup;
 
 /**
@@ -40,6 +41,8 @@ public final class GameSessionCreationService {
         Map<String, Integer> knownScores = new HashMap<>();
         group.tickets().forEach(ticket -> knownScores.put(ticket.id(), ticket.rating()));
 
-        session.setRuleIds(deps.ruleManager().prepareRules(knownScores));
+        List<RuleId> ruleIds = deps.ruleManager().prepareRules(knownScores);
+        session.setRuleIds(ruleIds);
+        session.setRuleBindings(deps.ruleEngine().createBindings(ruleIds));
     }
 }

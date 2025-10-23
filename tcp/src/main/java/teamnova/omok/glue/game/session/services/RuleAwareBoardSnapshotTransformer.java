@@ -1,13 +1,8 @@
 package teamnova.omok.glue.game.session.services;
 
-import java.util.List;
-import java.util.Objects;
-
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.rule.api.BoardSnapshotTransformingRule;
-import teamnova.omok.glue.rule.api.Rule;
-import teamnova.omok.glue.rule.api.RuleId;
-import teamnova.omok.glue.rule.runtime.RuleRegistry;
+import teamnova.omok.glue.rule.runtime.GameSessionRuleBindings;
 
 /**
  * Delegates snapshot rewriting to active rules that declare support for view
@@ -15,29 +10,20 @@ import teamnova.omok.glue.rule.runtime.RuleRegistry;
  * while still letting rules opt-in to presentation changes.
  */
 public final class RuleAwareBoardSnapshotTransformer implements BoardSnapshotTransformer {
-    private final RuleRegistry ruleRegistry;
-
-    public RuleAwareBoardSnapshotTransformer(RuleRegistry ruleRegistry) {
-        this.ruleRegistry = Objects.requireNonNull(ruleRegistry, "ruleRegistry");
-    }
-
     @Override
     public byte[] transform(GameSessionAccess session, byte[] snapshot) {
         if (session == null || snapshot == null || snapshot.length == 0) {
             return snapshot;
         }
-        List<RuleId> ruleIds = session.getRuleIds();
-        if (ruleIds == null || ruleIds.isEmpty()) {
+        GameSessionRuleBindings bindings = session.getRuleBindings();
+        if (bindings == null) {
             return snapshot;
         }
         byte[] current = snapshot;
-        for (RuleId ruleId : ruleIds) {
-            Rule rule = ruleRegistry.get(ruleId);
-            if (rule instanceof BoardSnapshotTransformingRule transformingRule) {
-                current = transformingRule.transformBoardSnapshot(session, current);
-                if (current == null) {
-                    break;
-                }
+        for (BoardSnapshotTransformingRule transformingRule : bindings.capability(BoardSnapshotTransformingRule.class)) {
+            current = transformingRule.transformBoardSnapshot(session, current);
+            if (current == null) {
+                break;
             }
         }
         return current;

@@ -10,6 +10,7 @@ import teamnova.omok.glue.manager.MatchingManager;
 import teamnova.omok.glue.manager.NioManager;
 import teamnova.omok.glue.manager.ServerLifecycleManager;
 import teamnova.omok.glue.manager.UserSessionManager;
+import teamnova.omok.glue.rule.runtime.RuleEngine;
 import teamnova.omok.glue.rule.runtime.RuleManager;
 import teamnova.omok.glue.rule.runtime.RuleRegistry;
 
@@ -22,8 +23,14 @@ public final class Main {
 
         DataManager dataManager = DataManager.Init();
         ClientSessionManager clientSessionManager = ClientSessionManager.Init();
-        RuleManager ruleManager = RuleManager.Init(RuleRegistry.getInstance());
-        GameSessionManager gameSessionManager = GameSessionManager.Init(RuleManager.getInstance(), ClientSessionManager.getInstance());
+        RuleRegistry ruleRegistry = RuleRegistry.getInstance();
+        RuleManager ruleManager = RuleManager.Init(ruleRegistry);
+        RuleEngine ruleEngine = new RuleEngine(ruleRegistry);
+        GameSessionManager gameSessionManager = GameSessionManager.Init(
+            RuleManager.getInstance(),
+            ruleEngine,
+            ClientSessionManager.getInstance()
+        );
         MatchingManager matchingManager = MatchingManager.Init(gameSessionManager);
         UserSessionManager userSessionManager = UserSessionManager.Init();
 
