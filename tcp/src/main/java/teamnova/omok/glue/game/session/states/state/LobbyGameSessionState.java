@@ -55,7 +55,7 @@ public class LobbyGameSessionState implements BaseState {
         try {
             int playerIndex = context.participants().playerIndexOf(event.userId());
             if (playerIndex < 0) {
-                result = ReadyResult.invalid(event.userId());
+                result = ReadyResult.invalid(event.userId(), event.requestId());
             } else {
                 boolean changed = context.participants().markReady(event.userId());
                 boolean allReady = context.participants().allReady();
@@ -83,7 +83,8 @@ public class LobbyGameSessionState implements BaseState {
                     allReady,
                     startedNow,
                     snapshot,
-                    event.userId()
+                    event.userId(),
+                    event.requestId()
                 );
             }
         } finally {

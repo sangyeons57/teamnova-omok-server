@@ -61,7 +61,7 @@ public class CompletedGameSessionState implements BaseState {
                                   ReadyEvent event) {
         GameSessionAccess session = context.session();
         if (!context.participants().containsUser(event.userId())) {
-            contextService.turn().queueReadyResult(context, ReadyResult.invalid(event.userId()));
+            contextService.turn().queueReadyResult(context, ReadyResult.invalid(event.userId(), event.requestId()));
             return StateStep.stay();
         }
         boolean allReady = context.participants().allReady();
@@ -73,7 +73,8 @@ public class CompletedGameSessionState implements BaseState {
             allReady,
             false,
             snapshot,
-            event.userId()
+            event.userId(),
+            event.requestId()
         );
         contextService.turn().queueReadyResult(context, result);
         return StateStep.stay();

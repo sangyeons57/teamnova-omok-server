@@ -58,7 +58,7 @@ public final class ReadySignalHandler implements StateSignalListener {
             return;
         }
         // Respond to the requester
-        services.messenger().respondReady(result.userId(), 0L, context.session(), result);
+        services.messenger().respondReady(result.userId(), result.requestId(), context.session(), result);
         // Broadcast state change
         if (result.stateChanged()) {
             services.messenger().broadcastReady(context.session(), result);

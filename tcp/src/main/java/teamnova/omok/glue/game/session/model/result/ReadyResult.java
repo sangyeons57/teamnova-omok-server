@@ -10,9 +10,10 @@ public record ReadyResult(boolean validUser,
                           boolean allReady,
                           boolean gameStartedNow,
                           TurnSnapshot firstTurn,
-                          String userId) {
+                          String userId,
+                          long requestId) {
 
-    public static ReadyResult invalid(String userId) {
-        return new ReadyResult(false, false, false, false, null, userId);
+    public static ReadyResult invalid(String userId, long requestId) {
+        return new ReadyResult(false, false, false, false, null, userId, requestId);
     }
 }
