@@ -10,22 +10,15 @@ public final class MoveAckMessageEncoder {
     private MoveAckMessageEncoder() {}
 
     public static byte[] encode(GameSessionAccess session, TurnPersonalFrame frame) {
-        StringBuilder sb = new StringBuilder(224);
-        sb.append('{')
-          .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
-          .append(',')
-          .append("\"status\":\"").append(frame.outcomeStatus()).append('\"');
-        sb.append(',')
-          .append("\"x\":").append(frame.x())
-          .append(',')
-          .append("\"y\":").append(frame.y());
-        if (frame.outcomeStatus() == MoveStatus.SUCCESS) {
-            sb.append(',')
-              .append("\"placedBy\":\"").append(MessageEncodingUtil.escape(frame.userId())).append('\"')
-              .append(',')
-              .append("\"stone\":").append(frame.stone() != null ? frame.stone().code() : 0);
+        // Per client spec, MOVE ACK must be minimal: {"status":"<status_label>"}
+        // We map MoveStatus.SUCCESS -> OK, otherwise -> ERROR. If frame is null (ignored), treat as ERROR.
+        String statusLabel;
+        if (frame != null && frame.outcomeStatus() == MoveStatus.SUCCESS) {
+            statusLabel = "OK";
+        } else {
+            statusLabel = "ERROR";
         }
-        sb.append('}');
-        return sb.toString().getBytes(StandardCharsets.UTF_8);
+        String json = "{\"status\":\"" + statusLabel + "\"}";
+        return json.getBytes(StandardCharsets.UTF_8);
     }
 }

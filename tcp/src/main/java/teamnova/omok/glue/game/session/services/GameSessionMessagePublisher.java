@@ -150,8 +150,8 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
                             long requestId,
                             GameSessionAccess session,
                             TurnPersonalFrame frame) {
-        // Per new protocol: response only needs requestId; keep frame Type for debugging/correlation
-        byte[] payload = new byte[0];
+        // Per client spec: MOVE ACK payload must be {"status":"<OK|ERROR>"}
+        byte[] payload = MoveAckMessageEncoder.encode(session, frame);
         send(session, userId, Type.PLACE_STONE, requestId, payload);
     }
 
@@ -159,8 +159,8 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     public void respondPostGameDecision(String userId,
                                         long requestId,
                                         PostGameDecisionResult result) {
-        // Per new protocol: response only needs requestId; keep frame Type for debugging/correlation
-        byte[] payload = new byte[0];
+        // Per client spec: POST_GAME_DECISION ACK payload must be {"status":"<status_label>","decision":"<decision_label>","reason":"<reason_label>"}
+        byte[] payload = PostGameDecisionAckMessageEncoder.encode(result);
         send(null, userId, Type.POST_GAME_DECISION, requestId, payload);
     }
 
