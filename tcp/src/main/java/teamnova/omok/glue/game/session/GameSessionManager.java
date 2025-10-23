@@ -24,7 +24,7 @@ import teamnova.omok.glue.game.session.services.*;
 import teamnova.omok.glue.game.session.services.coordinator.DecisionTimeoutCoordinator;
 import teamnova.omok.glue.game.session.services.coordinator.TurnTimeoutCoordinator;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
-import teamnova.omok.glue.rule.RuleManager;
+import teamnova.omok.glue.rule.runtime.RuleManager;
 import teamnova.omok.modules.matching.models.MatchGroup;
 
 /**

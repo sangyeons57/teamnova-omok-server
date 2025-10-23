@@ -1,9 +1,9 @@
-package teamnova.omok.glue.rule;
+package teamnova.omok.glue.rule.runtime;
 
 import java.util.*;
 
-import teamnova.omok.glue.manager.DataManager;
-import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
 
 /**
  * Selects and prepares rules for a GameSession once at creation time.

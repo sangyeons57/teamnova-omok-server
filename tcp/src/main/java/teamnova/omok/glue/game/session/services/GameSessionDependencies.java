@@ -9,7 +9,7 @@ import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
-import teamnova.omok.glue.rule.RuleManager;
+import teamnova.omok.glue.rule.runtime.RuleManager;
 
 /**
  * Game session infrastructure references that can be shared across stateless services.

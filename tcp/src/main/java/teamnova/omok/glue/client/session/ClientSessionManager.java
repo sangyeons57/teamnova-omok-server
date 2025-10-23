@@ -18,7 +18,7 @@ import teamnova.omok.glue.game.session.services.BoardService;
 import teamnova.omok.glue.game.session.services.GameSessionMessagePublisher;
 import teamnova.omok.glue.game.session.services.RuleAwareBoardSnapshotTransformer;
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.rule.RuleRegistry;
+import teamnova.omok.glue.rule.runtime.RuleRegistry;
 
 /**
  * Singleton facade that exposes session operations while delegating implementation

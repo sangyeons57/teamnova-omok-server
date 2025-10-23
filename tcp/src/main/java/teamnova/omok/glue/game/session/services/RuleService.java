@@ -1,11 +1,10 @@
 package teamnova.omok.glue.game.session.services;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
-import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleRegistry;
-import teamnova.omok.glue.rule.RuleRuntimeContext;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.runtime.RuleRegistry;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 import java.util.Objects;
 

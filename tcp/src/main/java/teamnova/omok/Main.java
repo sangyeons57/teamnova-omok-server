@@ -10,8 +10,8 @@ import teamnova.omok.glue.manager.MatchingManager;
 import teamnova.omok.glue.manager.NioManager;
 import teamnova.omok.glue.manager.ServerLifecycleManager;
 import teamnova.omok.glue.manager.UserSessionManager;
-import teamnova.omok.glue.rule.RuleManager;
-import teamnova.omok.glue.rule.RuleRegistry;
+import teamnova.omok.glue.rule.runtime.RuleManager;
+import teamnova.omok.glue.rule.runtime.RuleRegistry;
 
 public final class Main {
     private static final int DEFAULT_PORT = 15015;

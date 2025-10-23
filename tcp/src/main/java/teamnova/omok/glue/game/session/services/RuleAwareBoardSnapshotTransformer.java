@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
-import teamnova.omok.glue.rule.BoardSnapshotTransformingRule;
-import teamnova.omok.glue.rule.Rule;
-import teamnova.omok.glue.rule.RuleId;
-import teamnova.omok.glue.rule.RuleRegistry;
+import teamnova.omok.glue.rule.api.BoardSnapshotTransformingRule;
+import teamnova.omok.glue.rule.api.Rule;
+import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.runtime.RuleRegistry;
 
 /**
  * Delegates snapshot rewriting to active rules that declare support for view

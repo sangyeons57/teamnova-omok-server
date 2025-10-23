@@ -1,4 +1,4 @@
-package teamnova.omok.glue.rule;
+package teamnova.omok.glue.rule.api;
 
 /**
  * Identifies which lifecycle moment triggered the current rule invocation.

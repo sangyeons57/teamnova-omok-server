@@ -74,7 +74,7 @@ public class BoardService implements GameBoardService {
             int count = 1;
             count += countDirection(store, x, y, dir[0], dir[1], stone);
             count += countDirection(store, x, y, -dir[0], -dir[1], stone);
-            if (count >= 5) {
+            if (count == 5) {
                 return true;
             }
         }
