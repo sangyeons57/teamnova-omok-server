@@ -51,6 +51,10 @@ public enum Stone {
         };
     }
 
+    public boolean isEmpty() {
+        return this == EMPTY;
+    }
+
     public boolean isWildcard() {
         return this == JOKER;
     }
