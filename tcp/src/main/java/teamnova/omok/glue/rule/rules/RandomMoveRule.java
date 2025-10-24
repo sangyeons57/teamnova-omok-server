@@ -23,6 +23,8 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 /**
  * 이동: 무작위로 선택된 돌을 막히지 않은 한 칸 방향으로 이동시킨다.
  * 호출 시점: 전체 턴 종료 시.
+ * *
+ * 통과(2025.10.24)
  */
 public final class RandomMoveRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(

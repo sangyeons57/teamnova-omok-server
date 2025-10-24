@@ -7,7 +7,7 @@ import teamnova.omok.glue.rule.api.RuleMetadata;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
- * 6목: 승리 조건을 5목에서 6목으로 확장한다.
+ * 6목: 승리 조건을 5목에서 6목으로 확장한다. (5목 6목 둘다 허용)
  * 호출 시점: 게임 시작 시.
  */
 public final class SixInRowRule implements Rule {
