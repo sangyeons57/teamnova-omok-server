@@ -17,6 +17,8 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 /**
  * 거울: 플레이어가 둔 돌을 좌우 대칭 위치에도 복제한다.
  * 호출 시점: 돌 배치 후.
+ * *
+ * 통과(2025.10.24)
  */
 public final class MirrorBoardRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
