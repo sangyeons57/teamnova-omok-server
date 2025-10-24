@@ -20,6 +20,8 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 조커 돌 소환: 전체 턴 종료 시 두 턴마다 빈 칸에 조커 돌을 생성한다.
+ * *
+ * 통과(2025.10.24)
  */
 public final class JokerSummonRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
