@@ -17,6 +17,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 /**
  * 방해 금지: 돌이 놓인 직후 판 전체에서 방해돌을 제거한다.
  * 호출 시점: 돌이 배치된 후.
+ * 통과(2025.10.24)
  */
 public final class BlockerBanRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(

@@ -20,6 +20,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 방해 돌 소환: 전체 턴 종료 시 플레이어 돌 중 하나를 골라 인접한 빈 칸에 방해돌을 배치한다.
+ * 통과(2025.10.24)
  */
 public final class BlockerSummonRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
