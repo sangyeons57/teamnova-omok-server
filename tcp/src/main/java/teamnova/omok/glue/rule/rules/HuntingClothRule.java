@@ -9,6 +9,8 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 /**
  * 보자기: 보자기 NPC가 가장 가까운 돌을 추적하여 닿으면 방해돌로 변환한다.
  * 호출 시점: 전체 턴 종료 시.
+ * *
+ * 보자기 앤티티를 표현할 만한 색이 없어서 따로 색을 만들어야함
  */
 public final class HuntingClothRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
