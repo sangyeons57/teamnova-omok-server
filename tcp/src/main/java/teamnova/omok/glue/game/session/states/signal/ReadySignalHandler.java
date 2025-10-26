@@ -12,8 +12,8 @@ import teamnova.omok.modules.state_machine.models.StateName;
 
 /**
  * Handles READY flow via state-based signals.
- * - LOBBY ON_UPDATE: drain ReadyResult and respond/broadcast accordingly.
- * - GAME_SESSION_STARTED is broadcast exactly once here when all players become ready.
+     * - LOBBY ON_UPDATE/ON_TRANSITION: drain ReadyResult and respond/broadcast accordingly.
+     * - GAME_SESSION_STARTED is broadcast exactly once here when all players become ready before leaving the lobby.
  */
 public final class ReadySignalHandler implements StateSignalListener {
     private final GameSessionStateContext context;
@@ -30,7 +30,10 @@ public final class ReadySignalHandler implements StateSignalListener {
 
     @Override
     public Set<LifecycleEventKind> events() {
-        return java.util.Set.of(LifecycleEventKind.ON_UPDATE);
+        return java.util.Set.of(
+            LifecycleEventKind.ON_UPDATE,
+            LifecycleEventKind.ON_TRANSITION
+        );
     }
 
     @Override
@@ -43,7 +46,8 @@ public final class ReadySignalHandler implements StateSignalListener {
     @Override
     public void onSignal(StateName state, LifecycleEventKind kind) {
         GameSessionStateType type = GameSessionStateType.stateNameLookup(state);
-        if (type == GameSessionStateType.LOBBY && kind == LifecycleEventKind.ON_UPDATE) {
+        if (type == GameSessionStateType.LOBBY &&
+            (kind == LifecycleEventKind.ON_UPDATE || kind == LifecycleEventKind.ON_TRANSITION)) {
             handleLobbyUpdate();
         }
     }
