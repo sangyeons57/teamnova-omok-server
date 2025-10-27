@@ -84,6 +84,10 @@ public final class MoveApplyingState implements BaseState {
             snapshot,
             triggerKind
         );
-        RuleService.getInstance().activateRules(context.rules(), runtime);
+        RuleService ruleService = RuleService.getInstance();
+        if (triggerKind == RuleTriggerKind.PRE_PLACEMENT) {
+            ruleService.applyMoveMutations(context.rules(), runtime);
+        }
+        ruleService.activateRules(context.rules(), runtime);
     }
 }

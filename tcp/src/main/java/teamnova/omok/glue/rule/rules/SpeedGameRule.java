@@ -8,13 +8,14 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.api.TurnTimingRule;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 스피드 게임: 게임 시작 시 턴 제한 시간을 5초로 축소한다.
  */
-public final class SpeedGameRule implements Rule {
+public final class SpeedGameRule implements Rule, TurnTimingRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.SPEED_GAME,
         0
@@ -36,20 +37,28 @@ public final class SpeedGameRule implements Rule {
         if (runtime.triggerKind() != RuleTriggerKind.GAME_START) {
             return;
         }
+        adjustTurnTiming(context, runtime);
+    }
+
+    @Override
+    public boolean adjustTurnTiming(GameSessionRuleAccess context, RuleRuntimeContext runtime) {
+        if (context == null || runtime == null) {
+            return false;
+        }
         if (Boolean.TRUE.equals(context.getRuleData(APPLIED_KEY))) {
-            return;
+            return false;
         }
         GameSessionStateContext stateContext = runtime.stateContext();
         GameSessionServices services = runtime.services();
         if (stateContext == null || services == null) {
-            return;
+            return false;
         }
 
         GameSessionTurnAccess turns = stateContext.turns();
         try {
             turns.durationMillis(FAST_DURATION_MILLIS);
         } catch (IllegalArgumentException ignored) {
-            return;
+            return false;
         }
 
         TurnTiming currentTiming = turns.timing();
@@ -61,5 +70,6 @@ public final class SpeedGameRule implements Rule {
         turns.timing(updatedTiming);
 
         context.putRuleData(APPLIED_KEY, Boolean.TRUE);
+        return true;
     }
 }

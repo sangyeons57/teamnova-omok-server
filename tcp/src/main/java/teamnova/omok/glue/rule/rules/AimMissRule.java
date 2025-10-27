@@ -9,6 +9,7 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.rule.api.MoveMutationRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
@@ -20,7 +21,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
  * 호출 시점: 돌이 배치되기 전에.
  * 통과 (2025.10.23)
  */
-public final class AimMissRule implements Rule {
+public final class AimMissRule implements Rule, MoveMutationRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.AIM_MISS,
         1_000
@@ -40,6 +41,14 @@ public final class AimMissRule implements Rule {
     @Override
     public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         if (runtime == null || runtime.triggerKind() != RuleTriggerKind.PRE_PLACEMENT) {
+            return;
+        }
+        applyMoveMutation(access, runtime);
+    }
+
+    @Override
+    public void applyMoveMutation(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        if (access == null || runtime == null) {
             return;
         }
         GameSessionStateContext stateContext = runtime.stateContext();

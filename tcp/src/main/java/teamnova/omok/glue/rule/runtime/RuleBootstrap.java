@@ -10,7 +10,6 @@ import teamnova.omok.glue.rule.rules.ColosseumRule;
 import teamnova.omok.glue.rule.rules.DelayedRevealRule;
 import teamnova.omok.glue.rule.rules.EvolutionRule;
 import teamnova.omok.glue.rule.rules.GoCaptureRule;
-import teamnova.omok.glue.rule.rules.HuntingClothRule;
 import teamnova.omok.glue.rule.rules.InfectionRule;
 import teamnova.omok.glue.rule.rules.JokerPromotionRule;
 import teamnova.omok.glue.rule.rules.JokerSummonRule;
@@ -49,7 +48,6 @@ public class RuleBootstrap {
         ruleRegistry.register(new NewPlayerRule());
         ruleRegistry.register(new ProtectiveZoneRule());
         ruleRegistry.register(new MirrorBoardRule());
-        ruleRegistry.register(new HuntingClothRule());
         ruleRegistry.register(new BlockerBanRule());
         ruleRegistry.register(new JokerPromotionRule());
         ruleRegistry.register(new LuckySevenRule());

@@ -7,7 +7,7 @@ import teamnova.omok.glue.rule.api.RuleMetadata;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
- * 10수: 같은 종류의 돌이 10개 연속이면 해당 플레이어를 패배 처리한다.
+ * 10수: 같은 종류의 돌이 10개 연속이면 해당 플레이어를 패배 처리한다.(연결되어있으면)
  * 호출 시점: 턴 종료 시.
  */
 public final class TenChainEliminationRule implements Rule {

@@ -112,7 +112,10 @@ public class LobbyGameSessionState implements BaseState {
             snapshot,
             RuleTriggerKind.GAME_START
         );
-        RuleService.getInstance().activateRules(context.rules(), runtime);
+        RuleService ruleService = RuleService.getInstance();
+        ruleService.adjustTurnTiming(context.rules(), runtime);
+        ruleService.adjustTurnOrder(context.rules(), runtime);
+        ruleService.activateRules(context.rules(), runtime);
         TurnSnapshot updated = services.turnService().snapshot(context.turns());
         return updated != null ? updated : snapshot;
     }

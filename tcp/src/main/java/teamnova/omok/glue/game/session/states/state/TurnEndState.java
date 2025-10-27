@@ -142,7 +142,9 @@ public final class TurnEndState implements BaseState {
             snapshot,
             RuleTriggerKind.TURN_ROUND_COMPLETED
         );
-        RuleService.getInstance().activateRules(context.rules(), runtime);
+        RuleService ruleService = RuleService.getInstance();
+        ruleService.adjustTurnOrder(context.rules(), runtime);
+        ruleService.activateRules(context.rules(), runtime);
     }
 
     private void evaluateOutcomeRules(GameSessionStateContext context) {

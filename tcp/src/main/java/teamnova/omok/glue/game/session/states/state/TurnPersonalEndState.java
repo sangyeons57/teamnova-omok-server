@@ -259,7 +259,11 @@ public final class TurnPersonalEndState implements BaseState {
             snapshot,
             trigger
         );
-        RuleService.getInstance().activateRules(context.rules(), runtime);
+        RuleService ruleService = RuleService.getInstance();
+        if (trigger == RuleTriggerKind.TURN_ADVANCE || trigger == RuleTriggerKind.TURN_ROUND_COMPLETED) {
+            ruleService.adjustTurnOrder(context.rules(), runtime);
+        }
+        ruleService.activateRules(context.rules(), runtime);
     }
 
     private boolean handleStonePlaced(GameSessionStateContext context,
