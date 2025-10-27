@@ -46,6 +46,7 @@ public final class TurnEndState implements BaseState {
     @Override
     public <I extends StateContext> StateStep onEnter(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
+        evaluateOutcomeRules(ctx);
         if (ctx.outcomes().isGameFinished()) {
             // Ensure lifecycle is marked as finished and post-game is queued before transitioning
             ctx.session().lock().lock();
@@ -142,6 +143,18 @@ public final class TurnEndState implements BaseState {
             RuleTriggerKind.TURN_ROUND_COMPLETED
         );
         RuleService.getInstance().activateRules(context.rules(), runtime);
+    }
+
+    private void evaluateOutcomeRules(GameSessionStateContext context) {
+        TurnSnapshot snapshot = turnContextService.peekTurnSnapshot(context);
+        RuleRuntimeContext runtime = new RuleRuntimeContext(
+            services,
+            contextService,
+            context,
+            snapshot,
+            RuleTriggerKind.OUTCOME_EVALUATION
+        );
+        RuleService.getInstance().applyOutcomeRules(context, runtime);
     }
 
     private void applyScoreAdjustments(GameSessionStateContext context) {

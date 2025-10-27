@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.rule.api.BoardSnapshotTransformingRule;
+import teamnova.omok.glue.rule.api.BoardTransformRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
@@ -16,7 +16,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
  * 호출 시점: 게임 시작 시 1회 활성화 플래그를 기록한다.
  * 통과(2025.10.24)
  */
-public final class BlackViewRule implements Rule, BoardSnapshotTransformingRule {
+public final class BlackViewRule implements Rule, BoardTransformRule {
     public static final String ACTIVE_KEY = "rule:blackView:active";
 
     private static final RuleMetadata METADATA = new RuleMetadata(
@@ -44,7 +44,7 @@ public final class BlackViewRule implements Rule, BoardSnapshotTransformingRule 
     }
 
     @Override
-    public byte[] transformBoardSnapshot(GameSessionRuleAccess access, byte[] snapshot) {
+    public byte[] transformBoard(GameSessionRuleAccess access, byte[] snapshot) {
         if (!Boolean.TRUE.equals(access.getRuleData(ACTIVE_KEY))) {
             return snapshot;
         }

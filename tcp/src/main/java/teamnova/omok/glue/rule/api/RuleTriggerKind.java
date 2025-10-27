@@ -9,5 +9,6 @@ public enum RuleTriggerKind {
     TURN_ADVANCE,
     TURN_ROUND_COMPLETED,
     TURN_START,
-    POST_PLACEMENT
+    POST_PLACEMENT,
+    OUTCOME_EVALUATION
 }
