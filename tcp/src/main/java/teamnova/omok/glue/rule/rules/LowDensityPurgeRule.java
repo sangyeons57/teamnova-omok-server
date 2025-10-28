@@ -8,10 +8,10 @@ import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.rule.api.BoardSweepRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
@@ -19,7 +19,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
  * 뭉쳐야 산다: 전체 라운드 기준으로 5라운드마다 주변에 돌이 가장 적은 돌들을 제거한다.
  * 호출 시점: 전체 턴 종료 시.
  */
-public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
+public final class LowDensityPurgeRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.LOW_DENSITY_PURGE,
         1_700
@@ -34,12 +34,13 @@ public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
 
     @Override
     public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        // Primary behaviour executed via sweepBoard.
-    }
-
-    @Override
-    public void sweepBoard(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        if (access == null || runtime == null || runtime.turnSnapshot() == null) {
+        if (access == null || runtime == null) {
+            return;
+        }
+        if (runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED) {
+            return;
+        }
+        if (runtime.turnSnapshot() == null) {
             return;
         }
         int roundNumber = runtime.turnSnapshot().roundNumber();

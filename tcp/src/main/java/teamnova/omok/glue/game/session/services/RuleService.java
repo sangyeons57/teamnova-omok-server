@@ -11,7 +11,6 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.api.BoardSetupRule;
-import teamnova.omok.glue.rule.api.BoardSweepRule;
 import teamnova.omok.glue.rule.api.BoardTransformRule;
 import teamnova.omok.glue.rule.api.OutcomeResolution;
 import teamnova.omok.glue.rule.api.OutcomeRule;
@@ -153,23 +152,6 @@ public class RuleService {
             }
         }
         return changed;
-    }
-
-    public void performBoardSweep(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        Objects.requireNonNull(runtime, "runtime");
-        if (access == null) {
-            return;
-        }
-        List<RuleId> ruleIds = access.getRuleIds();
-        if (ruleIds == null || ruleIds.isEmpty()) {
-            return;
-        }
-        for (RuleId id : ruleIds) {
-            Rule rule = RuleRegistry.getInstance().get(id);
-            if (rule instanceof BoardSweepRule sweepRule) {
-                sweepRule.sweepBoard(access, runtime);
-            }
-        }
     }
 
     public Map<String, PlayerResult> registerParticipantOutcomes(GameSessionRuleAccess access,
