@@ -20,6 +20,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 /**
  * 리버스: 리버스(오셀로) 방식으로 양쪽 끝 색이 동일한 줄을 변환한다.
  * 호출 시점: 돌이 배치된 후.
+ * 통과(2025.10.29)
  */
 public final class ReversiConversionRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
