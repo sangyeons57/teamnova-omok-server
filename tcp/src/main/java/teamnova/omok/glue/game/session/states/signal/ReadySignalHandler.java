@@ -63,10 +63,10 @@ public final class ReadySignalHandler implements StateSignalListener {
         if (result.stateChanged()) {
             services.messenger().broadcastReady(context.session(), result);
         }
-        // If game starts now, broadcast GAME_SESSION_STARTED once here (leaving Lobby)
+        // If game starts now, notify clients and then push the prepared board snapshot
         if (result.gameStartedNow()) {
-            services.messenger().broadcastBoardSnapshot(context.session());
             services.messenger().broadcastGameStart(context.session(), result.firstTurn());
+            services.messenger().broadcastBoardSnapshot(context.session());
         }
     }
 }
