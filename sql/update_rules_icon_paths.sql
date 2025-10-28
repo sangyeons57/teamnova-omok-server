@@ -1,0 +1,67 @@
+-- Update icon_path values in main.rules by matching rule_code to provided asset URIs
+-- Safe to run multiple times; updates only the specified rule_code values.
+
+BEGIN TRANSACTION;
+
+UPDATE main.rules
+SET icon_path = CASE rule_code
+  WHEN 'AIM_MISS' THEN 'asset://img/AIM_MISS.png'
+  WHEN 'BLACK_VIEW' THEN 'asset://img/BLACK_VIEW.png'
+  WHEN 'BLOCKER_BAN' THEN 'asset://img/BLOCKER_BAN.png'
+  WHEN 'BLOCKER_SUMMON' THEN 'asset://img/BLOCKER_SUMMON.png'
+  WHEN 'COLOSSEUM' THEN 'asset://img/COLOSSEUM.png'
+  WHEN 'DELAYED_REVEAL' THEN 'asset://img/DELAYED_REVEAL.png'
+  WHEN 'EVOLUTION' THEN 'asset://img/EVOLUTION.png'
+  WHEN 'GO_CAPTURE' THEN 'asset://img/GO_CAPTURE.png'
+  WHEN 'INFECTION' THEN 'asset://img/INFECTION.png'
+  WHEN 'JOKER_PROMOTION' THEN 'asset://img/JOKER_PROMOTION.png'
+  WHEN 'JOKER_SUMMON' THEN 'asset://img/JOKER_SUMMON.png'
+  WHEN 'LOW_DENSITY_PURGE' THEN 'asset://img/LOW_DENSITY_PURGE.png'
+  WHEN 'LUCKY_SEVEN' THEN 'asset://img/LUCKY_SEVEN.png'
+  WHEN 'MIRROR_BOARD' THEN 'asset://img/MIRROR_BOARD.png'
+  WHEN 'NEW_PLAYER' THEN 'asset://img/NEW_PLAYER.png'
+  WHEN 'PROTECTIVE_ZONE' THEN 'asset://img/PROTECTIVE_ZONE.png'
+  WHEN 'RANDOM_MOVE' THEN 'asset://img/RANDOM_MOVE.png'
+  WHEN 'RANDOM_PLACEMENT' THEN 'asset://img/RANDOM_PLACEMENT.png'
+  WHEN 'REVERSI_CONVERSION' THEN 'asset://img/REVERSI_CONVERSION.png'
+  WHEN 'ROUND_TRIP_TURNS' THEN 'asset://img/ROUND_TRIP_TURNS.png'
+  WHEN 'SEQUENTIAL_CONVERSION' THEN 'asset://img/SEQUENTIAL_CONVERSION.png'
+  WHEN 'SIX_IN_ROW' THEN 'asset://img/SIX_IN_ROW.png'
+  WHEN 'SPEED_GAME' THEN 'asset://img/SPEED_GAME.png'
+  WHEN 'SPEED_GAME_2' THEN 'asset://img/SPEED_GAME_2.png'
+  WHEN 'STONE_CONVERSION' THEN 'asset://img/STONE_CONVERSION.png'
+  WHEN 'TEN_CHAIN_ELIMINATION' THEN 'asset://img/TEN_CHAIN_ELIMINATION.png'
+  WHEN 'TURN_ORDER_SHUFFLE' THEN 'asset://img/TURN_ORDER_SHUFFLE.png'
+  ELSE icon_path
+END
+WHERE rule_code IN (
+  'AIM_MISS',
+  'BLACK_VIEW',
+  'BLOCKER_BAN',
+  'BLOCKER_SUMMON',
+  'COLOSSEUM',
+  'DELAYED_REVEAL',
+  'EVOLUTION',
+  'GO_CAPTURE',
+  'INFECTION',
+  'JOKER_PROMOTION',
+  'JOKER_SUMMON',
+  'LOW_DENSITY_PURGE',
+  'LUCKY_SEVEN',
+  'MIRROR_BOARD',
+  'NEW_PLAYER',
+  'PROTECTIVE_ZONE',
+  'RANDOM_MOVE',
+  'RANDOM_PLACEMENT',
+  'REVERSI_CONVERSION',
+  'ROUND_TRIP_TURNS',
+  'SEQUENTIAL_CONVERSION',
+  'SIX_IN_ROW',
+  'SPEED_GAME',
+  'SPEED_GAME_2',
+  'STONE_CONVERSION',
+  'TEN_CHAIN_ELIMINATION',
+  'TURN_ORDER_SHUFFLE'
+);
+
+COMMIT;

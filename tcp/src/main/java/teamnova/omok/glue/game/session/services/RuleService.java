@@ -10,13 +10,19 @@ import java.util.Optional;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
+import teamnova.omok.glue.rule.api.BoardSetupRule;
+import teamnova.omok.glue.rule.api.BoardSweepRule;
 import teamnova.omok.glue.rule.api.BoardTransformRule;
+import teamnova.omok.glue.rule.api.HiddenPlacementRule;
 import teamnova.omok.glue.rule.api.MoveMutationRule;
 import teamnova.omok.glue.rule.api.OutcomeResolution;
 import teamnova.omok.glue.rule.api.OutcomeRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
+import teamnova.omok.glue.rule.api.ParticipantOutcomeRule;
 import teamnova.omok.glue.rule.api.TurnOrderRule;
+import teamnova.omok.glue.rule.api.TurnBudgetRule;
+import teamnova.omok.glue.rule.api.TurnLifecycleRule;
 import teamnova.omok.glue.rule.api.TurnTimingRule;
 import teamnova.omok.glue.rule.runtime.RuleRegistry;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
@@ -78,6 +84,59 @@ public class RuleService {
         return current;
     }
 
+    public void setupBoard(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        Objects.requireNonNull(runtime, "runtime");
+        if (access == null) {
+            return;
+        }
+        List<RuleId> ruleIds = access.getRuleIds();
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return;
+        }
+        for (RuleId id : ruleIds) {
+            Rule rule = RuleRegistry.getInstance().get(id);
+            if (rule instanceof BoardSetupRule setupRule) {
+                setupRule.setupBoard(access, runtime);
+            }
+        }
+    }
+
+    public boolean queueHiddenPlacement(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        Objects.requireNonNull(runtime, "runtime");
+        if (access == null) {
+            return false;
+        }
+        List<RuleId> ruleIds = access.getRuleIds();
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return false;
+        }
+        boolean handled = false;
+        for (RuleId id : ruleIds) {
+            Rule rule = RuleRegistry.getInstance().get(id);
+            if (rule instanceof HiddenPlacementRule hiddenRule) {
+                handled |= hiddenRule.queueHiddenPlacement(access, runtime);
+            }
+        }
+        return handled;
+    }
+
+    public void revealHiddenPlacements(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        Objects.requireNonNull(runtime, "runtime");
+        if (access == null) {
+            return;
+        }
+        List<RuleId> ruleIds = access.getRuleIds();
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return;
+        }
+        for (RuleId id : ruleIds) {
+            Rule rule = RuleRegistry.getInstance().get(id);
+            if (rule instanceof HiddenPlacementRule hiddenRule) {
+                hiddenRule.revealHiddenPlacements(access, runtime);
+            }
+        }
+    }
+
     public void applyMoveMutations(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         Objects.requireNonNull(runtime, "runtime");
         if (access == null) {
@@ -91,6 +150,23 @@ public class RuleService {
             Rule rule = RuleRegistry.getInstance().get(id);
             if (rule instanceof MoveMutationRule mutationRule) {
                 mutationRule.applyMoveMutation(access, runtime);
+            }
+        }
+    }
+
+    public void tickTurnLifecycle(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        Objects.requireNonNull(runtime, "runtime");
+        if (access == null) {
+            return;
+        }
+        List<RuleId> ruleIds = access.getRuleIds();
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return;
+        }
+        for (RuleId id : ruleIds) {
+            Rule rule = RuleRegistry.getInstance().get(id);
+            if (rule instanceof TurnLifecycleRule lifecycleRule) {
+                lifecycleRule.onTurnTick(access, runtime);
             }
         }
     }
@@ -114,6 +190,25 @@ public class RuleService {
         return changed;
     }
 
+    public boolean updateTurnBudget(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        Objects.requireNonNull(runtime, "runtime");
+        if (access == null) {
+            return false;
+        }
+        List<RuleId> ruleIds = access.getRuleIds();
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return false;
+        }
+        boolean changed = false;
+        for (RuleId id : ruleIds) {
+            Rule rule = RuleRegistry.getInstance().get(id);
+            if (rule instanceof TurnBudgetRule budgetRule) {
+                changed |= budgetRule.updateTurnBudget(access, runtime);
+            }
+        }
+        return changed;
+    }
+
     public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         Objects.requireNonNull(runtime, "runtime");
         if (access == null) {
@@ -127,10 +222,58 @@ public class RuleService {
         for (RuleId id : ruleIds) {
             Rule rule = RuleRegistry.getInstance().get(id);
             if (rule instanceof TurnOrderRule orderRule) {
-                changed |= orderRule.adjustTurnOrder(access, runtime);
+                changed |= runtime.services().turnOrderCoordinator().apply(orderRule, access, runtime);
             }
         }
         return changed;
+    }
+
+    public void performBoardSweep(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        Objects.requireNonNull(runtime, "runtime");
+        if (access == null) {
+            return;
+        }
+        List<RuleId> ruleIds = access.getRuleIds();
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return;
+        }
+        for (RuleId id : ruleIds) {
+            Rule rule = RuleRegistry.getInstance().get(id);
+            if (rule instanceof BoardSweepRule sweepRule) {
+                sweepRule.sweepBoard(access, runtime);
+            }
+        }
+    }
+
+    public Map<String, PlayerResult> registerParticipantOutcomes(GameSessionRuleAccess access,
+                                                                 RuleRuntimeContext runtime) {
+        Objects.requireNonNull(runtime, "runtime");
+        if (access == null) {
+            return Map.of();
+        }
+        List<RuleId> ruleIds = access.getRuleIds();
+        if (ruleIds == null || ruleIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, PlayerResult> assignments = new LinkedHashMap<>();
+        for (RuleId id : ruleIds) {
+            Rule rule = RuleRegistry.getInstance().get(id);
+            if (rule instanceof ParticipantOutcomeRule participantRule) {
+                Map<String, PlayerResult> additions = participantRule.registerParticipantOutcomes(access, runtime);
+                if (additions == null || additions.isEmpty()) {
+                    continue;
+                }
+                additions.forEach((userId, result) -> {
+                    if (userId != null && result != null) {
+                        assignments.put(userId, result);
+                    }
+                });
+            }
+        }
+        if (assignments.isEmpty()) {
+            return Map.of();
+        }
+        return Map.copyOf(assignments);
     }
 
     public Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access, RuleRuntimeContext runtime) {

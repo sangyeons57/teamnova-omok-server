@@ -87,7 +87,11 @@ public final class MoveApplyingState implements BaseState {
         RuleService ruleService = RuleService.getInstance();
         if (triggerKind == RuleTriggerKind.PRE_PLACEMENT) {
             ruleService.applyMoveMutations(context.rules(), runtime);
+            ruleService.queueHiddenPlacement(context.rules(), runtime);
         }
         ruleService.activateRules(context.rules(), runtime);
+        if (triggerKind == RuleTriggerKind.POST_PLACEMENT) {
+            ruleService.revealHiddenPlacements(context.rules(), runtime);
+        }
     }
 }

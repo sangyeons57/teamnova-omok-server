@@ -60,6 +60,9 @@ public final class TurnPersonalStartState implements BaseState {
             snapshot,
             RuleTriggerKind.TURN_START
         );
-        RuleService.getInstance().activateRules(context.rules(), runtime);
+        RuleService ruleService = RuleService.getInstance();
+        ruleService.revealHiddenPlacements(context.rules(), runtime);
+        ruleService.updateTurnBudget(context.rules(), runtime);
+        ruleService.activateRules(context.rules(), runtime);
     }
 }

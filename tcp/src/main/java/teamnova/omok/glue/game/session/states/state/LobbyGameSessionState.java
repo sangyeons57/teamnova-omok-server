@@ -1,8 +1,10 @@
 package teamnova.omok.glue.game.session.states.state;
 
+import java.util.Map;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
@@ -113,8 +115,15 @@ public class LobbyGameSessionState implements BaseState {
             RuleTriggerKind.GAME_START
         );
         RuleService ruleService = RuleService.getInstance();
+        ruleService.setupBoard(context.rules(), runtime);
+        Map<String, PlayerResult> seededOutcomes = ruleService.registerParticipantOutcomes(context.rules(), runtime);
+        if (!seededOutcomes.isEmpty()) {
+            seededOutcomes.forEach((userId, result) -> context.outcomes().updateOutcome(userId, result));
+        }
+        ruleService.tickTurnLifecycle(context.rules(), runtime);
         ruleService.adjustTurnTiming(context.rules(), runtime);
         ruleService.adjustTurnOrder(context.rules(), runtime);
+        ruleService.updateTurnBudget(context.rules(), runtime);
         ruleService.activateRules(context.rules(), runtime);
         TurnSnapshot updated = services.turnService().snapshot(context.turns());
         return updated != null ? updated : snapshot;

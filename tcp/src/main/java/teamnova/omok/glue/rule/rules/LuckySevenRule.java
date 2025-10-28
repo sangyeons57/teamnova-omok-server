@@ -1,16 +1,25 @@
 package teamnova.omok.glue.rule.rules;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
+import teamnova.omok.glue.game.session.model.PlayerResult;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
+import teamnova.omok.glue.rule.api.OutcomeResolution;
+import teamnova.omok.glue.rule.api.OutcomeRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
  * 럭키 7: 7의 배수 턴에 승리 조건을 달성한 플레이어를 패배 처리한다.
  * 호출 시점: 게임 종료 시.
  */
-public final class LuckySevenRule implements Rule {
+public final class LuckySevenRule implements Rule, OutcomeRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.LUCKY_SEVEN,
         2_100
@@ -23,8 +32,36 @@ public final class LuckySevenRule implements Rule {
 
     @Override
     public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        // Not implemented: enforcing the defeat-on-seven condition requires OutcomeEvaluatingState
-        // to react to rule metadata before declaring a winner. The evaluator currently finalises
-        // turns immediately, so this rule is a placeholder until that flow is refactored.
+        // Primary behaviour executed via resolveOutcome.
+    }
+
+    @Override
+    public Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access,
+                                                      RuleRuntimeContext runtime) {
+        if (access == null || runtime == null || runtime.turnSnapshot() == null
+            || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION) {
+            return Optional.empty();
+        }
+        int turnNumber = runtime.turnSnapshot().turnNumber();
+        if (turnNumber <= 0 || turnNumber % 7 != 0) {
+            return Optional.empty();
+        }
+        Integer lastProcessed = (Integer) access.getRuleData(RuleDataKeys.LUCKY_SEVEN_LAST_TURN);
+        if (lastProcessed != null && lastProcessed == turnNumber) {
+            return Optional.empty();
+        }
+        Map<String, PlayerResult> assignments = new LinkedHashMap<>();
+        var stateContext = runtime.stateContext();
+        for (String userId : stateContext.participants().getUserIds()) {
+            PlayerResult result = stateContext.outcomes().outcomeFor(userId);
+            if (result == PlayerResult.WIN) {
+                assignments.put(userId, PlayerResult.LOSS);
+            }
+        }
+        if (assignments.isEmpty()) {
+            return Optional.empty();
+        }
+        access.putRuleData(RuleDataKeys.LUCKY_SEVEN_LAST_TURN, turnNumber);
+        return Optional.of(OutcomeResolution.of(assignments, true));
     }
 }
