@@ -67,6 +67,7 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
             return false;
         }
         HiddenPlacementCoordinator coordinator = runtime.services().hiddenPlacementCoordinator();
+        TurnCursor cursor = captureTurnCursor(runtime);
         HiddenPlacementCoordinator.HiddenPlacement placement =
             new HiddenPlacementCoordinator.HiddenPlacement(
                 frame.userId(),
@@ -76,8 +77,8 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
                 stone,
                 frame.requestedAtMillis(),
                 frame.stonePlaceRequestId(),
-                resolvePlacementTurn(runtime, context),
-                resolvePlacementPosition(runtime, context)
+                cursor.turn(),
+                cursor.position()
             );
         coordinator.queue(access, placement);
         return true;
@@ -93,13 +94,11 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
         if (pending.isEmpty()) {
             return;
         }
-        TurnSnapshot snapshot = runtime.turnSnapshot();
-        int currentTurn = snapshot != null ? snapshot.turnNumber() : resolveCurrentTurn(runtime.stateContext());
-        int currentPosition = snapshot != null ? snapshot.positionInRound() : resolveCurrentPosition(runtime.stateContext());
+        TurnCursor cursor = captureTurnCursor(runtime);
         List<HiddenPlacementCoordinator.HiddenPlacement> carry = new ArrayList<>();
         boolean revealed = false;
         for (HiddenPlacementCoordinator.HiddenPlacement placement : pending) {
-            if (shouldRevealPlacement(placement, currentTurn, currentPosition)) {
+            if (shouldRevealPlacement(placement, cursor)) {
                 revealed = true;
             } else {
                 carry.add(placement);
@@ -136,71 +135,40 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
         return copy;
     }
 
-    private int resolvePlacementPosition(RuleRuntimeContext runtime, GameSessionStateContext context) {
-        TurnSnapshot snapshot = runtime.turnSnapshot();
-        if (snapshot != null) {
-            return Math.max(0, snapshot.positionInRound());
-        }
-        if (context != null) {
-            GameSessionTurnAccess turns = context.turns();
-            if (turns != null) {
-                TurnCounters counters = turns.counters();
-                if (counters != null) {
-                    return Math.max(0, counters.positionInRound());
-                }
-            }
-        }
-        return 0;
-    }
-
-    private int resolveCurrentPosition(GameSessionStateContext context) {
-        if (context == null) {
-            return -1;
-        }
-        GameSessionTurnAccess turns = context.turns();
-        if (turns == null) {
-            return -1;
-        }
-        TurnCounters counters = turns.counters();
-        return counters != null ? counters.positionInRound() : -1;
-    }
-
-    private int resolvePlacementTurn(RuleRuntimeContext runtime, GameSessionStateContext context) {
-        TurnSnapshot snapshot = runtime.turnSnapshot();
-        if (snapshot != null) {
-            return Math.max(0, snapshot.turnNumber());
-        }
-        if (context != null) {
-            GameSessionTurnAccess turns = context.turns();
-            if (turns != null) {
-                return Math.max(0, turns.actionNumber());
-            }
-        }
-        return 0;
-    }
-
-    private int resolveCurrentTurn(GameSessionStateContext context) {
-        if (context == null) {
-            return -1;
-        }
-        GameSessionTurnAccess turns = context.turns();
-        if (turns == null) {
-            return -1;
-        }
-        return Math.max(0, turns.actionNumber());
-    }
-
     private boolean shouldRevealPlacement(HiddenPlacementCoordinator.HiddenPlacement placement,
-                                          int currentTurn,
-                                          int currentPosition) {
+                                          TurnCursor cursor) {
         int originTurn = placement.originTurn();
-        if (currentTurn >= 0 && originTurn >= 0 && currentTurn - originTurn >= 2) {
+        if (cursor.turn() >= 0 && originTurn >= 0 && cursor.turn() - originTurn >= 2) {
             return true;
         }
         int originPosition = placement.originPosition();
-        if (currentPosition <= 0 || originPosition <= 0) {
+        if (cursor.position() <= 0 || originPosition <= 0) {
             return true;
         }
-        return currentPosition == originPosition;
+        return cursor.position() == originPosition;
+    }
+
+    private TurnCursor captureTurnCursor(RuleRuntimeContext runtime) {
+        TurnSnapshot snapshot = runtime.turnSnapshot();
+        if (snapshot != null) {
+            return new TurnCursor(
+                Math.max(0, snapshot.turnNumber()),
+                Math.max(0, snapshot.positionInRound())
+            );
+        }
+        GameSessionStateContext context = runtime.stateContext();
+        if (context != null) {
+            GameSessionTurnAccess turns = context.turns();
+            if (turns != null) {
+                int turnNumber = Math.max(0, turns.actionNumber());
+                TurnCounters counters = turns.counters();
+                int position = counters != null ? Math.max(0, counters.positionInRound()) : 0;
+                return new TurnCursor(turnNumber, position);
+            }
+        }
+        return new TurnCursor(0, 0);
+    }
+
+    private record TurnCursor(int turn, int position) {
     }
 }
