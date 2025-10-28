@@ -12,7 +12,7 @@ import teamnova.omok.glue.rule.api.RuleMetadata;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
- * 콜로세움: 가장자리 3칸을 방해돌로 막아 중앙 부분만 사용 가능하게 한다.
+ * 콜로세움: 가장자리 2칸을 방해돌로 막아 중앙 부분만 사용 가능하게 한다.
  * 호출 시점: 게임 시작 시.
  */
 public final class ColosseumRule implements Rule, BoardSetupRule {
@@ -43,7 +43,7 @@ public final class ColosseumRule implements Rule, BoardSetupRule {
         if (width <= 0 || height <= 0) {
             return;
         }
-        int margin = Math.min(3, Math.min(width, height) / 2);
+        int margin = Math.min(2, Math.min(width, height) / 2);
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 boolean nearEdge = x < margin
