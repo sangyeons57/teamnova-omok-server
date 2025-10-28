@@ -20,6 +20,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 돌 변환: 전체 턴(라운드)이 5의 배수로 종료될 때마다 각 플레이어 돌 중 하나를 방해돌로 바꾼다.
+ * 통과(2025.10.29)
  */
 public class StoneConversionRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
