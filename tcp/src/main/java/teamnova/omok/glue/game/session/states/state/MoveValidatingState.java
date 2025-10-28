@@ -88,7 +88,7 @@ public final class MoveValidatingState implements BaseState {
         }
 
         if (violatesProtectiveZone(context, x, y)) {
-            invalidate(context, frame, MoveStatus.RESTRICTED_ZONE, currentSnapshot);
+            invalidate(context, frame, MoveStatus.CELL_OCCUPIED, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 

@@ -1,10 +1,6 @@
 package teamnova.omok.glue.rule.rules;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
@@ -31,7 +27,7 @@ public final class ProtectiveZoneRule implements Rule {
 
     private static final int[][] NEIGHBORS = {
         {-1, -1}, {0, -1}, {1, -1},
-        {-1, 0}, {0, 0}, {1, 0},
+        {-1, 0}, {1, 0},
         {-1, 1}, {0, 1}, {1, 1}
     };
 
@@ -50,12 +46,15 @@ public final class ProtectiveZoneRule implements Rule {
             return;
         }
         TurnPersonalFrame frame = runtime.contextService().turn().currentPersonalTurn(stateContext);
-        if (frame == null || !frame.hasActiveMove()) {
+        if (frame == null) {
             return;
         }
         GameSessionBoardAccess board = stateContext.board();
+        if (board == null) {
+            return;
+        }
         ZoneState state = getOrCreateState(access);
-        updateZoneForPlayer(state, board, frame.userId(), frame.x(), frame.y());
+        updateZone(state, board, frame.x(), frame.y());
     }
 
     public static boolean isRestricted(Object data, int x, int y) {
@@ -75,22 +74,11 @@ public final class ProtectiveZoneRule implements Rule {
         return zoneState;
     }
 
-    private void updateZoneForPlayer(ZoneState state,
-                                     GameSessionBoardAccess board,
-                                     String userId,
-                                     int centerX,
-                                     int centerY) {
-        if (userId == null) {
-            return;
-        }
-        List<Long> previous = state.byPlayer.remove(userId);
-        if (previous != null) {
-            for (Long key : previous) {
-                state.restrictedCells.remove(key);
-                state.ownerByCell.remove(key);
-            }
-        }
-        List<Long> current = new ArrayList<>();
+    private void updateZone(ZoneState state,
+                            GameSessionBoardAccess board,
+                            int centerX,
+                            int centerY) {
+        state.restrictedCells.clear();
         for (int[] delta : NEIGHBORS) {
             int nx = centerX + delta[0];
             int ny = centerY + delta[1];
@@ -98,11 +86,8 @@ public final class ProtectiveZoneRule implements Rule {
                 continue;
             }
             long key = key(nx, ny);
-            current.add(key);
             state.restrictedCells.add(key);
-            state.ownerByCell.put(key, userId);
         }
-        state.byPlayer.put(userId, current);
     }
 
     private static long key(int x, int y) {
@@ -110,8 +95,6 @@ public final class ProtectiveZoneRule implements Rule {
     }
 
     private static final class ZoneState {
-        private final Map<String, List<Long>> byPlayer = new HashMap<>();
-        private final Map<Long, String> ownerByCell = new HashMap<>();
         private final Set<Long> restrictedCells = new HashSet<>();
     }
 }
