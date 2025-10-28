@@ -23,7 +23,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 /**
  * 감염: 감염 확률과 3턴 후 방해돌 변환을 처리한다.
  * 호출 시점: 전체 턴 종료 시.
- *
+ * 통과 (2025.10.29)
  */
 public final class InfectionRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
