@@ -7,11 +7,13 @@ import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
+import teamnova.omok.glue.game.session.services.HiddenPlacementCoordinator;
 import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.rule.api.RuleTriggerKind;
+import teamnova.omok.glue.rule.rules.DelayedRevealRule;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -46,6 +48,13 @@ public final class MoveApplyingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
         fireRules(context, RuleTriggerKind.PRE_PLACEMENT);
+
+        Object skipMarker = context.rules().getRuleData(DelayedRevealRule.SKIP_PLACEMENT_KEY);
+        if (skipMarker instanceof HiddenPlacementCoordinator.HiddenPlacement placement) {
+            context.rules().putRuleData(DelayedRevealRule.SKIP_PLACEMENT_KEY, null);
+            fireRules(context, RuleTriggerKind.POST_PLACEMENT);
+            return StateStep.transition(GameSessionStateType.TURN_PERSONAL_END.toStateName());
+        }
 
         int x = frame.x();
         int y = frame.y();
@@ -87,11 +96,7 @@ public final class MoveApplyingState implements BaseState {
         RuleService ruleService = RuleService.getInstance();
         if (triggerKind == RuleTriggerKind.PRE_PLACEMENT) {
             ruleService.applyMoveMutations(context.rules(), runtime);
-            ruleService.queueHiddenPlacement(context.rules(), runtime);
         }
         ruleService.activateRules(context.rules(), runtime);
-        if (triggerKind == RuleTriggerKind.POST_PLACEMENT) {
-            ruleService.revealHiddenPlacements(context.rules(), runtime);
-        }
     }
 }

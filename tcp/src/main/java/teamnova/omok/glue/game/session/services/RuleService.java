@@ -13,7 +13,6 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.api.BoardSetupRule;
 import teamnova.omok.glue.rule.api.BoardSweepRule;
 import teamnova.omok.glue.rule.api.BoardTransformRule;
-import teamnova.omok.glue.rule.api.HiddenPlacementRule;
 import teamnova.omok.glue.rule.api.MoveMutationRule;
 import teamnova.omok.glue.rule.api.OutcomeResolution;
 import teamnova.omok.glue.rule.api.OutcomeRule;
@@ -97,42 +96,6 @@ public class RuleService {
             Rule rule = RuleRegistry.getInstance().get(id);
             if (rule instanceof BoardSetupRule setupRule) {
                 setupRule.setupBoard(access, runtime);
-            }
-        }
-    }
-
-    public boolean queueHiddenPlacement(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        Objects.requireNonNull(runtime, "runtime");
-        if (access == null) {
-            return false;
-        }
-        List<RuleId> ruleIds = access.getRuleIds();
-        if (ruleIds == null || ruleIds.isEmpty()) {
-            return false;
-        }
-        boolean handled = false;
-        for (RuleId id : ruleIds) {
-            Rule rule = RuleRegistry.getInstance().get(id);
-            if (rule instanceof HiddenPlacementRule hiddenRule) {
-                handled |= hiddenRule.queueHiddenPlacement(access, runtime);
-            }
-        }
-        return handled;
-    }
-
-    public void revealHiddenPlacements(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        Objects.requireNonNull(runtime, "runtime");
-        if (access == null) {
-            return;
-        }
-        List<RuleId> ruleIds = access.getRuleIds();
-        if (ruleIds == null || ruleIds.isEmpty()) {
-            return;
-        }
-        for (RuleId id : ruleIds) {
-            Rule rule = RuleRegistry.getInstance().get(id);
-            if (rule instanceof HiddenPlacementRule hiddenRule) {
-                hiddenRule.revealHiddenPlacements(access, runtime);
             }
         }
     }
