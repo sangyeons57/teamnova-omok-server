@@ -11,7 +11,7 @@ public final class RuleDataKeys {
     public static final String DELAYED_REVEAL_QUEUE = "rules.delayedReveal.queue";
     public static final String DELAYED_REVEAL_SCHEDULE = "rules.delayedReveal.schedule";
     public static final String EVOLUTION_AGE_MAP = "rules.evolution.ageMap";
-    public static final String LOW_DENSITY_LAST_TURN = "rules.lowDensity.lastTurn";
+    public static final String LOW_DENSITY_LAST_ROUND = "rules.lowDensity.lastRound";
     public static final String ROUND_TRIP_DIRECTION = "rules.roundTrip.direction";
     public static final String SPEED_GAME_BUDGETS = "rules.speedGame2.budgets";
     public static final String LUCKY_SEVEN_LAST_TURN = "rules.luckySeven.lastTurn";

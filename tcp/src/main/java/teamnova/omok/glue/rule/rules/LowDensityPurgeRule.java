@@ -16,7 +16,7 @@ import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
- * 뭉쳐야 산다: 5턴마다 주변에 돌이 가장 적은 돌들을 제거한다.
+ * 뭉쳐야 산다: 전체 라운드 기준으로 5라운드마다 주변에 돌이 가장 적은 돌들을 제거한다.
  * 호출 시점: 전체 턴 종료 시.
  */
 public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
@@ -24,6 +24,8 @@ public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
         RuleId.LOW_DENSITY_PURGE,
         1_700
     );
+    private static final int[] NEIGHBOR_DX = {1, -1, 0, 0};
+    private static final int[] NEIGHBOR_DY = {0, 0, 1, -1};
 
     @Override
     public RuleMetadata getMetadata() {
@@ -40,12 +42,12 @@ public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
         if (access == null || runtime == null || runtime.turnSnapshot() == null) {
             return;
         }
-        int turnNumber = runtime.turnSnapshot().turnNumber();
-        if (turnNumber <= 0 || turnNumber % 5 != 0) {
+        int roundNumber = runtime.turnSnapshot().roundNumber();
+        if (roundNumber <= 0 || roundNumber % 5 != 0) {
             return;
         }
-        Integer lastProcessed = (Integer) access.getRuleData(RuleDataKeys.LOW_DENSITY_LAST_TURN);
-        if (lastProcessed != null && lastProcessed == turnNumber) {
+        Integer lastProcessed = (Integer) access.getRuleData(RuleDataKeys.LOW_DENSITY_LAST_ROUND);
+        if (lastProcessed != null && lastProcessed == roundNumber) {
             return;
         }
         GameSessionBoardAccess board = runtime.stateContext().board();
@@ -71,20 +73,15 @@ public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
                     continue;
                 }
                 int count = 0;
-                for (int dy = -1; dy <= 1; dy++) {
-                    for (int dx = -1; dx <= 1; dx++) {
-                        if (dx == 0 && dy == 0) {
-                            continue;
-                        }
-                        int nx = x + dx;
-                        int ny = y + dy;
-                        if (nx < 0 || ny < 0 || nx >= width || ny >= height) {
-                            continue;
-                        }
-                        Stone neighbor = board.stoneAt(nx, ny);
-                        if (neighbor != null && neighbor != Stone.EMPTY && !neighbor.isBlocking()) {
-                            count++;
-                        }
+                for (int i = 0; i < NEIGHBOR_DX.length; i++) {
+                    int nx = x + NEIGHBOR_DX[i];
+                    int ny = y + NEIGHBOR_DY[i];
+                    if (nx < 0 || ny < 0 || nx >= width || ny >= height) {
+                        continue;
+                    }
+                    Stone neighbor = board.stoneAt(nx, ny);
+                    if (neighbor != null && neighbor != Stone.EMPTY && !neighbor.isBlocking()) {
+                        count++;
                     }
                 }
                 neighborCounts[index] = count;
@@ -97,7 +94,7 @@ public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
             }
         }
         if (minCount == Integer.MAX_VALUE) {
-            access.putRuleData(RuleDataKeys.LOW_DENSITY_LAST_TURN, turnNumber);
+            access.putRuleData(RuleDataKeys.LOW_DENSITY_LAST_ROUND, roundNumber);
             return;
         }
         List<Integer> purgeIndices = new ArrayList<>();
@@ -110,7 +107,7 @@ public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
             }
         }
         if (purgeIndices.isEmpty()) {
-            access.putRuleData(RuleDataKeys.LOW_DENSITY_LAST_TURN, turnNumber);
+            access.putRuleData(RuleDataKeys.LOW_DENSITY_LAST_ROUND, roundNumber);
             return;
         }
         for (int index : purgeIndices) {
@@ -122,6 +119,6 @@ public final class LowDensityPurgeRule implements Rule, BoardSweepRule {
         if (messenger != null) {
             messenger.broadcastBoardSnapshot(runtime.stateContext().session());
         }
-        access.putRuleData(RuleDataKeys.LOW_DENSITY_LAST_TURN, turnNumber);
+        access.putRuleData(RuleDataKeys.LOW_DENSITY_LAST_ROUND, roundNumber);
     }
 }
