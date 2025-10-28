@@ -31,7 +31,11 @@ public final class JokerPromotionRule implements Rule {
 
     @Override
     public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        if (access == null || runtime == null || runtime.triggerKind() != RuleTriggerKind.POST_PLACEMENT) {
+        if (access == null || runtime == null) {
+            return;
+        }
+        RuleTriggerKind trigger = runtime.triggerKind();
+        if (trigger != RuleTriggerKind.POST_PLACEMENT && trigger != RuleTriggerKind.TURN_ADVANCE) {
             return;
         }
         GameSessionStateContext stateContext = runtime.stateContext();

@@ -34,7 +34,7 @@ public final class InfectionRule implements Rule {
     private static final String DATA_KEY = "rule:infection:active";
     private static final int INFECTION_LIFETIME = 3;
     private static final double BASE_INFECTION_PROBABILITY = 0.2d;
-    private static final double ADJACENT_INFECTION_PROBABILITY = 0.45d;
+    private static final double ADJACENT_INFECTION_PROBABILITY = 0.70d;
 
     @Override
     public RuleMetadata getMetadata() {
