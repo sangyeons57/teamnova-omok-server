@@ -14,6 +14,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 /**
  * 콜로세움: 가장자리 2칸을 방해돌로 막아 중앙 부분만 사용 가능하게 한다.
  * 호출 시점: 게임 시작 시.
+ * 통과(2025.10.28)
  */
 public final class ColosseumRule implements Rule, BoardSetupRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
