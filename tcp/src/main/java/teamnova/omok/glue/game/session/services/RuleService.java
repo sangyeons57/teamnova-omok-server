@@ -21,7 +21,6 @@ import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.ParticipantOutcomeRule;
 import teamnova.omok.glue.rule.api.TurnOrderRule;
 import teamnova.omok.glue.rule.api.TurnBudgetRule;
-import teamnova.omok.glue.rule.api.TurnLifecycleRule;
 import teamnova.omok.glue.rule.api.TurnTimingRule;
 import teamnova.omok.glue.rule.runtime.RuleRegistry;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
@@ -113,23 +112,6 @@ public class RuleService {
             Rule rule = RuleRegistry.getInstance().get(id);
             if (rule instanceof MoveMutationRule mutationRule) {
                 mutationRule.applyMoveMutation(access, runtime);
-            }
-        }
-    }
-
-    public void tickTurnLifecycle(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        Objects.requireNonNull(runtime, "runtime");
-        if (access == null) {
-            return;
-        }
-        List<RuleId> ruleIds = access.getRuleIds();
-        if (ruleIds == null || ruleIds.isEmpty()) {
-            return;
-        }
-        for (RuleId id : ruleIds) {
-            Rule rule = RuleRegistry.getInstance().get(id);
-            if (rule instanceof TurnLifecycleRule lifecycleRule) {
-                lifecycleRule.onTurnTick(access, runtime);
             }
         }
     }

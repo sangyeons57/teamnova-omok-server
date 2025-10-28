@@ -120,7 +120,6 @@ public class LobbyGameSessionState implements BaseState {
         if (!seededOutcomes.isEmpty()) {
             seededOutcomes.forEach((userId, result) -> context.outcomes().updateOutcome(userId, result));
         }
-        ruleService.tickTurnLifecycle(context.rules(), runtime);
         ruleService.adjustTurnTiming(context.rules(), runtime);
         ruleService.adjustTurnOrder(context.rules(), runtime);
         ruleService.updateTurnBudget(context.rules(), runtime);

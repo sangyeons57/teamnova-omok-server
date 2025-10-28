@@ -261,7 +261,6 @@ public final class TurnPersonalEndState implements BaseState {
         );
         RuleService ruleService = RuleService.getInstance();
         if (trigger == RuleTriggerKind.TURN_ADVANCE) {
-            ruleService.tickTurnLifecycle(context.rules(), runtime);
             ruleService.updateTurnBudget(context.rules(), runtime);
             ruleService.adjustTurnTiming(context.rules(), runtime);
         }

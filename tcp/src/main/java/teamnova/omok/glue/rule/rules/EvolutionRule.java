@@ -1,16 +1,17 @@
 package teamnova.omok.glue.rule.rules;
 
-import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
+import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
-import teamnova.omok.glue.rule.api.TurnLifecycleRule;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
@@ -18,7 +19,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
  * 진화: 돌 생성 후 10턴이 지나면 자동으로 조커 돌로 변환한다.
  * 호출 시점: 게임 진행 중.
  */
-public final class EvolutionRule implements Rule, TurnLifecycleRule {
+public final class EvolutionRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.EVOLUTION,
         500
@@ -31,15 +32,23 @@ public final class EvolutionRule implements Rule, TurnLifecycleRule {
 
     @Override
     public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        // Primary behaviour executed via onTurnTick.
-    }
-
-    @Override
-    public void onTurnTick(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         if (access == null || runtime == null || runtime.stateContext() == null) {
             return;
         }
+        RuleTriggerKind trigger = runtime.triggerKind();
+        if (trigger != RuleTriggerKind.POST_PLACEMENT && trigger != RuleTriggerKind.TURN_ADVANCE) {
+            return;
+        }
         GameSessionStateContext context = runtime.stateContext();
+        if (trigger == RuleTriggerKind.TURN_ADVANCE) {
+            TurnPersonalFrame frame = context.turnRuntime() != null
+                ? context.turnRuntime().currentPersonalTurnFrame()
+                : null;
+            if (frame != null && frame.hasActiveMove()) {
+                // Already processed during POST_PLACEMENT; avoid double aging within the same turn.
+                return;
+            }
+        }
         GameSessionBoardAccess board = context.board();
         GameBoardService boardService = runtime.services().boardService();
         if (board == null || boardService == null) {
