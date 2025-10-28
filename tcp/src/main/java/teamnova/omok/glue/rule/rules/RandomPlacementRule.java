@@ -6,7 +6,6 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
-import teamnova.omok.glue.rule.api.MoveMutationRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
@@ -17,7 +16,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
  * 랜덤: 각 플레이어 돌이 50% 확률로 방해돌 또는 조커돌로 변형되도록 처리한다.
  * 호출 시점: 돌이 배치되기 전에.
  */
-public final class RandomPlacementRule implements Rule, MoveMutationRule {
+public final class RandomPlacementRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.RANDOM_PLACEMENT,
         300
@@ -31,14 +30,6 @@ public final class RandomPlacementRule implements Rule, MoveMutationRule {
     @Override
     public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         if (access == null || runtime == null || runtime.triggerKind() != RuleTriggerKind.PRE_PLACEMENT) {
-            return;
-        }
-        applyMoveMutation(access, runtime);
-    }
-
-    @Override
-    public void applyMoveMutation(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        if (access == null || runtime == null) {
             return;
         }
         GameSessionStateContext stateContext = runtime.stateContext();

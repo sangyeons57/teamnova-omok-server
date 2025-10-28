@@ -13,7 +13,6 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.api.BoardSetupRule;
 import teamnova.omok.glue.rule.api.BoardSweepRule;
 import teamnova.omok.glue.rule.api.BoardTransformRule;
-import teamnova.omok.glue.rule.api.MoveMutationRule;
 import teamnova.omok.glue.rule.api.OutcomeResolution;
 import teamnova.omok.glue.rule.api.OutcomeRule;
 import teamnova.omok.glue.rule.api.Rule;
@@ -95,23 +94,6 @@ public class RuleService {
             Rule rule = RuleRegistry.getInstance().get(id);
             if (rule instanceof BoardSetupRule setupRule) {
                 setupRule.setupBoard(access, runtime);
-            }
-        }
-    }
-
-    public void applyMoveMutations(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        Objects.requireNonNull(runtime, "runtime");
-        if (access == null) {
-            return;
-        }
-        List<RuleId> ruleIds = access.getRuleIds();
-        if (ruleIds == null || ruleIds.isEmpty()) {
-            return;
-        }
-        for (RuleId id : ruleIds) {
-            Rule rule = RuleRegistry.getInstance().get(id);
-            if (rule instanceof MoveMutationRule mutationRule) {
-                mutationRule.applyMoveMutation(access, runtime);
             }
         }
     }
