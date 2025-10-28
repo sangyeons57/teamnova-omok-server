@@ -15,7 +15,7 @@ class HiddenPlacementCoordinatorTest {
         HiddenPlacementCoordinator coordinator = new HiddenPlacementCoordinator();
         TestRuleAccess access = new TestRuleAccess();
         HiddenPlacementCoordinator.HiddenPlacement placement =
-            new HiddenPlacementCoordinator.HiddenPlacement("user-a", 4, 5, 45, Stone.PLAYER1, 10L, 42L, 12);
+            new HiddenPlacementCoordinator.HiddenPlacement("user-a", 4, 5, 45, Stone.PLAYER1, 10L, 42L, 0, 1);
 
         coordinator.queue(access, placement);
 
@@ -30,7 +30,7 @@ class HiddenPlacementCoordinatorTest {
     void clearRemovesQueuedPlacements() {
         HiddenPlacementCoordinator coordinator = new HiddenPlacementCoordinator();
         TestRuleAccess access = new TestRuleAccess();
-        coordinator.queue(access, new HiddenPlacementCoordinator.HiddenPlacement("user-b", 1, 2, 21, Stone.PLAYER2, 11L, 99L, 7));
+        coordinator.queue(access, new HiddenPlacementCoordinator.HiddenPlacement("user-b", 1, 2, 21, Stone.PLAYER2, 11L, 99L, 0, 1));
 
         coordinator.clear(access);
 

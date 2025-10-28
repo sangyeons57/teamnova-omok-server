@@ -7,8 +7,11 @@ import java.util.List;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
+import teamnova.omok.glue.game.session.model.vo.TurnCounters;
 import teamnova.omok.glue.game.session.services.HiddenPlacementCoordinator;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.api.BoardTransformRule;
@@ -28,8 +31,6 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
         RuleId.DELAYED_REVEAL,
         2_300
     );
-    private static final int REVEAL_DELAY_TURNS = 1;
-
     @Override
     public RuleMetadata getMetadata() {
         return METADATA;
@@ -65,7 +66,6 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
         if (stone == null || stone == Stone.EMPTY) {
             return false;
         }
-        int currentTurn = resolveTurnNumber(runtime);
         HiddenPlacementCoordinator coordinator = runtime.services().hiddenPlacementCoordinator();
         HiddenPlacementCoordinator.HiddenPlacement placement =
             new HiddenPlacementCoordinator.HiddenPlacement(
@@ -76,7 +76,8 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
                 stone,
                 frame.requestedAtMillis(),
                 frame.stonePlaceRequestId(),
-                currentTurn + REVEAL_DELAY_TURNS
+                resolvePlacementTurn(runtime, context),
+                resolvePlacementPosition(runtime, context)
             );
         coordinator.queue(access, placement);
         return true;
@@ -92,11 +93,13 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
         if (pending.isEmpty()) {
             return;
         }
-        int currentTurn = resolveTurnNumber(runtime);
+        TurnSnapshot snapshot = runtime.turnSnapshot();
+        int currentTurn = snapshot != null ? snapshot.turnNumber() : resolveCurrentTurn(runtime.stateContext());
+        int currentPosition = snapshot != null ? snapshot.positionInRound() : resolveCurrentPosition(runtime.stateContext());
         List<HiddenPlacementCoordinator.HiddenPlacement> carry = new ArrayList<>();
         boolean revealed = false;
         for (HiddenPlacementCoordinator.HiddenPlacement placement : pending) {
-            if (placement.revealAtTurn() <= currentTurn) {
+            if (shouldRevealPlacement(placement, currentTurn, currentPosition)) {
                 revealed = true;
             } else {
                 carry.add(placement);
@@ -133,10 +136,71 @@ public final class DelayedRevealRule implements Rule, HiddenPlacementRule, Board
         return copy;
     }
 
-    private int resolveTurnNumber(RuleRuntimeContext runtime) {
-        if (runtime.turnSnapshot() != null) {
-            return runtime.turnSnapshot().turnNumber();
+    private int resolvePlacementPosition(RuleRuntimeContext runtime, GameSessionStateContext context) {
+        TurnSnapshot snapshot = runtime.turnSnapshot();
+        if (snapshot != null) {
+            return Math.max(0, snapshot.positionInRound());
         }
-        return runtime.stateContext().turns().actionNumber();
+        if (context != null) {
+            GameSessionTurnAccess turns = context.turns();
+            if (turns != null) {
+                TurnCounters counters = turns.counters();
+                if (counters != null) {
+                    return Math.max(0, counters.positionInRound());
+                }
+            }
+        }
+        return 0;
+    }
+
+    private int resolveCurrentPosition(GameSessionStateContext context) {
+        if (context == null) {
+            return -1;
+        }
+        GameSessionTurnAccess turns = context.turns();
+        if (turns == null) {
+            return -1;
+        }
+        TurnCounters counters = turns.counters();
+        return counters != null ? counters.positionInRound() : -1;
+    }
+
+    private int resolvePlacementTurn(RuleRuntimeContext runtime, GameSessionStateContext context) {
+        TurnSnapshot snapshot = runtime.turnSnapshot();
+        if (snapshot != null) {
+            return Math.max(0, snapshot.turnNumber());
+        }
+        if (context != null) {
+            GameSessionTurnAccess turns = context.turns();
+            if (turns != null) {
+                return Math.max(0, turns.actionNumber());
+            }
+        }
+        return 0;
+    }
+
+    private int resolveCurrentTurn(GameSessionStateContext context) {
+        if (context == null) {
+            return -1;
+        }
+        GameSessionTurnAccess turns = context.turns();
+        if (turns == null) {
+            return -1;
+        }
+        return Math.max(0, turns.actionNumber());
+    }
+
+    private boolean shouldRevealPlacement(HiddenPlacementCoordinator.HiddenPlacement placement,
+                                          int currentTurn,
+                                          int currentPosition) {
+        int originTurn = placement.originTurn();
+        if (currentTurn >= 0 && originTurn >= 0 && currentTurn - originTurn >= 2) {
+            return true;
+        }
+        int originPosition = placement.originPosition();
+        if (currentPosition <= 0 || originPosition <= 0) {
+            return true;
+        }
+        return currentPosition == originPosition;
     }
 }

@@ -89,15 +89,19 @@ public final class HiddenPlacementCoordinator {
                                   Stone stone,
                                   long requestedAtMillis,
                                   long requestId,
-                                  int revealAtTurn) {
+                                  int originTurn,
+                                  int originPosition) {
         public HiddenPlacement {
             Objects.requireNonNull(userId, "userId");
             Objects.requireNonNull(stone, "stone");
             if (index < 0) {
                 throw new IllegalArgumentException("index must not be negative");
             }
-            if (revealAtTurn < 0) {
-                throw new IllegalArgumentException("revealAtTurn must not be negative");
+            if (originTurn < 0) {
+                throw new IllegalArgumentException("originTurn must not be negative");
+            }
+            if (originPosition < 0) {
+                throw new IllegalArgumentException("originPosition must not be negative");
             }
         }
     }
