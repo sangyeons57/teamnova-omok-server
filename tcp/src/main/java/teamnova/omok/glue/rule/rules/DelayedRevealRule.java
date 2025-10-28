@@ -114,10 +114,10 @@ public final class DelayedRevealRule implements Rule {
         }
         if (revealed) {
             applyRevealedPlacements(runtime, toReveal, cursor);
-            GameSessionMessenger messenger = runtime.services().messenger();
-            if (messenger != null) {
-                messenger.broadcastBoardSnapshot(runtime.stateContext().session());
-            }
+        }
+        GameSessionMessenger messenger = runtime.services().messenger();
+        if (messenger != null) {
+            messenger.broadcastBoardSnapshot(runtime.stateContext().session());
         }
     }
 
