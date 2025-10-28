@@ -31,7 +31,14 @@ public final class RulesStore {
     }
 
     public void putRuleData(String key, Object value) {
+        if (value == null) {
+            throw new IllegalArgumentException("value must not be null");
+        }
         data.put(key, value);
+    }
+
+    public void removeRuleData(String key) {
+        data.remove(key);
     }
     public void clearRuleData() {
         data.clear();

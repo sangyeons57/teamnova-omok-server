@@ -51,10 +51,14 @@ public final class TestRuleAccess implements GameSessionRuleAccess {
     @Override
     public void putRuleData(String key, Object value) {
         if (value == null) {
-            data.remove(key);
-        } else {
-            data.put(key, value);
+            throw new IllegalArgumentException("value must not be null");
         }
+        data.put(key, value);
+    }
+
+    @Override
+    public void removeRuleData(String key) {
+        data.remove(key);
     }
 
     @Override

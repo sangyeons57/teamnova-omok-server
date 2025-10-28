@@ -51,7 +51,7 @@ public final class MoveApplyingState implements BaseState {
 
         Object skipMarker = context.rules().getRuleData(DelayedRevealRule.SKIP_PLACEMENT_KEY);
         if (skipMarker instanceof HiddenPlacementCoordinator.HiddenPlacement placement) {
-            context.rules().putRuleData(DelayedRevealRule.SKIP_PLACEMENT_KEY, null);
+            context.rules().removeRuleData(DelayedRevealRule.SKIP_PLACEMENT_KEY);
             fireRules(context, RuleTriggerKind.POST_PLACEMENT);
             return StateStep.transition(GameSessionStateType.TURN_PERSONAL_END.toStateName());
         }

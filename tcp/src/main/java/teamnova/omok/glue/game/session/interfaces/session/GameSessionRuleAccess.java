@@ -9,6 +9,7 @@ public interface GameSessionRuleAccess extends GameSessionAccessInterface {
     List<RuleId> getRuleIds();
     Object getRuleData(String key);
     void putRuleData(String key, Object value);
+    void removeRuleData(String key);
     void clearRuleData();
     boolean isRuleEmpty();
 }

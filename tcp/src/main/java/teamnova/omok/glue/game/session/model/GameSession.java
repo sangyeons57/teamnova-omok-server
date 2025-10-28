@@ -105,6 +105,11 @@ public class GameSession implements GameSessionAccess {
     }
 
     @Override
+    public void removeRuleData(String key) {
+        rulesStore.removeRuleData(key);
+    }
+
+    @Override
     public void clearRuleData() {
         rulesStore.clearRuleData();
     }
