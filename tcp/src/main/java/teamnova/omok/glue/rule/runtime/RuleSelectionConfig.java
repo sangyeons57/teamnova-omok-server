@@ -13,7 +13,7 @@ import java.util.Objects;
  * provided via environment or system properties it overrides the random selection.
  */
 public final class RuleSelectionConfig {
-    private static volatile List<RuleId> FIXED_RULE_OVERRIDE = List.of(RuleId.DELAYED_REVEAL);
+    private static volatile List<RuleId> FIXED_RULE_OVERRIDE = List.of(RuleId.EVOLUTION);
 
     private final List<RuleId> fixedRuleIds;
 

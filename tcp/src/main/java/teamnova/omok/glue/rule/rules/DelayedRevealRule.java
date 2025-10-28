@@ -24,6 +24,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 /**
  * 시간차 소환: 돌을 숨겼다가 한 턴 뒤에 공개하며, 충돌 시 최근 돌로 대체한다.
  * 호출 시점: 턴 시작 시 및 돌 배치 후.
+ * 통과(2025.10.29)
  */
 public final class DelayedRevealRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
