@@ -13,7 +13,7 @@ import java.util.Objects;
  * provided via environment or system properties it overrides the random selection.
  */
 public final class RuleSelectionConfig {
-    private static volatile List<RuleId> FIXED_RULE_OVERRIDE = List.of(RuleId.SEQUENTIAL_CONVERSION, RuleId.RANDOM_PLACEMENT);
+    private static volatile List<RuleId> FIXED_RULE_OVERRIDE = List.of(RuleId.REVERSI_CONVERSION, RuleId.SPEED_GAME_2);
 
     private final List<RuleId> fixedRuleIds;
 

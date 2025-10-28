@@ -15,6 +15,8 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 /**
  * 랜덤: 각 플레이어 돌이 50% 확률로 방해돌 또는 조커돌로 변형되도록 처리한다.
  * 호출 시점: 돌이 배치되기 전에.
+ * *
+ * 통과(2025.10.29)
  */
 public final class RandomPlacementRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
