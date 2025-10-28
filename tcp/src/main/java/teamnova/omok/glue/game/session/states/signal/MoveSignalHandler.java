@@ -33,8 +33,8 @@ public final class MoveSignalHandler implements StateSignalListener {
     @Override
     public Set<StateName> states() {
         return java.util.Set.of(
-            GameSessionStateType.MOVE_APPLYING.toStateName(),
-            GameSessionStateType.TURN_PERSONAL_START.toStateName()
+            GameSessionStateType.TURN_PERSONAL_START.toStateName(),
+            GameSessionStateType.TURN_PERSONAL_END.toStateName()
         );
     }
 
@@ -42,16 +42,6 @@ public final class MoveSignalHandler implements StateSignalListener {
     public void onSignal(StateName state, LifecycleEventKind kind) {
         if (kind != LifecycleEventKind.ON_START) return;
         GameSessionStateType type = GameSessionStateType.stateNameLookup(state);
-        if (type == GameSessionStateType.MOVE_APPLYING) {
-            // Send ACK to the requester as soon as placement is applied to the board
-            TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
-            if (frame != null) {
-                services.messenger().respondMove(frame.userId(), frame.stonePlaceRequestId(), context.session(), frame);
-            }
-            // Broadcast board update after stone placement is applied (one-liner via messenger)
-            services.messenger().broadcastBoardSnapshot(context.session());
-            return;
-        }
         if (type == GameSessionStateType.TURN_PERSONAL_START) {
             TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
             TurnSnapshot snapshot = null;
@@ -63,6 +53,14 @@ public final class MoveSignalHandler implements StateSignalListener {
                 services.turnTimeoutScheduler().schedule(context.session(), snapshot,
                     teamnova.omok.glue.game.session.GameSessionManager.getInstance());
             }
+            return;
+        }
+        if (type == GameSessionStateType.TURN_PERSONAL_END) {
+            TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
+            if (frame != null) {
+                services.messenger().respondMove(frame.userId(), frame.stonePlaceRequestId(), context.session(), frame);
+            }
+            services.messenger().broadcastBoardSnapshot(context.session());
         }
     }
 }
