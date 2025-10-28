@@ -18,6 +18,8 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 /**
  * 뭉쳐야 산다: 전체 라운드 기준으로 5라운드마다 주변에 돌이 가장 적은 돌들을 제거한다.
  * 호출 시점: 전체 턴 종료 시.
+ * *
+ * 통과(2025.10.29)
  */
 public final class LowDensityPurgeRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(

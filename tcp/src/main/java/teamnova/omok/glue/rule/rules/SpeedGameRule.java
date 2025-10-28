@@ -14,6 +14,8 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 
 /**
  * 스피드 게임: 게임 시작 시 턴 제한 시간을 5초로 축소한다.
+ * *
+ * 통과(2025.10.29)
  */
 public final class SpeedGameRule implements Rule, TurnTimingRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
