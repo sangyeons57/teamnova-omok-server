@@ -18,6 +18,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 /**
  * 진화: 돌 생성 후 10턴이 지나면 자동으로 조커 돌로 변환한다.
  * 호출 시점: 게임 진행 중.
+ * 통과(2025.10.29)
  */
 public final class EvolutionRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
