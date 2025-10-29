@@ -2,6 +2,7 @@ package teamnova.omok.glue.game.session.states.state;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
@@ -9,6 +10,7 @@ import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
+import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
@@ -58,6 +60,7 @@ public final class TurnEndState implements BaseState {
         }
 
         evaluateOutcomeRules(ctx);
+        finalizeDisconnectionsIfNeeded(ctx);
         if (ctx.outcomes().isGameFinished()) {
             return finalizeSession(ctx);
         }
@@ -150,6 +153,42 @@ public final class TurnEndState implements BaseState {
         RuleService ruleService = RuleService.getInstance();
         ruleService.activateRules(context.rules(), runtime);
         ruleService.applyOutcomeRules(context, runtime);
+    }
+
+    private void finalizeDisconnectionsIfNeeded(GameSessionStateContext context) {
+        if (!context.lifecycle().isGameStarted() || context.outcomes().isGameFinished()) {
+            return;
+        }
+        List<String> participants = context.participants().getUserIds();
+        Set<String> disconnected = context.participants().disconnectedUsersView();
+        if (disconnected.isEmpty()) {
+            return;
+        }
+        int total = participants.size();
+        int connected = total - disconnected.size();
+        if (connected <= 1) {
+            // handled via handleAbandonment to avoid double-processing
+            return;
+        }
+        int decided = (int) participants.stream()
+            .map(context.outcomes()::outcomeFor)
+            .filter(result -> result != null && result != PlayerResult.PENDING)
+            .count();
+        if (decided + disconnected.size() < total) {
+            return;
+        }
+        GameSessionLogger.event(
+            context,
+            GameSessionStateType.TURN_END,
+            "FinalizeDisconnected",
+            String.format("disconnected=%d decided=%d total=%d", disconnected.size(), decided, total)
+        );
+        for (String userId : disconnected) {
+            PlayerResult current = context.outcomes().outcomeFor(userId);
+            if (current == null || current == PlayerResult.PENDING) {
+                context.outcomes().updateOutcome(userId, PlayerResult.LOSS);
+            }
+        }
     }
 
     private void applyScoreAdjustments(GameSessionStateContext context) {

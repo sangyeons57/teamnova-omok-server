@@ -22,26 +22,14 @@ public final class GameSessionLifecycleService {
         Objects.requireNonNull(userId, "userId");
         deps.repository().findByUserId(userId).ifPresent(session -> {
             boolean newlyDisconnected;
-            boolean shouldSkip = false;
-            int expectedTurn = -1;
             session.lock().lock();
             try {
                 newlyDisconnected = session.markDisconnected(userId);
-                if (session.isGameStarted() && !session.isGameFinished()) {
-                    TurnSnapshot snapshot = deps.turnService().snapshot(session);
-                    if (snapshot != null && userId.equals(snapshot.currentPlayerId())) {
-                        shouldSkip = true;
-                        expectedTurn = snapshot.turnNumber();
-                    }
-                }
             } finally {
                 session.lock().unlock();
             }
             if (newlyDisconnected) {
                 deps.messenger().broadcastPlayerDisconnected(session, userId, "LEFT");
-            }
-            if (shouldSkip && expectedTurn > 0) {
-                events.skipTurnForDisconnected(session, userId, expectedTurn);
             }
             try {
                 ClientSessionManager.getInstance()
@@ -61,27 +49,14 @@ public final class GameSessionLifecycleService {
         Objects.requireNonNull(userId, "userId");
         deps.repository().findByUserId(userId).ifPresent(session -> {
             boolean newlyDisconnected;
-            boolean shouldSkip = false;
-            int expectedTurn = -1;
             session.lock().lock();
             try {
                 newlyDisconnected = session.markDisconnected(userId);
-                if (session.isGameStarted() && !session.isGameFinished()) {
-                    TurnSnapshot snapshot =
-                        deps.turnService().snapshot(session);
-                    if (snapshot != null && userId.equals(snapshot.currentPlayerId())) {
-                        shouldSkip = true;
-                        expectedTurn = snapshot.turnNumber();
-                    }
-                }
             } finally {
                 session.lock().unlock();
             }
             if (newlyDisconnected) {
                 deps.messenger().broadcastPlayerDisconnected(session, userId, "DISCONNECTED");
-            }
-            if (shouldSkip && expectedTurn > 0) {
-                events.skipTurnForDisconnected(session, userId, expectedTurn);
             }
         });
     }

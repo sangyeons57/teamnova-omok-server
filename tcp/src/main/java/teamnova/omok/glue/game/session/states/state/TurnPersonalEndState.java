@@ -10,7 +10,6 @@ import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.Stone;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
-import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.services.RuleService;
@@ -84,13 +83,6 @@ public final class TurnPersonalEndState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
         }
 
-        if (applyAutoFinalization(context, "reason=post-move-check")) {
-            turnContextService.finalizeMoveOutcome(context, MoveStatus.SUCCESS);
-            turnContextService.clearTurnCycle(context);
-            emitTurnEnded(context, frame);
-            return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
-        }
-
         TurnSnapshot nextSnapshot = turnService.advanceSkippingDisconnected(
             context.turns(),
             context.participants().disconnectedUsersView(),
@@ -135,10 +127,6 @@ public final class TurnPersonalEndState implements BaseState {
             emitTurnEnded(context, frame);
             return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
         }
-        if (applyAutoFinalization(context, "reason=timeout-check")) {
-            emitTurnEnded(context, frame);
-            return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
-        }
         emitTurnEnded(context, frame);
         return decideNextState(nextSnapshot);
     }
@@ -150,105 +138,11 @@ public final class TurnPersonalEndState implements BaseState {
         return StateStep.transition(GameSessionStateType.TURN_PERSONAL_START.toStateName());
     }
 
-    private boolean applyAutoFinalization(GameSessionStateContext context, String detail) {
-        if (!context.lifecycle().isGameStarted() || context.outcomes().isGameFinished()) {
-            return context.outcomes().isGameFinished();
-        }
-        if (!shouldFinalizeNow(context)) {
-            return false;
-        }
-        if (connectedCount(context) <= 1) {
-            GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_END, "AutoFinalize",
-                detail, "mode=solo-or-none");
-            applySoloOrNoneOutcome(context);
-        } else {
-            GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_END, "AutoFinalize",
-                detail, "mode=disconnected-loss");
-            applyDisconnectedAsLoss(context);
-        }
-        // Do not finalize the session here. Outcomes are set; TurnEndState will perform the actual
-        // game-finished marking and post-game transition to keep a single authority for finalization.
-        return true;
-    }
-
     private void completeWinningTurn(GameSessionStateContext context, TurnPersonalFrame frame) {
         // Only finalize the personal move outcome here; do not mark the whole game as finished.
         // TurnEndState will be the sole authority to mark game completion and transition to Post-Game.
         turnContextService.finalizeMoveOutcome(context, MoveStatus.SUCCESS);
         turnContextService.clearTurnCycle(context);
-    }
-
-    private boolean shouldFinalizeNow(GameSessionStateContext context) {
-        if (!context.lifecycle().isGameStarted() || context.outcomes().isGameFinished()) {
-            return false;
-        }
-        int total = context.participants().getUserIds().size();
-        int disconnectedSize = context.participants().disconnectedUsersView().size();
-        int connected = total - disconnectedSize;
-        if (connected <= 1) {
-            return true;
-        }
-        int decided = (int) context.participants().getUserIds().stream()
-            .map(context.outcomes()::outcomeFor)
-            .filter(r -> r != null && r != PlayerResult.PENDING)
-            .count();
-
-        return decided + disconnectedSize >= total;
-    }
-
-    private int connectedCount(GameSessionStateContext context) {
-        List<String> participants = context.participants().getUserIds();
-        Set<String> disconnected = context.participants().disconnectedUsersView();
-        return participants.size() - disconnected.size();
-    }
-
-    private void applyDisconnectedAsLoss(GameSessionStateContext context) {
-        Set<String> disconnected = context.participants().disconnectedUsersView();
-        for (String uid : disconnected) {
-            PlayerResult result = context.outcomes().outcomeFor(uid);
-            if (result == null || result == PlayerResult.PENDING) {
-                context.outcomes().updateOutcome(uid, PlayerResult.LOSS);
-            }
-        }
-    }
-
-    private void applySoloOrNoneOutcome(GameSessionStateContext context) {
-        List<String> participants = context.participants().getUserIds();
-        Set<String> disconnected = context.participants().disconnectedUsersView();
-        int connected = participants.size() - disconnected.size();
-        if (connected == 1) {
-            String winner = null;
-            for (String uid : participants) {
-                if (!disconnected.contains(uid)) {
-                    winner = uid;
-                    break;
-                }
-            }
-            if (winner != null) {
-                context.outcomes().updateOutcome(winner, PlayerResult.WIN);
-            }
-            for (String uid : participants) {
-                if (!uid.equals(winner)) {
-                    context.outcomes().updateOutcome(uid, PlayerResult.LOSS);
-                }
-            }
-        } else {
-            for (String uid : participants) {
-                context.outcomes().updateOutcome(uid, PlayerResult.LOSS);
-            }
-        }
-    }
-
-    private void finalizeSession(GameSessionStateContext context) {
-        context.session().lock().lock();
-        try {
-            int turnCount = context.turns().actionNumber();
-            long now = System.currentTimeMillis();
-            context.lifecycle().markGameFinished(now, turnCount);
-        } finally {
-            context.session().lock().unlock();
-        }
-        contextService.postGame().queueGameCompletion(context, new GameCompletionNotice());
     }
 
     private void emitTurnEnded(GameSessionStateContext context, TurnPersonalFrame frame) {
