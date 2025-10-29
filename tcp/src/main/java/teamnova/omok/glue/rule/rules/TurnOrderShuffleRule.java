@@ -1,15 +1,20 @@
 package teamnova.omok.glue.rule.rules;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 import teamnova.omok.glue.rule.api.TurnOrderRule;
+import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
- * 순서뽑기: 매 턴마다 플레이어 순서를 무작위로 재배치한다.
- * 호출 시점: 전체 턴 종료 시.
+ * 순서뽑기: 매 라운드 시작 시 플레이어 순서를 무작위로 재배치한다.
  */
 public final class TurnOrderShuffleRule implements Rule, TurnOrderRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
@@ -24,14 +29,36 @@ public final class TurnOrderShuffleRule implements Rule, TurnOrderRule {
 
     @Override
     public void invoke(GameSessionRuleAccess context, RuleRuntimeContext runtime) {
-        // Not implemented: reordering players mid-session needs TurnService reseeding and message
-        // broadcasts so clients know the updated order. That capability is not exposed through
-        // the current state context, so this rule is left as a stub.
+        // Primary behaviour is implemented via adjustTurnOrder at TURN_ROUND_START.
     }
 
     @Override
     public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        // Not implemented: see invoke rationale above.
-        return false;
+        if (access == null || runtime == null
+            || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_START
+            || runtime.turnSnapshot() == null
+            || runtime.turnSnapshot().order() == null) {
+            return false;
+        }
+        int currentRound = runtime.turnSnapshot().counters().roundNumber();
+        Integer lastRound = (Integer) access.getRuleData(RuleDataKeys.SHUFFLE_LAST_ROUND);
+        if (lastRound != null && lastRound == currentRound) {
+            return false; // already applied this round
+        }
+        List<String> order = runtime.turnSnapshot().order().userIds();
+        if (order.size() <= 1) {
+            return false;
+        }
+        List<String> next = new ArrayList<>(order);
+        Collections.shuffle(next);
+        String nextCurrent = next.get(0);
+        runtime.services().turnService().reseedOrder(
+            runtime.stateContext().turns(),
+            next,
+            nextCurrent,
+            System.currentTimeMillis()
+        );
+        access.putRuleData(RuleDataKeys.SHUFFLE_LAST_ROUND, currentRound);
+        return true;
     }
 }

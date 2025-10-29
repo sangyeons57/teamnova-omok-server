@@ -36,7 +36,7 @@ public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
     @Override
     public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         if (access == null || runtime == null
-            || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED
+            || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_START
             || runtime.turnSnapshot() == null
             || runtime.turnSnapshot().order() == null) {
             return false;
@@ -44,26 +44,25 @@ public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
         int currentRound = runtime.turnSnapshot().counters().roundNumber();
         Integer lastRound = (Integer) access.getRuleData(RuleDataKeys.ROUND_TRIP_LAST_ROUND);
         if (lastRound != null && lastRound == currentRound) {
-            return false;
+            return false; // already applied for this round
         }
         List<String> currentOrder = runtime.turnSnapshot().order().userIds();
         if (currentOrder.size() <= 1) {
             return false;
         }
-        Boolean directionFlag = (Boolean) access.getRuleData(RuleDataKeys.ROUND_TRIP_DIRECTION);
-        boolean currentForward = directionFlag == null || directionFlag;
-        boolean nextForward = !currentForward;
+        boolean forward = (currentRound % 2 == 1); // odd=forward, even=reverse
         List<String> nextOrder = new ArrayList<>(currentOrder);
-        if (!nextForward) {
+        if (!forward) {
             Collections.reverse(nextOrder);
         }
+        // First player of the new round should be the first of nextOrder
+        String nextCurrent = nextOrder.get(0);
         runtime.services().turnService().reseedOrder(
             runtime.stateContext().turns(),
             nextOrder,
-            runtime.turnSnapshot().currentPlayerId(),
+            nextCurrent,
             System.currentTimeMillis()
         );
-        access.putRuleData(RuleDataKeys.ROUND_TRIP_DIRECTION, nextForward);
         access.putRuleData(RuleDataKeys.ROUND_TRIP_LAST_ROUND, currentRound);
         return true;
     }
