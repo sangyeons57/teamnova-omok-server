@@ -40,9 +40,11 @@ public final class TenChainEliminationRule implements Rule, OutcomeRule {
 
     @Override
     public Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access,
-                                                      RuleRuntimeContext runtime) {
+                                                      RuleRuntimeContext runtime,
+                                                      OutcomeResolution currentOutcome) {
         if (access == null || runtime == null || runtime.stateContext() == null
-            || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION) {
+            || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION
+            || currentOutcome == null) {
             return Optional.empty();
         }
         int turnNumber = runtime.turnSnapshot() != null ? runtime.turnSnapshot().turnNumber() : -1;

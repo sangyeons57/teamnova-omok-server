@@ -37,9 +37,11 @@ public final class LuckySevenRule implements Rule, OutcomeRule {
 
     @Override
     public Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access,
-                                                      RuleRuntimeContext runtime) {
+                                                      RuleRuntimeContext runtime,
+                                                      OutcomeResolution currentOutcome) {
         if (access == null || runtime == null || runtime.turnSnapshot() == null
-            || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION) {
+            || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION
+            || currentOutcome == null) {
             return Optional.empty();
         }
         int turnNumber = runtime.turnSnapshot().turnNumber();
@@ -51,13 +53,11 @@ public final class LuckySevenRule implements Rule, OutcomeRule {
             return Optional.empty();
         }
         Map<String, PlayerResult> assignments = new LinkedHashMap<>();
-        var stateContext = runtime.stateContext();
-        for (String userId : stateContext.participants().getUserIds()) {
-            PlayerResult result = stateContext.outcomes().outcomeFor(userId);
+        currentOutcome.assignments().forEach((userId, result) -> {
             if (result == PlayerResult.WIN) {
                 assignments.put(userId, PlayerResult.LOSS);
             }
-        }
+        });
         if (assignments.isEmpty()) {
             return Optional.empty();
         }

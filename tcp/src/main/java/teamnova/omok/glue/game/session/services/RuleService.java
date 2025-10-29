@@ -194,22 +194,52 @@ public class RuleService {
         if (ruleIds == null || ruleIds.isEmpty()) {
             return Optional.empty();
         }
-        Map<String, PlayerResult> assignments = new LinkedHashMap<>();
+
+        //결과를 다루는것을 목적으로 하기때문에 결과에 접근하기 쉽게하기위해 직접 제공
+        Map<String, PlayerResult> baseline = new LinkedHashMap<>();
+        List<String> participants = runtime.stateContext().participants().getUserIds();
+        if (participants != null) {
+            for (String userId : participants) {
+                if (userId != null) {
+                    PlayerResult current = runtime.stateContext().outcomes().outcomeFor(userId);
+                    baseline.put(userId, current);
+                }
+            }
+        }
+        Map<String, PlayerResult> working = new LinkedHashMap<>(baseline);
         boolean finalize = false;
         for (RuleId id : ruleIds) {
             Rule rule = RuleRegistry.getInstance().get(id);
             if (rule instanceof OutcomeRule outcomeRule) {
-                Optional<OutcomeResolution> candidate = outcomeRule.resolveOutcome(access, runtime);
+                OutcomeResolution snapshot = OutcomeResolution.of(working, finalize);
+                Optional<OutcomeResolution> candidate = outcomeRule.resolveOutcome(
+                    access,
+                    runtime,
+                    snapshot
+                );
                 if (candidate.isEmpty()) {
                     continue;
                 }
                 OutcomeResolution resolution = candidate.get();
                 if (!resolution.assignments().isEmpty()) {
-                    assignments.putAll(resolution.assignments());
+                    resolution.assignments().forEach((userId, result) -> {
+                        if (userId != null && result != null) {
+                            working.put(userId, result);
+                        }
+                    });
                 }
                 finalize = finalize || resolution.finalizeNow();
             }
         }
+        Map<String, PlayerResult> assignments = new LinkedHashMap<>();
+        working.forEach((userId, result) -> {
+            if (userId != null && result != null) {
+                PlayerResult original = baseline.get(userId);
+                if (!Objects.equals(original, result)) {
+                    assignments.put(userId, result);
+                }
+            }
+        });
         if (assignments.isEmpty() && !finalize) {
             return Optional.empty();
         }

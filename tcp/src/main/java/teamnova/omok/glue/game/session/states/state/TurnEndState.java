@@ -46,27 +46,20 @@ public final class TurnEndState implements BaseState {
     @Override
     public <I extends StateContext> StateStep onEnter(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
-        evaluateOutcomeRules(ctx);
-        if (ctx.outcomes().isGameFinished()) {
-            // Ensure lifecycle is marked as finished and post-game is queued before transitioning
-            ctx.session().lock().lock();
-            try {
-                int turnCount = ctx.turns().actionNumber();
-                long now = System.currentTimeMillis();
-                ctx.lifecycle().markGameFinished(now, turnCount);
-            } finally {
-                ctx.session().lock().unlock();
+        AbandonmentResult abandonment = handleAbandonmentIfNeeded(ctx);
+        if (abandonment != null) {
+            if (abandonment.requiresFinalize()) {
+                evaluateOutcomeRules(ctx);
+                if (ctx.outcomes().isGameFinished()) {
+                    return finalizeSession(ctx);
+                }
             }
-            services.messenger().broadcastGameCompleted(ctx.session());
-            contextService.postGame().queueGameCompletion(ctx, new GameCompletionNotice());
-            applyScoreAdjustments(ctx);
-            return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());
+            return abandonment.step();
         }
 
-        // Handle abandonment/forfeit scenarios at the end of each turn boundary
-        StateStep abandonmentStep = handleAbandonmentIfNeeded(ctx);
-        if (abandonmentStep != null) {
-            return abandonmentStep;
+        evaluateOutcomeRules(ctx);
+        if (ctx.outcomes().isGameFinished()) {
+            return finalizeSession(ctx);
         }
 
         TurnSnapshot snapshot = turnContextService.peekTurnSnapshot(ctx);
@@ -76,7 +69,7 @@ public final class TurnEndState implements BaseState {
         return StateStep.transition(GameSessionStateType.TURN_START.toStateName());
     }
 
-    private StateStep handleAbandonmentIfNeeded(GameSessionStateContext ctx) {
+    private AbandonmentResult handleAbandonmentIfNeeded(GameSessionStateContext ctx) {
         var session = ctx.session();
         int total = ctx.participants().getUserIds().size();
         int dc = session.disconnectedUsersView().size();
@@ -96,7 +89,7 @@ public final class TurnEndState implements BaseState {
             }
 
             // Session runtime removed; stay indicates no further transition within this state machine tick
-            return StateStep.stay();
+            return new AbandonmentResult(StateStep.stay(), false);
         }
 
         if (connected == 1 && !ctx.outcomes().isGameFinished()) {
@@ -115,20 +108,11 @@ public final class TurnEndState implements BaseState {
                 // Cancel any active timers now that the game is decided by forfeit
                 services.turnTimeoutScheduler().cancel(session.sessionId());
                 services.decisionTimeoutScheduler().cancel(session.sessionId());
-                // Mark lifecycle finished and queue post-game completion
-                ctx.session().lock().lock();
-                try {
-                    int turnCount = ctx.turns().actionNumber();
-                    long now = System.currentTimeMillis();
-                    ctx.lifecycle().markGameFinished(now, turnCount);
-                } finally {
-                    ctx.session().lock().unlock();
-                }
-                services.messenger().broadcastGameCompleted(session);
-                contextService.postGame().queueGameCompletion(ctx, new GameCompletionNotice());
-                applyScoreAdjustments(ctx);
-                // Move to post-game decision waiting to follow normal flow
-                return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());
+                // Allow outcome rules to adjust before finalization
+                return new AbandonmentResult(
+                    StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName()),
+                    true
+                );
             }
         }
         return null;
@@ -169,5 +153,23 @@ public final class TurnEndState implements BaseState {
                 DataManager.getInstance().adjustUserScore(userId, delta);
             }
         }
+    }
+
+    private StateStep finalizeSession(GameSessionStateContext ctx) {
+        ctx.session().lock().lock();
+        try {
+            int turnCount = ctx.turns().actionNumber();
+            long now = System.currentTimeMillis();
+            ctx.lifecycle().markGameFinished(now, turnCount);
+        } finally {
+            ctx.session().lock().unlock();
+        }
+        services.messenger().broadcastGameCompleted(ctx.session());
+        contextService.postGame().queueGameCompletion(ctx, new GameCompletionNotice());
+        applyScoreAdjustments(ctx);
+        return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());
+    }
+
+    private record AbandonmentResult(StateStep step, boolean requiresFinalize) {
     }
 }

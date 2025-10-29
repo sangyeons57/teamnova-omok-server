@@ -11,5 +11,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
  * to update player results or force finalization.
  */
 public interface OutcomeRule {
-    Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access, RuleRuntimeContext runtime);
+    Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access,
+                                               RuleRuntimeContext runtime,
+                                               OutcomeResolution currentOutcome);
 }
