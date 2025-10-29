@@ -5,16 +5,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.rule.api.RuleTriggerKind;
 import teamnova.omok.glue.rule.api.OutcomeResolution;
 import teamnova.omok.glue.rule.api.OutcomeRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
@@ -23,6 +26,8 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
  * 호출 시점: 턴 종료 시.
  */
 public final class TenChainEliminationRule implements Rule, OutcomeRule {
+    private static final Logger LOGGER = LoggerFactory.getLogger(TenChainEliminationRule.class);
+
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.TEN_CHAIN_ELIMINATION,
         800
@@ -56,8 +61,12 @@ public final class TenChainEliminationRule implements Rule, OutcomeRule {
         if (board == null) {
             return Optional.empty();
         }
-        Map<String, PlayerResult> assignments = new LinkedHashMap<>();
         List<String> participants = runtime.stateContext().participants().getUserIds();
+        if (participants == null || participants.isEmpty()) {
+            LOGGER.debug("TenChainElimination: no participants available for turn={}", turnNumber);
+            return Optional.empty();
+        }
+        Map<String, PlayerResult> assignments = new LinkedHashMap<>();
         for (String userId : participants) {
             int index = runtime.stateContext().participants().playerIndexOf(userId);
             if (index < 0) {
@@ -69,12 +78,28 @@ public final class TenChainEliminationRule implements Rule, OutcomeRule {
             }
             if (hasSequence(board, playerStone, 10)) {
                 assignments.put(userId, PlayerResult.LOSS);
+                LOGGER.info(
+                    "TenChainElimination: detected 10-chain for user={} stone={} turn={}",
+                    userId,
+                    playerStone,
+                    turnNumber
+                );
             }
         }
         if (assignments.isEmpty()) {
             return Optional.empty();
         }
+        for (String userId : participants) {
+            if (!assignments.containsKey(userId)) {
+                assignments.put(userId, PlayerResult.WIN);
+            }
+        }
         access.putRuleData(RuleDataKeys.TEN_CHAIN_LAST_TURN, turnNumber);
+        LOGGER.info(
+            "TenChainElimination: finalizing outcomes turn={} assignments={}",
+            turnNumber,
+            assignments
+        );
         return Optional.of(OutcomeResolution.of(assignments, true));
     }
 
