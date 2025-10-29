@@ -17,6 +17,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 /**
  * 럭키 7: 7의 배수 턴에 승리 조건을 달성한 플레이어를 패배 처리한다.
  * 호출 시점: 게임 종료 시.
+ * 통과(2025.10.29)
  */
 public final class LuckySevenRule implements Rule, OutcomeRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
