@@ -39,17 +39,22 @@ public final class LuckySevenRule implements Rule, OutcomeRule {
                                                       RuleRuntimeContext runtime,
                                                       OutcomeResolution currentOutcome) {
         System.out.println("LuckySevenRule: resolveOutcome");
-        System.out.println("access:" + access + ", runtime:" + runtime + ", currentOutcome:" + currentOutcome
-        + ", turnNumber:" + runtime.turnSnapshot().turnNumber() + ", triggerKind:" + runtime.triggerKind() );
-        if (access == null || runtime == null || runtime.turnSnapshot() == null
+        if (access == null || runtime == null
             || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION
             || currentOutcome == null) {
             return Optional.empty();
         }
-        System.out.println("LuckySevenRule: resolveOutcome: " + currentOutcome.assignments());
-        int turnNumber = runtime.turnSnapshot().turnNumber();
-        System.out.println("turnNumber:" + turnNumber);
-        if (turnNumber <= 0 || turnNumber % 7 != 0) {
+        int roundNumber;
+        if (runtime.turnSnapshot() != null) {
+            roundNumber = runtime.turnSnapshot().roundNumber();
+        } else {
+            var counters = runtime.stateContext().turns().counters();
+            roundNumber = counters != null ? counters.roundNumber() : -1;
+        }
+        System.out.println("access:" + access + ", runtime:" + runtime + ", currentOutcome:" + currentOutcome
+                + ", roundNumber:" + roundNumber + ", triggerKind:" + runtime.triggerKind() );
+        System.out.println("roundNumber:" + roundNumber);
+        if (roundNumber <= 0 || roundNumber % 7 != 0) {
             return Optional.empty();
         }
         Map<String, PlayerResult> assignments = new LinkedHashMap<>();
