@@ -148,7 +148,7 @@ public class RuleService {
         for (RuleId id : ruleIds) {
             Rule rule = RuleRegistry.getInstance().get(id);
             if (rule instanceof TurnOrderRule orderRule) {
-                changed |= runtime.services().turnOrderCoordinator().apply(orderRule, access, runtime);
+                changed |= orderRule.adjustTurnOrder(access, runtime);
             }
         }
         return changed;

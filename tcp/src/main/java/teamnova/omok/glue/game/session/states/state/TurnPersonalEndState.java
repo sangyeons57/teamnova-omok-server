@@ -194,9 +194,6 @@ public final class TurnPersonalEndState implements BaseState {
         if (trigger == RuleTriggerKind.TURN_ROUND_COMPLETED) {
             ruleService.updateTurnBudget(context.rules(), runtime);
         }
-        if (trigger == RuleTriggerKind.TURN_ADVANCE || trigger == RuleTriggerKind.TURN_ROUND_COMPLETED) {
-            ruleService.adjustTurnOrder(context.rules(), runtime);
-        }
         ruleService.activateRules(context.rules(), runtime);
     }
 

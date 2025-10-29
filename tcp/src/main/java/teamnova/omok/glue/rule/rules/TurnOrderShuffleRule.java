@@ -14,7 +14,7 @@ import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
- * 순서뽑기: 매 라운드 시작 시 플레이어 순서를 무작위로 재배치한다.
+ * 순서뽑기: 매 라운드가 끝날 때 다음 라운드를 위해 플레이어 순서를 무작위로 재배치한다.
  */
 public final class TurnOrderShuffleRule implements Rule, TurnOrderRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
@@ -29,13 +29,13 @@ public final class TurnOrderShuffleRule implements Rule, TurnOrderRule {
 
     @Override
     public void invoke(GameSessionRuleAccess context, RuleRuntimeContext runtime) {
-        // Primary behaviour is implemented via adjustTurnOrder at TURN_ROUND_START.
+        // Primary behaviour is implemented via adjustTurnOrder at TURN_ROUND_COMPLETED.
     }
 
     @Override
     public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         if (access == null || runtime == null
-            || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_START
+            || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED
             || runtime.turnSnapshot() == null
             || runtime.turnSnapshot().order() == null) {
             return false;

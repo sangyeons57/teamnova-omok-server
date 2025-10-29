@@ -131,6 +131,7 @@ public final class TurnEndState implements BaseState {
         );
         RuleService ruleService = RuleService.getInstance();
         ruleService.updateTurnBudget(context.rules(), runtime);
+        // Ensure turn-order rules apply only at round-end
         ruleService.adjustTurnOrder(context.rules(), runtime);
         ruleService.activateRules(context.rules(), runtime);
     }

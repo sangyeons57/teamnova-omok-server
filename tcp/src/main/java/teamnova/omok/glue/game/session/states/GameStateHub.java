@@ -10,7 +10,6 @@ import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.services.HiddenPlacementCoordinator;
 import teamnova.omok.glue.game.session.services.TurnBudgetManager;
-import teamnova.omok.glue.game.session.services.TurnOrderCoordinator;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
@@ -61,7 +60,6 @@ public class GameStateHub {
 
         this.contextService = contextService;
         HiddenPlacementCoordinator hiddenPlacementCoordinator = new HiddenPlacementCoordinator();
-        TurnOrderCoordinator turnOrderCoordinator = new TurnOrderCoordinator();
         TurnBudgetManager turnBudgetManager = new TurnBudgetManager();
         this.services = new GameSessionServices(
             boardService,
@@ -69,7 +67,6 @@ public class GameStateHub {
             scoreService,
             messenger,
             hiddenPlacementCoordinator,
-            turnOrderCoordinator,
             turnBudgetManager,
             turnTimeoutScheduler,
             decisionTimeoutScheduler,
@@ -88,7 +85,7 @@ public class GameStateHub {
 
     private void registerStateConfig(GameSessionStateContextService contextService) {
         registerState(new LobbyGameSessionState(contextService, services));
-        registerState(new TurnStartState(contextService, services));
+        registerState(new TurnStartState(contextService));
         registerState(new TurnPersonalStartState(contextService, services));
         registerState(new TurnWaitingState(contextService, services.turnService(), services.messenger()));
         registerState(new MoveValidatingState(contextService, services));

@@ -58,10 +58,18 @@ public final class SequentialConversionRule implements Rule {
             for (int x = 0; x < w; x++) {
                 Stone s = board.stoneAt(x, y);
                 Stone ns = s;
-                if (s == Stone.PLAYER1) ns = Stone.PLAYER2;
-                else if (s == Stone.PLAYER2) ns = Stone.PLAYER3;
-                else if (s == Stone.PLAYER3) ns = Stone.PLAYER4;
-                else if (s == Stone.PLAYER4) ns = Stone.PLAYER1;
+                // Rotate only among the currently active players (2~4). Others stay as-is.
+                int playerCount = (userOrder != null) ? Math.min(Math.max(userOrder.size(), 0), 4) : 0;
+                if (playerCount >= 2 && s != null && s.isPlayerStone()) {
+                    Stone[] ring = new Stone[] { Stone.PLAYER1, Stone.PLAYER2, Stone.PLAYER3, Stone.PLAYER4 };
+                    int activeIdx = -1;
+                    for (int i = 0; i < playerCount; i++) {
+                        if (s == ring[i]) { activeIdx = i; break; }
+                    }
+                    if (activeIdx != -1) {
+                        ns = ring[(activeIdx + 1) % playerCount];
+                    }
+                }
                 if (ns != s) {
                     int playerIndex = ns.isPlayerStone() ? ns.code() : -1;
                     String userId = (playerIndex >= 0 && playerIndex < userOrder.size())

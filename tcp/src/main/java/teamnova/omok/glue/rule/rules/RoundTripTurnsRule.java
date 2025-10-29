@@ -15,7 +15,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
  * 왕복: 플레이어 턴 순서가 왕복(정방향→역방향)으로 진행되도록 한다.
- * 호출 시점: 게임 진행 중.
+ * 호출 시점: 라운드 종료 시 다음 라운드를 위해 순서를 재설정.
  */
 public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
@@ -36,7 +36,7 @@ public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
     @Override
     public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         if (access == null || runtime == null
-            || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_START
+            || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED
             || runtime.turnSnapshot() == null
             || runtime.turnSnapshot().order() == null) {
             return false;

@@ -12,14 +12,12 @@ import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.services.HiddenPlacementCoordinator;
 import teamnova.omok.glue.game.session.services.TurnBudgetManager;
-import teamnova.omok.glue.game.session.services.TurnOrderCoordinator;
 
 public record GameSessionServices(GameBoardService boardService,
                                   GameTurnService turnService,
                                   GameScoreService scoreService,
                                   GameSessionMessenger messenger,
                                   HiddenPlacementCoordinator hiddenPlacementCoordinator,
-                                  TurnOrderCoordinator turnOrderCoordinator,
                                   TurnBudgetManager turnBudgetManager,
                                   TurnTimeoutScheduler turnTimeoutScheduler,
                                   DecisionTimeoutScheduler decisionTimeoutScheduler,
@@ -31,7 +29,6 @@ public record GameSessionServices(GameBoardService boardService,
         Objects.requireNonNull(scoreService, "scoreService");
         Objects.requireNonNull(messenger, "messenger");
         Objects.requireNonNull(hiddenPlacementCoordinator, "hiddenPlacementCoordinator");
-        Objects.requireNonNull(turnOrderCoordinator, "turnOrderCoordinator");
         Objects.requireNonNull(turnBudgetManager, "turnBudgetManager");
         Objects.requireNonNull(turnTimeoutScheduler, "turnTimeoutScheduler");
         Objects.requireNonNull(decisionTimeoutScheduler, "decisionTimeoutScheduler");
