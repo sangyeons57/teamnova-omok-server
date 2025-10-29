@@ -1,6 +1,7 @@
 package teamnova.omok.glue.game.session.interfaces;
 
 import java.util.List;
+import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.model.Stone;
@@ -17,5 +18,9 @@ public interface GameBoardService {
     StonePlacementMetadata placementAt(GameSessionBoardAccess board, int x, int y);
     byte[] snapshot(GameSessionBoardAccess board);
     boolean hasFiveInARow(GameSessionBoardAccess board, int x, int y, Stone stone);
+    boolean hasFiveInARowMatching(GameSessionBoardAccess board,
+                                  int x,
+                                  int y,
+                                  Set<Stone> allowedStones);
     List<ConnectedGroup> connectedGroups(GameSessionBoardAccess board, Connectivity connectivity);
 }

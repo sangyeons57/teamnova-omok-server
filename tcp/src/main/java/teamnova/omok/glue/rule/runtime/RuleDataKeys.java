@@ -16,7 +16,6 @@ public final class RuleDataKeys {
     public static final String SPEED_GAME_BUDGETS = "rules.speedGame2.budgets";
     public static final String SIX_IN_ROW_LAST_TURN = "rules.sixInRow.lastTurn";
     public static final String TEN_CHAIN_LAST_TURN = "rules.tenChain.lastTurn";
-    public static final String NEW_PLAYER_ID = "rules.newPlayer.virtualId";
     public static final String ROUND_TRIP_LAST_ROUND = "rules.roundTrip.lastRound";
     public static final String SPEED_GAME_LAST_PLAYER = "rules.speedGame2.lastPlayer";
     public static final String SPEED_GAME_LAST_TURN_START = "rules.speedGame2.lastStart";

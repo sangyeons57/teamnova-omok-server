@@ -3,6 +3,8 @@ package teamnova.omok.glue.game.session.services;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
@@ -69,16 +71,40 @@ public class BoardService implements GameBoardService {
         if (!stone.isPlayerStone()) {
             return false;
         }
+        return hasFiveInARowMatching(store, x, y, s -> s != null && s.countsForPlayerSequence(stone));
+    }
+
+    @Override
+    public boolean hasFiveInARowMatching(GameSessionBoardAccess store,
+                                         int x,
+                                         int y,
+                                         Set<Stone> allowedStones) {
+        Objects.requireNonNull(store, "store");
+        Objects.requireNonNull(allowedStones, "allowedStones");
+        if (allowedStones.isEmpty()) {
+            return false;
+        }
+        Stone target = stoneAt(store, x, y);
+        if (target == null || !allowedStones.contains(target)) {
+            return false;
+        }
+        return hasFiveInARowMatching(store, x, y, s -> s != null && allowedStones.contains(s));
+    }
+
+    private boolean hasFiveInARowMatching(GameSessionBoardAccess store,
+                                          int x,
+                                          int y,
+                                          Predicate<Stone> matcher) {
         int[][] directions = {
-            {1, 0}, // horizontal
-            {0, 1}, // vertical
-            {1, 1}, // diagonal down-right
-            {1, -1} // diagonal up-right
+            {1, 0},
+            {0, 1},
+            {1, 1},
+            {1, -1}
         };
         for (int[] dir : directions) {
             int count = 1;
-            count += countDirection(store, x, y, dir[0], dir[1], stone);
-            count += countDirection(store, x, y, -dir[0], -dir[1], stone);
+            count += countDirection(store, x, y, dir[0], dir[1], matcher);
+            count += countDirection(store, x, y, -dir[0], -dir[1], matcher);
             if (count == 5) {
                 return true;
             }
@@ -86,13 +112,18 @@ public class BoardService implements GameBoardService {
         return false;
     }
 
-    private int countDirection(GameSessionBoardAccess store, int startX, int startY, int dx, int dy, Stone playerStone) {
+    private int countDirection(GameSessionBoardAccess store,
+                               int startX,
+                               int startY,
+                               int dx,
+                               int dy,
+                               Predicate<Stone> matcher) {
         int count = 0;
         int x = startX + dx;
         int y = startY + dy;
         while (isWithinBounds(store, x, y)) {
             Stone occupying = store.stoneAt(x, y);
-            if (!occupying.countsForPlayerSequence(playerStone)) {
+            if (!matcher.test(occupying)) {
                 break;
             }
             count++;
