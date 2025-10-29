@@ -134,6 +134,9 @@ public final class TurnEndState implements BaseState {
 
     private void evaluateOutcomeRules(GameSessionStateContext context) {
         TurnSnapshot snapshot = turnContextService.peekTurnSnapshot(context);
+        if (snapshot == null) {
+            snapshot = services.turnService().snapshot(context.turns());
+        }
         RuleRuntimeContext runtime = new RuleRuntimeContext(
             services,
             contextService,

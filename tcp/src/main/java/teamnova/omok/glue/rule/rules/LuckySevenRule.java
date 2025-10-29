@@ -38,7 +38,6 @@ public final class LuckySevenRule implements Rule, OutcomeRule {
     public Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access,
                                                       RuleRuntimeContext runtime,
                                                       OutcomeResolution currentOutcome) {
-        System.out.println("LuckySevenRule: resolveOutcome");
         if (access == null || runtime == null
             || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION
             || currentOutcome == null) {
@@ -51,17 +50,12 @@ public final class LuckySevenRule implements Rule, OutcomeRule {
             var counters = runtime.stateContext().turns().counters();
             roundNumber = counters != null ? counters.roundNumber() : -1;
         }
-        System.out.println("access:" + access + ", runtime:" + runtime + ", currentOutcome:" + currentOutcome
-                + ", roundNumber:" + roundNumber + ", triggerKind:" + runtime.triggerKind() );
-        System.out.println("roundNumber:" + roundNumber);
         if (roundNumber <= 0 || roundNumber % 7 != 0) {
             return Optional.empty();
         }
         Map<String, PlayerResult> assignments = new LinkedHashMap<>();
         currentOutcome.assignments().forEach((userId, result) -> {
-            System.out.println("LuckySevenRule: " + userId + " : " + result);
             if (result == PlayerResult.WIN) {
-                System.out.println("LuckySevenRule: " + userId + " : " + result + "[WIN]");
                 assignments.put(userId, PlayerResult.LOSS);
             }
         });
