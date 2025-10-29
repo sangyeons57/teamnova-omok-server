@@ -16,6 +16,8 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
 /**
  * 보호 조치: 각 플레이어가 마지막에 둔 돌 주변 한 칸을 금지 구역으로 만든다.
  * 호출 시점: 턴 시작 시(실제로는 직전 차례의 돌이 배치된 직후 적용).
+ * *
+ * 통과(2025.10.29)
  */
 public final class ProtectiveZoneRule implements Rule {
     public static final String STORAGE_KEY = "rule:protectiveZone:data";
