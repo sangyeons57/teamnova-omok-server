@@ -102,12 +102,20 @@ public final class MoveValidatingState implements BaseState {
                             TurnSnapshot snapshot) {
         if (snapshot != null) {
             frame.currentSnapshot(snapshot);
+        } else {
+            // Ensure snapshot is available for responders/encoders that expect it
+            TurnSnapshot current = services.turnService().snapshot(context.turns());
+            if (current != null) {
+                frame.currentSnapshot(current);
+            }
         }
         GameSessionLogger.event(context, GameSessionStateType.MOVE_VALIDATING, "MoveRejected",
             "status=" + status,
             String.format("user=%s x=%d y=%d", frame.userId(), frame.x(), frame.y()));
         contextService.turn().finalizeMoveOutcome(context, status);
         contextService.turn().clearTurnCycle(context);
+        // Send immediate error ACK so clients can react without waiting for TURN_PERSONAL_END
+        services.messenger().respondMove(frame.userId(), frame.stonePlaceRequestId(), context.session(), frame);
     }
 
     private boolean violatesProtectiveZone(GameSessionStateContext context,
