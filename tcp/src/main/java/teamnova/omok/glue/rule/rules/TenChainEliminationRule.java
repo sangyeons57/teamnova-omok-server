@@ -1,19 +1,14 @@
 package teamnova.omok.glue.rule.rules;
 
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Objects;
+import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.Stone;
-import teamnova.omok.glue.rule.api.OutcomeResolution;
-import teamnova.omok.glue.rule.api.OutcomeRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
@@ -25,9 +20,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
  * 10수: 같은 종류의 돌이 10개 연속이면 해당 플레이어를 패배 처리한다.(연결되어있으면)
  * 호출 시점: 턴 종료 시.
  */
-public final class TenChainEliminationRule implements Rule, OutcomeRule {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TenChainEliminationRule.class);
-
+public final class TenChainEliminationRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.TEN_CHAIN_ELIMINATION,
         800
@@ -40,33 +33,29 @@ public final class TenChainEliminationRule implements Rule, OutcomeRule {
 
     @Override
     public void invoke(GameSessionRuleAccess context, RuleRuntimeContext runtime) {
-        // Primary behaviour executed via resolveOutcome.
-    }
-
-    @Override
-    public Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access,
-                                                      RuleRuntimeContext runtime,
-                                                      OutcomeResolution currentOutcome) {
-        if (access == null || runtime == null || runtime.stateContext() == null
-            || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION
-            || currentOutcome == null) {
-            return Optional.empty();
+        if (context == null || runtime == null || runtime.stateContext() == null) {
+            return;
         }
-        int turnNumber = runtime.turnSnapshot() != null ? runtime.turnSnapshot().turnNumber() : -1;
-        Integer lastTurn = (Integer) access.getRuleData(RuleDataKeys.TEN_CHAIN_LAST_TURN);
-        if (lastTurn != null && lastTurn == turnNumber) {
-            return Optional.empty();
+        if (runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION) {
+            return;
         }
         GameSessionBoardAccess board = runtime.stateContext().board();
         if (board == null) {
-            return Optional.empty();
+            return;
         }
         List<String> participants = runtime.stateContext().participants().getUserIds();
         if (participants == null || participants.isEmpty()) {
-            LOGGER.debug("TenChainElimination: no participants available for turn={}", turnNumber);
-            return Optional.empty();
+            System.out.println("[TenChainElimination] skip: no participants");
+            return;
         }
-        Map<String, PlayerResult> assignments = new LinkedHashMap<>();
+
+        int turnNumber = resolveTurnNumber(runtime);
+        Integer lastTurn = (Integer) context.getRuleData(RuleDataKeys.TEN_CHAIN_LAST_TURN);
+        if (lastTurn != null && Objects.equals(lastTurn, turnNumber)) {
+            return;
+        }
+
+        Set<String> eliminated = new HashSet<>();
         for (String userId : participants) {
             int index = runtime.stateContext().participants().playerIndexOf(userId);
             if (index < 0) {
@@ -77,30 +66,24 @@ public final class TenChainEliminationRule implements Rule, OutcomeRule {
                 continue;
             }
             if (hasSequence(board, playerStone, 10)) {
-                assignments.put(userId, PlayerResult.LOSS);
-                LOGGER.info(
-                    "TenChainElimination: detected 10-chain for user={} stone={} turn={}",
-                    userId,
-                    playerStone,
-                    turnNumber
+                runtime.stateContext().outcomes().updateOutcome(userId, PlayerResult.LOSS);
+                System.out.println(
+                    "[TenChainElimination] detected 10-chain: user="
+                        + userId + " stone=" + playerStone + " turn=" + turnNumber
                 );
+                eliminated.add(userId);
             }
         }
-        if (assignments.isEmpty()) {
-            return Optional.empty();
+        if (eliminated.isEmpty()) {
+            return;
         }
         for (String userId : participants) {
-            if (!assignments.containsKey(userId)) {
-                assignments.put(userId, PlayerResult.WIN);
+            if (!eliminated.contains(userId)) {
+                runtime.stateContext().outcomes().updateOutcome(userId, PlayerResult.WIN);
             }
         }
-        access.putRuleData(RuleDataKeys.TEN_CHAIN_LAST_TURN, turnNumber);
-        LOGGER.info(
-            "TenChainElimination: finalizing outcomes turn={} assignments={}",
-            turnNumber,
-            assignments
-        );
-        return Optional.of(OutcomeResolution.of(assignments, true));
+        context.putRuleData(RuleDataKeys.TEN_CHAIN_LAST_TURN, turnNumber);
+        System.out.println("[TenChainElimination] finalized outcomes for turn " + turnNumber);
     }
 
     private boolean hasSequence(GameSessionBoardAccess board, Stone stone, int targetLength) {
@@ -150,5 +133,16 @@ public final class TenChainEliminationRule implements Rule, OutcomeRule {
             y += dy;
         }
         return count;
+    }
+
+    private int resolveTurnNumber(RuleRuntimeContext runtime) {
+        if (runtime.turnSnapshot() != null) {
+            return runtime.turnSnapshot().turnNumber();
+        }
+        var counters = runtime.stateContext().turns().counters();
+        if (counters != null) {
+            return counters.actionNumber();
+        }
+        return -1;
     }
 }

@@ -133,6 +133,9 @@ public final class TurnEndState implements BaseState {
     }
 
     private void evaluateOutcomeRules(GameSessionStateContext context) {
+        if (context.outcomes().isGameFinished()) {
+            return;
+        }
         TurnSnapshot snapshot = turnContextService.peekTurnSnapshot(context);
         if (snapshot == null) {
             snapshot = services.turnService().snapshot(context.turns());
@@ -144,7 +147,9 @@ public final class TurnEndState implements BaseState {
             snapshot,
             RuleTriggerKind.OUTCOME_EVALUATION
         );
-        RuleService.getInstance().applyOutcomeRules(context, runtime);
+        RuleService ruleService = RuleService.getInstance();
+        ruleService.activateRules(context.rules(), runtime);
+        ruleService.applyOutcomeRules(context, runtime);
     }
 
     private void applyScoreAdjustments(GameSessionStateContext context) {

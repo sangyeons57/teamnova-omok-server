@@ -79,6 +79,13 @@ public final class TurnPersonalEndState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
         }
 
+        if (evaluateOutcomeRulesNow(context, "post-move")) {
+            turnContextService.finalizeMoveOutcome(context, MoveStatus.SUCCESS);
+            turnContextService.clearTurnCycle(context);
+            emitTurnEnded(context, frame);
+            return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
+        }
+
         if (applyAutoFinalization(context, "reason=post-move-check")) {
             turnContextService.finalizeMoveOutcome(context, MoveStatus.SUCCESS);
             turnContextService.clearTurnCycle(context);
@@ -126,6 +133,10 @@ public final class TurnPersonalEndState implements BaseState {
             fireRules(context, RuleTriggerKind.TURN_ADVANCE, nextSnapshot);
         }
         turnContextService.clearTurnCycle(context);
+        if (evaluateOutcomeRulesNow(context, "timeout")) {
+            emitTurnEnded(context, frame);
+            return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
+        }
         if (applyAutoFinalization(context, "reason=timeout-check")) {
             emitTurnEnded(context, frame);
             return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
@@ -244,6 +255,30 @@ public final class TurnPersonalEndState implements BaseState {
 
     private void emitTurnEnded(GameSessionStateContext context, TurnPersonalFrame frame) {
         services.messenger().broadcastTurnEnded(context.session(), frame);
+    }
+
+    private boolean evaluateOutcomeRulesNow(GameSessionStateContext context, String detail) {
+        if (context.outcomes().isGameFinished()) {
+            return true;
+        }
+        TurnSnapshot snapshot = services.turnService().snapshot(context.turns());
+        RuleRuntimeContext runtime = new RuleRuntimeContext(
+            services,
+            contextService,
+            context,
+            snapshot,
+            RuleTriggerKind.OUTCOME_EVALUATION
+        );
+        RuleService ruleService = RuleService.getInstance();
+        ruleService.activateRules(context.rules(), runtime);
+        var resolution = ruleService.applyOutcomeRules(context, runtime);
+        resolution.ifPresent(res -> {
+            if (res.finalizeNow()) {
+                GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_END, "OutcomeRuleFinalize",
+                    detail);
+            }
+        });
+        return context.outcomes().isGameFinished();
     }
 
     private void fireRules(GameSessionStateContext context,
