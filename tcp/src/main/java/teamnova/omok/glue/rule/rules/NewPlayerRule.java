@@ -16,6 +16,8 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
  * 새로운 플레이어: 조커/블로커가 다섯 줄을 만들면 모두 패배.
+ * *
+ * 통과(2025.10.29)
  */
 public final class NewPlayerRule implements Rule {
     private static final RuleMetadata METADATA = new RuleMetadata(

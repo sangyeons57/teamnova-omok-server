@@ -2,17 +2,19 @@ package teamnova.omok.glue.game.session.states.state;
 
 import java.util.Objects;
 
-import teamnova.omok.glue.game.session.interfaces.GameBoardService;
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
+import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
+import teamnova.omok.glue.rule.api.RuleTriggerKind;
 import teamnova.omok.glue.rule.rules.ProtectiveZoneRule;
+import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -22,16 +24,13 @@ import teamnova.omok.modules.state_machine.models.StateStep;
  * Validates whether a move request can proceed.
  */
 public final class MoveValidatingState implements BaseState {
-    private final GameBoardService boardService;
-    private final GameTurnService turnService;
     private final GameSessionStateContextService contextService;
+    private final GameSessionServices services;
 
     public MoveValidatingState(GameSessionStateContextService contextService,
-                               GameBoardService boardService,
-                               GameTurnService turnService) {
+                               GameSessionServices services) {
         this.contextService = Objects.requireNonNull(contextService, "contextService");
-        this.boardService = Objects.requireNonNull(boardService, "boardService");
-        this.turnService = Objects.requireNonNull(turnService, "turnService");
+        this.services = Objects.requireNonNull(services, "services");
     }
     @Override
     public StateName name() {
@@ -63,7 +62,7 @@ public final class MoveValidatingState implements BaseState {
         }
 
         TurnSnapshot currentSnapshot =
-            turnService.snapshot(context.turns());
+            services.turnService().snapshot(context.turns());
         frame.currentSnapshot(currentSnapshot);
 
         if (context.outcomes().isGameFinished()) {
@@ -71,24 +70,24 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        if (!boardService.isWithinBounds(context.board(), x, y)) {
+        if (!services.boardService().isWithinBounds(context.board(), x, y)) {
             invalidate(context, frame, MoveStatus.OUT_OF_BOUNDS, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        Integer currentIndex = turnService.currentPlayerIndex(context.turns());
+        Integer currentIndex = services.turnService().currentPlayerIndex(context.turns());
         if (currentIndex == null || currentIndex != playerIndex) {
             invalidate(context, frame, MoveStatus.OUT_OF_TURN, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        if (!boardService.isEmpty(context.board(), x, y)) {
+        if (!services.boardService().isEmpty(context.board(), x, y)) {
             invalidate(context, frame, MoveStatus.CELL_OCCUPIED, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        if (violatesProtectiveZone(context, x, y)) {
-            invalidate(context, frame, MoveStatus.CELL_OCCUPIED, currentSnapshot);
+        if (violatesProtectiveZone(context, currentSnapshot, x, y)) {
+            invalidate(context, frame, MoveStatus.RESTRICTED_ZONE, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
@@ -111,11 +110,37 @@ public final class MoveValidatingState implements BaseState {
         contextService.turn().clearTurnCycle(context);
     }
 
-    private boolean violatesProtectiveZone(GameSessionStateContext context, int x, int y) {
+    private boolean violatesProtectiveZone(GameSessionStateContext context,
+                                           TurnSnapshot snapshot,
+                                           int x,
+                                           int y) {
         if (context == null) {
             return false;
         }
+        fireProtectiveZoneRule(context, snapshot);
+        if (ProtectiveZoneRule.consumeValidationResult(context.rules())) {
+            return true;
+        }
         Object state = context.rules().getRuleData(ProtectiveZoneRule.STORAGE_KEY);
         return ProtectiveZoneRule.isRestricted(state, x, y);
+    }
+
+    private void fireProtectiveZoneRule(GameSessionStateContext context, TurnSnapshot snapshot) {
+        TurnSnapshot effectiveSnapshot = snapshot;
+        if (effectiveSnapshot == null) {
+            effectiveSnapshot = services.turnService().snapshot(context.turns());
+        }
+        if (effectiveSnapshot == null) {
+            return;
+        }
+        RuleService ruleService = RuleService.getInstance();
+        RuleRuntimeContext runtime = new RuleRuntimeContext(
+            services,
+            contextService,
+            context,
+            effectiveSnapshot,
+            RuleTriggerKind.MOVE_VALIDATION
+        );
+        ruleService.activateRules(context.rules(), runtime);
     }
 }

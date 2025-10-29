@@ -91,7 +91,7 @@ public class GameStateHub {
         registerState(new TurnStartState(contextService));
         registerState(new TurnPersonalStartState(contextService, services));
         registerState(new TurnWaitingState(contextService, services.turnService(), services.messenger()));
-        registerState(new MoveValidatingState(contextService, services.boardService(), services.turnService()));
+        registerState(new MoveValidatingState(contextService, services));
         registerState(new MoveApplyingState(contextService, services));
         registerState(new TurnPersonalEndState(contextService, services));
         registerState(new TurnEndState(contextService, services));

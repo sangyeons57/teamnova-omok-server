@@ -19,6 +19,7 @@ import teamnova.omok.glue.rule.api.RuleTriggerKind;
  */
 public final class ProtectiveZoneRule implements Rule {
     public static final String STORAGE_KEY = "rule:protectiveZone:data";
+    private static final String VALIDATION_KEY = "rule:protectiveZone:validation";
 
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.PROTECTIVE_ZONE,
@@ -38,7 +39,14 @@ public final class ProtectiveZoneRule implements Rule {
 
     @Override
     public void invoke(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
-        if (access == null || runtime == null || runtime.triggerKind() != RuleTriggerKind.POST_PLACEMENT) {
+        if (access == null || runtime == null) {
+            return;
+        }
+        if (runtime.triggerKind() == RuleTriggerKind.MOVE_VALIDATION) {
+            handleValidation(access, runtime);
+            return;
+        }
+        if (runtime.triggerKind() != RuleTriggerKind.POST_PLACEMENT) {
             return;
         }
         GameSessionStateContext stateContext = runtime.stateContext();
@@ -55,23 +63,63 @@ public final class ProtectiveZoneRule implements Rule {
         }
         ZoneState state = getOrCreateState(access);
         updateZone(state, board, frame.x(), frame.y());
+        access.removeRuleData(VALIDATION_KEY);
     }
 
     public static boolean isRestricted(Object data, int x, int y) {
         if (!(data instanceof ZoneState state)) {
             return false;
         }
-        return state.restrictedCells.contains(key(x, y));
+        return state.isRestricted(x, y);
+    }
+
+    public static boolean consumeValidationResult(GameSessionRuleAccess access) {
+        if (access == null) {
+            return false;
+        }
+        Object stored = access.getRuleData(VALIDATION_KEY);
+        if (stored instanceof ValidationResult result) {
+            access.removeRuleData(VALIDATION_KEY);
+            return result.blocked();
+        }
+        return false;
     }
 
     private ZoneState getOrCreateState(GameSessionRuleAccess access) {
-        Object stored = access.getRuleData(STORAGE_KEY);
-        if (stored instanceof ZoneState zoneState) {
-            return zoneState;
+        ZoneState existing = getExistingState(access);
+        if (existing != null) {
+            return existing;
         }
         ZoneState zoneState = new ZoneState();
         access.putRuleData(STORAGE_KEY, zoneState);
         return zoneState;
+    }
+
+    private ZoneState getExistingState(GameSessionRuleAccess access) {
+        Object stored = access.getRuleData(STORAGE_KEY);
+        if (stored instanceof ZoneState zoneState) {
+            return zoneState;
+        }
+        return null;
+    }
+
+    private void handleValidation(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+        access.removeRuleData(VALIDATION_KEY);
+        GameSessionStateContext stateContext = runtime.stateContext();
+        if (stateContext == null) {
+            return;
+        }
+        TurnPersonalFrame frame = runtime.contextService().turn().currentPersonalTurn(stateContext);
+        if (frame == null || !frame.hasActiveMove()) {
+            return;
+        }
+        ZoneState state = getExistingState(access);
+        if (state == null) {
+            return;
+        }
+        if (state.isRestricted(frame.x(), frame.y())) {
+            access.putRuleData(VALIDATION_KEY, ValidationResult.blocked(frame.x(), frame.y()));
+        }
     }
 
     private void updateZone(ZoneState state,
@@ -96,5 +144,15 @@ public final class ProtectiveZoneRule implements Rule {
 
     private static final class ZoneState {
         private final Set<Long> restrictedCells = new HashSet<>();
+
+        boolean isRestricted(int x, int y) {
+            return restrictedCells.contains(key(x, y));
+        }
+    }
+
+    private record ValidationResult(boolean blocked, int x, int y) {
+        static ValidationResult blocked(int x, int y) {
+            return new ValidationResult(true, x, y);
+        }
     }
 }

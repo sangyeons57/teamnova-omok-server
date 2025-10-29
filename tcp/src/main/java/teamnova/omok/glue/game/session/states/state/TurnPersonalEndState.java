@@ -55,7 +55,6 @@ public final class TurnPersonalEndState implements BaseState {
     private StateStep onEnterInternal(GameSessionStateContext context) {
         TurnPersonalFrame frame = turnContextService.currentPersonalTurn(context);
         if (frame == null) {
-            GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_END, "NoActiveFrame");
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
         if (frame.hasActiveMove()) {
@@ -64,7 +63,6 @@ public final class TurnPersonalEndState implements BaseState {
         if (frame.hasTimeoutOutcome()) {
             return resolveTimeoutCompletion(context, frame);
         }
-        GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_END, "NothingToFinalize");
         return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
     }
 
