@@ -9,6 +9,8 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.board.ConnectedGroup;
+import teamnova.omok.glue.game.session.model.board.Connectivity;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
@@ -56,6 +58,9 @@ public final class TenChainEliminationRule implements Rule {
         }
 
         Set<String> eliminated = new HashSet<>();
+        List<ConnectedGroup> allGroups = runtime.services()
+            .boardService()
+            .connectedGroups(board, Connectivity.FOUR_WAY);
         for (String userId : participants) {
             int index = runtime.stateContext().participants().playerIndexOf(userId);
             if (index < 0) {
@@ -65,7 +70,10 @@ public final class TenChainEliminationRule implements Rule {
             if (playerStone == Stone.EMPTY) {
                 continue;
             }
-            if (hasSequence(board, playerStone, 10)) {
+            boolean matched = allGroups.stream()
+                .filter(group -> group.stone() == playerStone)
+                .anyMatch(group -> group.size() >= 10);
+            if (matched) {
                 runtime.stateContext().outcomes().updateOutcome(userId, PlayerResult.LOSS);
                 System.out.println(
                     "[TenChainElimination] detected 10-chain: user="
@@ -84,55 +92,6 @@ public final class TenChainEliminationRule implements Rule {
         }
         context.putRuleData(RuleDataKeys.TEN_CHAIN_LAST_TURN, turnNumber);
         System.out.println("[TenChainElimination] finalized outcomes for turn " + turnNumber);
-    }
-
-    private boolean hasSequence(GameSessionBoardAccess board, Stone stone, int targetLength) {
-        int width = board.width();
-        int height = board.height();
-        int[][] directions = {
-            {1, 0},
-            {0, 1},
-            {1, 1},
-            {1, -1}
-        };
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Stone current = board.stoneAt(x, y);
-                if (current == null || !current.countsForPlayerSequence(stone)) {
-                    continue;
-                }
-                for (int[] dir : directions) {
-                    int count = 1;
-                    count += countDirection(board, x, y, dir[0], dir[1], stone);
-                    count += countDirection(board, x, y, -dir[0], -dir[1], stone);
-                    if (count >= targetLength) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private int countDirection(GameSessionBoardAccess board,
-                               int startX,
-                               int startY,
-                               int dx,
-                               int dy,
-                               Stone stone) {
-        int count = 0;
-        int x = startX + dx;
-        int y = startY + dy;
-        while (board.isWithinBounds(x, y)) {
-            Stone current = board.stoneAt(x, y);
-            if (current == null || !current.countsForPlayerSequence(stone)) {
-                break;
-            }
-            count++;
-            x += dx;
-            y += dy;
-        }
-        return count;
     }
 
     private int resolveTurnNumber(RuleRuntimeContext runtime) {

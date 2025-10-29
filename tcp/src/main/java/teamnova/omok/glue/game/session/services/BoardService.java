@@ -1,10 +1,15 @@
 package teamnova.omok.glue.game.session.services;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionBoardAccess;
 import teamnova.omok.glue.game.session.model.Stone;
+import teamnova.omok.glue.game.session.model.board.BoardPoint;
+import teamnova.omok.glue.game.session.model.board.ConnectedGroup;
+import teamnova.omok.glue.game.session.model.board.Connectivity;
 import teamnova.omok.glue.game.session.model.vo.StonePlacementMetadata;
 
 /**
@@ -95,5 +100,72 @@ public class BoardService implements GameBoardService {
             y += dy;
         }
         return count;
+    }
+
+    @Override
+    public List<ConnectedGroup> connectedGroups(GameSessionBoardAccess board, Connectivity connectivity) {
+        Objects.requireNonNull(board, "board");
+        Objects.requireNonNull(connectivity, "connectivity");
+        int width = board.width();
+        int height = board.height();
+        boolean[] visited = new boolean[width * height];
+        int[] queue = new int[width * height];
+        List<ConnectedGroup> groups = new ArrayList<>();
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int idx = y * width + x;
+                if (visited[idx]) {
+                    continue;
+                }
+                Stone stone = stoneAt(board, x, y);
+                if (stone == null || stone == Stone.EMPTY) {
+                    visited[idx] = true;
+                    continue;
+                }
+                List<BoardPoint> points = traverseGroup(board, x, y, stone, connectivity, visited, queue);
+                groups.add(new ConnectedGroup(stone, points));
+            }
+        }
+        return groups;
+    }
+
+    private List<BoardPoint> traverseGroup(GameSessionBoardAccess board,
+                                           int startX,
+                                           int startY,
+                                           Stone target,
+                                           Connectivity connectivity,
+                                           boolean[] visited,
+                                           int[] queue) {
+        int width = board.width();
+        int height = board.height();
+        List<BoardPoint> points = new ArrayList<>();
+        int startIndex = startY * width + startX;
+        visited[startIndex] = true;
+        queue[0] = startIndex;
+        int qs = 0;
+        int qe = 1;
+        while (qs < qe) {
+            int index = queue[qs++];
+            int x = index % width;
+            int y = index / width;
+            points.add(new BoardPoint(x, y));
+            for (int[] offset : connectivity.offsets()) {
+                int nx = x + offset[0];
+                int ny = y + offset[1];
+                if (!isWithinBounds(board, nx, ny)) {
+                    continue;
+                }
+                int neighborIndex = ny * width + nx;
+                if (visited[neighborIndex]) {
+                    continue;
+                }
+                Stone neighbor = stoneAt(board, nx, ny);
+                if (neighbor == target) {
+                    visited[neighborIndex] = true;
+                    queue[qe++] = neighborIndex;
+                }
+            }
+        }
+        return points;
     }
 }
