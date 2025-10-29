@@ -38,12 +38,17 @@ public final class LuckySevenRule implements Rule, OutcomeRule {
     public Optional<OutcomeResolution> resolveOutcome(GameSessionRuleAccess access,
                                                       RuleRuntimeContext runtime,
                                                       OutcomeResolution currentOutcome) {
+        System.out.println("LuckySevenRule: resolveOutcome");
+        System.out.println("access:" + access + ", runtime:" + runtime + ", currentOutcome:" + currentOutcome
+        + ", turnNumber:" + runtime.turnSnapshot().turnNumber() + ", triggerKind:" + runtime.triggerKind() );
         if (access == null || runtime == null || runtime.turnSnapshot() == null
             || runtime.triggerKind() != RuleTriggerKind.OUTCOME_EVALUATION
             || currentOutcome == null) {
             return Optional.empty();
         }
+        System.out.println("LuckySevenRule: resolveOutcome: " + currentOutcome.assignments());
         int turnNumber = runtime.turnSnapshot().turnNumber();
+        System.out.println("turnNumber:" + turnNumber);
         if (turnNumber <= 0 || turnNumber % 7 != 0) {
             return Optional.empty();
         }
