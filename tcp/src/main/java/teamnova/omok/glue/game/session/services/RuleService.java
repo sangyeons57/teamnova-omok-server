@@ -217,17 +217,15 @@ public class RuleService {
                     runtime,
                     snapshot
                 );
-                if (candidate.isEmpty()) {
+                if (candidate.isEmpty() || candidate.get().assignments().isEmpty()) {
                     continue;
                 }
                 OutcomeResolution resolution = candidate.get();
-                if (!resolution.assignments().isEmpty()) {
-                    resolution.assignments().forEach((userId, result) -> {
-                        if (userId != null && result != null) {
-                            working.put(userId, result);
-                        }
-                    });
-                }
+                resolution.assignments().forEach((userId, result) -> {
+                    if (userId != null && result != null) {
+                        working.put(userId, result);
+                    }
+                });
                 finalize = finalize || resolution.finalizeNow();
             }
         }

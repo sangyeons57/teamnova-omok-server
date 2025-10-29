@@ -12,7 +12,6 @@ import teamnova.omok.glue.rule.api.OutcomeRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
-import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 
 /**
@@ -48,20 +47,17 @@ public final class LuckySevenRule implements Rule, OutcomeRule {
         if (turnNumber <= 0 || turnNumber % 7 != 0) {
             return Optional.empty();
         }
-        Integer lastProcessed = (Integer) access.getRuleData(RuleDataKeys.LUCKY_SEVEN_LAST_TURN);
-        if (lastProcessed != null && lastProcessed == turnNumber) {
-            return Optional.empty();
-        }
         Map<String, PlayerResult> assignments = new LinkedHashMap<>();
         currentOutcome.assignments().forEach((userId, result) -> {
+            System.out.println("LuckySevenRule: " + userId + " : " + result);
             if (result == PlayerResult.WIN) {
+                System.out.println("LuckySevenRule: " + userId + " : " + result + "[WIN]");
                 assignments.put(userId, PlayerResult.LOSS);
             }
         });
         if (assignments.isEmpty()) {
             return Optional.empty();
         }
-        access.putRuleData(RuleDataKeys.LUCKY_SEVEN_LAST_TURN, turnNumber);
         return Optional.of(OutcomeResolution.of(assignments, true));
     }
 }
