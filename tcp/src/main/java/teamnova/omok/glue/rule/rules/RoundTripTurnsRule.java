@@ -20,7 +20,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.ROUND_TRIP_TURNS,
-        100
+            2000
     );
 
     @Override

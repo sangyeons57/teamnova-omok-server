@@ -19,7 +19,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
 public final class TurnOrderShuffleRule implements Rule, TurnOrderRule {
     private static final RuleMetadata METADATA = new RuleMetadata(
         RuleId.TURN_ORDER_SHUFFLE,
-        0
+        2000
     );
 
     @Override
