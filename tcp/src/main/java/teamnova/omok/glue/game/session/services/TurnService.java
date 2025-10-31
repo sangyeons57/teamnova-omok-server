@@ -6,15 +6,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnRuntimeAccess;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.TurnAdvanceStrategy;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnRuntimeAccess;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.vo.TurnCounters;
 import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
-import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 
 /**
  * Handles turn sequencing logic for in-game sessions.
@@ -45,6 +45,8 @@ public class TurnService implements GameTurnService {
         store.counters(TurnCounters.first());
         long resolvedDuration = resolveDurationMillis(store);
         store.timing(TurnTiming.of(now, now + resolvedDuration));
+        System.out.println("[TurnService] start order=" + order.userIds()
+            + " duration=" + resolvedDuration + " currentIndex=0");
         return snapshot(store);
     }
 
@@ -66,6 +68,12 @@ public class TurnService implements GameTurnService {
             currentPlayerId = order.userIdAt(current);
         }
         boolean roundComplete = isRoundComplete(store, order, disconnectedUserIds, currentRound, currentPlayerId);
+        System.out.println("[TurnService] advance state order=" + order.userIds()
+            + " currentIndex=" + current
+            + " disconnected=" + disconnectedUserIds
+            + " round=" + currentRound
+            + " actingPlayer=" + currentPlayerId
+            + " roundComplete=" + roundComplete);
         Optional<TurnAdvanceStrategy.Result> candidate =
             advanceStrategy.next(order, current, disconnectedUserIds);
         if (candidate.isEmpty()) {
@@ -80,6 +88,9 @@ public class TurnService implements GameTurnService {
             }
             long resolvedDuration = resolveDurationMillis(store);
             store.timing(TurnTiming.of(now, now + resolvedDuration));
+            System.out.println("[TurnService] advance no candidate roundComplete=" + roundComplete
+                + " counters=" + store.counters()
+                + " timing=" + store.timing());
             return snapshot(store, roundComplete);
         }
         TurnAdvanceStrategy.Result result = candidate.get();
@@ -89,6 +100,10 @@ public class TurnService implements GameTurnService {
         store.counters(updatedCounters);
         long resolvedDuration = resolveDurationMillis(store);
         store.timing(TurnTiming.of(now, now + resolvedDuration));
+        System.out.println("[TurnService] advance nextIndex=" + result.nextIndex()
+            + " wrapped=" + wrapped
+            + " counters=" + updatedCounters
+            + " timing=" + store.timing());
         return snapshot(store, wrapped);
     }
 
@@ -117,6 +132,10 @@ public class TurnService implements GameTurnService {
         requireStore(store);
         requirePlayers(newOrder);
 
+        TurnOrder previousOrder = store.order();
+        List<String> previousOrderIds = Optional.ofNullable(previousOrder)
+            .map(TurnOrder::userIds)
+            .orElse(List.of());
         TurnOrder updatedOrder = TurnOrder.of(newOrder);
         store.order(updatedOrder);
 
@@ -130,6 +149,11 @@ public class TurnService implements GameTurnService {
         store.counters(new TurnCounters(actionNumber, roundNumber, positionInRound));
         long resolvedDuration = resolveDurationMillis(store);
         store.timing(TurnTiming.of(now, now + resolvedDuration));
+        System.out.println("[TurnService] reseed previousOrder=" + previousOrderIds
+            + " newOrder=" + updatedOrder.userIds()
+            + " targetIndex=" + targetIndex
+            + " counters=" + store.counters()
+            + " timing=" + store.timing());
         return snapshot(store);
     }
 
