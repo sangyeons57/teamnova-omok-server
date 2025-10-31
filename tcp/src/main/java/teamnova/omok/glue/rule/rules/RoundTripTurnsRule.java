@@ -57,12 +57,9 @@ public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
             access.putRuleData(RuleDataKeys.ROUND_TRIP_LAST_ROUND, currentRound);
             return current;
         }
-        boolean forward = (currentRound % 2 == 1); // odd=forward, even=reverse
         List<String> nextOrder = new ArrayList<>(currentOrder);
-        if (!forward) {
-            Collections.reverse(nextOrder);
-        }
-        // First player of the new round should be the first of nextOrder
+        Collections.reverse(nextOrder);
+        // NOTE: 매 라운드마다 순서를 뒤집어 왕복을 만들고, 고정 참가자 인덱스는 다른 계층에서 사용한다.
         access.putRuleData(RuleDataKeys.ROUND_TRIP_LAST_ROUND, currentRound);
         return current.withOrder(nextOrder);
     }
