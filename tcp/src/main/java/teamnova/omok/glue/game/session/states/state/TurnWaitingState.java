@@ -72,6 +72,9 @@ public class TurnWaitingState implements BaseState {
         }
         // Validate that the event user is the current player
         TurnSnapshot snapshot = turnService.snapshot(context.turns());
+        System.out.println("[TurnWaitingState] moveCheck user=" + event.userId()
+            + " expected=" + (snapshot != null ? snapshot.currentPlayerId() : "null")
+            + " index=" + (snapshot != null ? snapshot.currentPlayerIndex() : null));
         if (snapshot == null || !event.userId().equals(snapshot.currentPlayerId())) {
             GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
                 "reason=not-current-player",

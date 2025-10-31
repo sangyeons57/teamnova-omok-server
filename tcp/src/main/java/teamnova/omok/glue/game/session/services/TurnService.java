@@ -165,6 +165,8 @@ public class TurnService implements GameTurnService {
         if (order != null && index >= 0 && index < order.size()) {
             playerId = order.userIdAt(index);
         }
+        System.out.println("[TurnService] snapshot order=" + (order != null ? order.userIds() : List.of())
+            + " index=" + index + " playerId=" + playerId + " wrapped=" + wrapped);
         return new TurnSnapshot(
             index,
             playerId,
