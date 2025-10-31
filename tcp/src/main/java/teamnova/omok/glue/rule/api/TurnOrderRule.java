@@ -9,5 +9,7 @@ import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
  * services to perform safe reseeding.
  */
 public interface TurnOrderRule {
-    boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime);
+    TurnOrderAdjustment adjustTurnOrder(GameSessionRuleAccess access,
+                                        RuleRuntimeContext runtime,
+                                        TurnOrderAdjustment current);
 }

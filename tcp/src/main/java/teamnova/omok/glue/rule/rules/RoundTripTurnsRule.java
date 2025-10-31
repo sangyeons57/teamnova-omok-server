@@ -9,6 +9,7 @@ import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
 import teamnova.omok.glue.rule.api.RuleTriggerKind;
+import teamnova.omok.glue.rule.api.TurnOrderAdjustment;
 import teamnova.omok.glue.rule.api.TurnOrderRule;
 import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
@@ -34,28 +35,27 @@ public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
     }
 
     @Override
-    public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+    public TurnOrderAdjustment adjustTurnOrder(GameSessionRuleAccess access,
+                                               RuleRuntimeContext runtime,
+                                               TurnOrderAdjustment current) {
         if (access == null || runtime == null
+            || current == null
             || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED
             || runtime.turnSnapshot() == null) {
-            return false;
+            return current;
         }
         int currentRound = runtime.turnSnapshot().counters().roundNumber();
         Integer lastRound = (Integer) access.getRuleData(RuleDataKeys.ROUND_TRIP_LAST_ROUND);
         if (lastRound != null && lastRound == currentRound) {
-            return false; // already applied for this round
+            return current; // already applied for this round
         }
         if (runtime.stateContext() == null || runtime.stateContext().turns() == null) {
-            return false;
+            return current;
         }
-        var turnAccess = runtime.stateContext().turns();
-        var orderSnapshot = turnAccess.order();
-        if (orderSnapshot == null) {
-            return false;
-        }
-        List<String> currentOrder = orderSnapshot.userIds();
+        List<String> currentOrder = current.order();
         if (currentOrder.size() <= 1) {
-            return false;
+            access.putRuleData(RuleDataKeys.ROUND_TRIP_LAST_ROUND, currentRound);
+            return current;
         }
         boolean forward = (currentRound % 2 == 1); // odd=forward, even=reverse
         List<String> nextOrder = new ArrayList<>(currentOrder);
@@ -63,14 +63,7 @@ public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
             Collections.reverse(nextOrder);
         }
         // First player of the new round should be the first of nextOrder
-        String nextCurrent = nextOrder.get(0);
-        runtime.services().turnService().reseedOrder(
-            runtime.stateContext().turns(),
-            nextOrder,
-            nextCurrent,
-            System.currentTimeMillis()
-        );
         access.putRuleData(RuleDataKeys.ROUND_TRIP_LAST_ROUND, currentRound);
-        return true;
+        return current.withOrder(nextOrder);
     }
 }

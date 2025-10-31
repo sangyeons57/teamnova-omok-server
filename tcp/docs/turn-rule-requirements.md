@@ -84,7 +84,7 @@ TODO
 : 순서를 바꿀 때 현재 플레이어가 새 순서에 존재하지 않으면 예외 상황이 발생합니다. 또한 턴 타임아웃이 이미 예약돼 있다면 취소 후 재예약을 해야 하므로 `TurnTimeoutCoordinator` 연동도 고려해야 합니다 (`src/main/java/teamnova/omok/glue/game/session/services/coordinator/TurnTimeoutCoordinator.java:34`).
 
 권장 방식  
-: `TurnService.reseedOrder(store, newOrder, pivotPlayerId)`를 도입해 기준 플레이어를 유지하거나 첫 플레이어로 돌리는 옵션을 제공하고, 성공 시 새로운 `TurnSnapshot`을 반환해 타임아웃과 브로드캐스트를 즉시 갱신하도록 합니다.
+: `TurnService.reseedOrder(store, newOrder)`를 도입해 새 순서를 적용하면서 카운터와 타이밍을 재계산하고, 성공 시 새로운 `TurnSnapshot`을 반환해 타임아웃과 브로드캐스트를 즉시 갱신하도록 합니다.
 
 TODO  
 : 1. `TurnService`에 재시드 메서드 추가 및 동시성 테스트 작성.  

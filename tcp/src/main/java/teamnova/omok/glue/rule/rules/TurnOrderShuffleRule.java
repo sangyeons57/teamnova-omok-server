@@ -9,6 +9,7 @@ import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
 import teamnova.omok.glue.rule.api.RuleMetadata;
 import teamnova.omok.glue.rule.api.RuleTriggerKind;
+import teamnova.omok.glue.rule.api.TurnOrderAdjustment;
 import teamnova.omok.glue.rule.api.TurnOrderRule;
 import teamnova.omok.glue.rule.runtime.RuleDataKeys;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
@@ -33,39 +34,28 @@ public final class TurnOrderShuffleRule implements Rule, TurnOrderRule {
     }
 
     @Override
-    public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
+    public TurnOrderAdjustment adjustTurnOrder(GameSessionRuleAccess access,
+                                               RuleRuntimeContext runtime,
+                                               TurnOrderAdjustment current) {
         if (access == null || runtime == null
+            || current == null
             || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED
             || runtime.turnSnapshot() == null) {
-            return false;
+            return current;
         }
         int currentRound = runtime.turnSnapshot().counters().roundNumber();
         Integer lastRound = (Integer) access.getRuleData(RuleDataKeys.SHUFFLE_LAST_ROUND);
         if (lastRound != null && lastRound == currentRound) {
-            return false; // already applied this round
+            return current; // already applied this round
         }
-        if (runtime.stateContext() == null || runtime.stateContext().turns() == null) {
-            return false;
-        }
-        var turnAccess = runtime.stateContext().turns();
-        var orderSnapshot = turnAccess.order();
-        if (orderSnapshot == null) {
-            return false;
-        }
-        List<String> order = orderSnapshot.userIds();
+        List<String> order = current.order();
         if (order.size() <= 1) {
-            return false;
+            access.putRuleData(RuleDataKeys.SHUFFLE_LAST_ROUND, currentRound);
+            return current;
         }
         List<String> next = new ArrayList<>(order);
         Collections.shuffle(next);
-        String nextCurrent = next.get(0);
-        runtime.services().turnService().reseedOrder(
-            runtime.stateContext().turns(),
-            next,
-            nextCurrent,
-            System.currentTimeMillis()
-        );
         access.putRuleData(RuleDataKeys.SHUFFLE_LAST_ROUND, currentRound);
-        return true;
+        return current.withOrder(next);
     }
 }

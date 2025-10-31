@@ -8,17 +8,21 @@ import java.util.Objects;
 import java.util.Optional;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionRuleAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.rule.api.BoardSetupRule;
 import teamnova.omok.glue.rule.api.BoardTransformRule;
 import teamnova.omok.glue.rule.api.OutcomeResolution;
 import teamnova.omok.glue.rule.api.OutcomeRule;
+import teamnova.omok.glue.rule.api.ParticipantOutcomeRule;
 import teamnova.omok.glue.rule.api.Rule;
 import teamnova.omok.glue.rule.api.RuleId;
-import teamnova.omok.glue.rule.api.ParticipantOutcomeRule;
-import teamnova.omok.glue.rule.api.TurnOrderRule;
 import teamnova.omok.glue.rule.api.TurnBudgetRule;
+import teamnova.omok.glue.rule.api.TurnOrderAdjustment;
+import teamnova.omok.glue.rule.api.TurnOrderRule;
 import teamnova.omok.glue.rule.api.TurnTimingRule;
 import teamnova.omok.glue.rule.runtime.RuleRegistry;
 import teamnova.omok.glue.rule.runtime.RuleRuntimeContext;
@@ -140,18 +144,42 @@ public class RuleService {
         if (access == null) {
             return false;
         }
+        if (runtime.stateContext() == null || runtime.stateContext().turns() == null) {
+            return false;
+        }
         List<RuleId> ruleIds = access.getRuleIds();
         if (ruleIds == null || ruleIds.isEmpty()) {
             return false;
         }
-        boolean changed = false;
+        GameSessionTurnAccess turns = runtime.stateContext().turns();
+        TurnOrder orderSnapshot = turns.order();
+        if (orderSnapshot == null || orderSnapshot.size() == 0) {
+            return false;
+        }
+        List<String> initialOrder = List.copyOf(orderSnapshot.userIds());
+        TurnOrderAdjustment adjustment = TurnOrderAdjustment.of(initialOrder);
         for (RuleId id : ruleIds) {
             Rule rule = RuleRegistry.getInstance().get(id);
             if (rule instanceof TurnOrderRule orderRule) {
-                changed |= orderRule.adjustTurnOrder(access, runtime);
+                TurnOrderAdjustment next = orderRule.adjustTurnOrder(access, runtime, adjustment);
+                if (next != null) {
+                    adjustment = next;
+                }
             }
         }
-        return changed;
+        if (adjustment == null) {
+            return false;
+        }
+        boolean orderChanged = !adjustment.order().equals(initialOrder);
+        if (!orderChanged) {
+            return false;
+        }
+        runtime.services().turnService().reseedOrder(
+            turns,
+            adjustment.order(),
+            System.currentTimeMillis()
+        );
+        return true;
     }
 
     public Map<String, PlayerResult> registerParticipantOutcomes(GameSessionRuleAccess access,

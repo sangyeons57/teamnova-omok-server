@@ -113,44 +113,20 @@ public class TurnService implements GameTurnService {
     @Override
     public TurnSnapshot reseedOrder(GameSessionTurnAccess store,
                                     List<String> newOrder,
-                                    String pivotPlayerId,
                                     long now) {
         requireStore(store);
         requirePlayers(newOrder);
-        TurnOrder previousOrder = store.order();
-        int previousIndex = store.getCurrentPlayerIndex();
-        String previousPlayerId = null;
-        if (previousOrder != null
-            && previousOrder.size() > 0
-            && previousIndex >= 0
-            && previousIndex < previousOrder.size()) {
-            previousPlayerId = previousOrder.userIdAt(previousIndex);
-        }
 
         TurnOrder updatedOrder = TurnOrder.of(newOrder);
         store.order(updatedOrder);
 
-        int targetIndex;
-        if (pivotPlayerId != null) {
-            targetIndex = newOrder.indexOf(pivotPlayerId);
-            if (targetIndex < 0) {
-                throw new IllegalArgumentException("pivotPlayerId not present in newOrder");
-            }
-        } else if (previousPlayerId != null) {
-            int candidate = newOrder.indexOf(previousPlayerId);
-            targetIndex = candidate >= 0 ? candidate : 0;
-        } else {
-            targetIndex = 0;
-        }
-        if (targetIndex < 0) {
-            targetIndex = 0;
-        }
+        int targetIndex = updatedOrder.size() > 0 ? 0 : -1;
         store.setCurrentPlayerIndex(targetIndex);
 
         TurnCounters counters = store.counters();
         int actionNumber = counters != null ? Math.max(1, counters.actionNumber()) : 1;
         int roundNumber = counters != null ? Math.max(1, counters.roundNumber()) : 1;
-        int positionInRound = updatedOrder.size() <= 0 ? 0 : Math.min(updatedOrder.size(), targetIndex + 1);
+        int positionInRound = updatedOrder.size() <= 0 ? 0 : 1;
         store.counters(new TurnCounters(actionNumber, roundNumber, positionInRound));
         long resolvedDuration = resolveDurationMillis(store);
         store.timing(TurnTiming.of(now, now + resolvedDuration));

@@ -24,8 +24,6 @@ public interface GameTurnService {
 
     TurnSnapshot reseedOrder(GameSessionTurnAccess turns,
                              List<String> newOrder,
-                             String pivotPlayerId,
                              long now);
 
 }
-
