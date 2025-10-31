@@ -1,14 +1,12 @@
 package teamnova.omok.glue.game.session.model.dto;
 
 import teamnova.omok.glue.game.session.model.vo.TurnCounters;
-import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
 
 public record TurnSnapshot(int currentPlayerIndex,
                     String currentPlayerId,
                     TurnCounters counters,
                     TurnTiming timing,
-                    TurnOrder order,
                     boolean wrapped) {
     public int actionNumber() {
         return counters.actionNumber();

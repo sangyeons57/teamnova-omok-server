@@ -37,8 +37,7 @@ public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
     public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         if (access == null || runtime == null
             || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED
-            || runtime.turnSnapshot() == null
-            || runtime.turnSnapshot().order() == null) {
+            || runtime.turnSnapshot() == null) {
             return false;
         }
         int currentRound = runtime.turnSnapshot().counters().roundNumber();
@@ -46,7 +45,15 @@ public final class RoundTripTurnsRule implements Rule, TurnOrderRule {
         if (lastRound != null && lastRound == currentRound) {
             return false; // already applied for this round
         }
-        List<String> currentOrder = runtime.turnSnapshot().order().userIds();
+        if (runtime.stateContext() == null || runtime.stateContext().turns() == null) {
+            return false;
+        }
+        var turnAccess = runtime.stateContext().turns();
+        var orderSnapshot = turnAccess.order();
+        if (orderSnapshot == null) {
+            return false;
+        }
+        List<String> currentOrder = orderSnapshot.userIds();
         if (currentOrder.size() <= 1) {
             return false;
         }

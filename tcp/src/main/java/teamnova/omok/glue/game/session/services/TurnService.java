@@ -1,17 +1,20 @@
 package teamnova.omok.glue.game.session.services;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
+import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnRuntimeAccess;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.TurnAdvanceStrategy;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.vo.TurnCounters;
 import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
+import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 
 /**
  * Handles turn sequencing logic for in-game sessions.
@@ -52,21 +55,41 @@ public class TurnService implements GameTurnService {
         requireStore(store);
         TurnOrder order = ensureOrder(store);
         int current = Math.max(-1, store.getCurrentPlayerIndex());
+        TurnCounters counters = store.counters();
+        if (counters == null) {
+            counters = TurnCounters.first();
+            store.counters(counters);
+        }
+        int currentRound = Math.max(1, counters.roundNumber());
+        String currentPlayerId = null;
+        if (order != null && current >= 0 && current < order.size()) {
+            currentPlayerId = order.userIdAt(current);
+        }
+        boolean roundComplete = isRoundComplete(store, order, disconnectedUserIds, currentRound, currentPlayerId);
         Optional<TurnAdvanceStrategy.Result> candidate =
             advanceStrategy.next(order, current, disconnectedUserIds);
         if (candidate.isEmpty()) {
             store.setCurrentPlayerIndex(-1);
-            store.counters(store.counters().advanceWithoutActive());
+            TurnCounters updatedCounters;
+            if (roundComplete) {
+                updatedCounters = counters.advance(true, order.size());
+                store.counters(updatedCounters);
+            } else {
+                updatedCounters = counters.advanceWithoutActive();
+                store.counters(updatedCounters);
+            }
             long resolvedDuration = resolveDurationMillis(store);
             store.timing(TurnTiming.of(now, now + resolvedDuration));
-            return snapshot(store);
+            return snapshot(store, roundComplete);
         }
         TurnAdvanceStrategy.Result result = candidate.get();
         store.setCurrentPlayerIndex(result.nextIndex());
-        store.counters(store.counters().advance(result.wrapped(), order.size()));
+        boolean wrapped = roundComplete;
+        TurnCounters updatedCounters = counters.advance(wrapped, order.size());
+        store.counters(updatedCounters);
         long resolvedDuration = resolveDurationMillis(store);
         store.timing(TurnTiming.of(now, now + resolvedDuration));
-        return snapshot(store, result.wrapped());
+        return snapshot(store, wrapped);
     }
 
     @Override
@@ -147,7 +170,6 @@ public class TurnService implements GameTurnService {
             playerId,
             store.counters(),
             store.timing(),
-            order,
             wrapped
         );
     }
@@ -175,5 +197,52 @@ public class TurnService implements GameTurnService {
     private long resolveDurationMillis(GameSessionTurnAccess store) {
         long override = store.durationMillis();
         return override > 0 ? override : durationMillis;
+    }
+
+    private boolean isRoundComplete(GameSessionTurnAccess store,
+                                    TurnOrder order,
+                                    Set<String> disconnectedUserIds,
+                                    int roundNumber,
+                                    String lastActorId) {
+        if (order == null) {
+            return false;
+        }
+        List<String> orderUserIds = order.userIds();
+        if (orderUserIds.isEmpty()) {
+            return false;
+        }
+        Set<String> disconnected = disconnectedUserIds == null ? Set.of() : disconnectedUserIds;
+        Set<String> acted = new HashSet<>();
+        if (lastActorId != null && !disconnected.contains(lastActorId)) {
+            acted.add(lastActorId);
+        }
+        int normalizedRound = Math.max(1, roundNumber);
+        if (store instanceof GameSessionTurnRuntimeAccess runtimeAccess) {
+            List<TurnPersonalFrame> frames = runtimeAccess.personalTurnFrames();
+            if (frames != null && !frames.isEmpty()) {
+                for (TurnPersonalFrame frame : frames) {
+                    String userId = frame.userId();
+                    if (userId == null || disconnected.contains(userId)) {
+                        continue;
+                    }
+                    TurnSnapshot snapshot = frame.currentSnapshot();
+                    if (snapshot == null || snapshot.roundNumber() != normalizedRound) {
+                        continue;
+                    }
+                    if (frame.outcomeStatus() != null) {
+                        acted.add(userId);
+                    }
+                }
+            }
+        }
+        for (String userId : orderUserIds) {
+            if (disconnected.contains(userId)) {
+                continue;
+            }
+            if (!acted.contains(userId)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

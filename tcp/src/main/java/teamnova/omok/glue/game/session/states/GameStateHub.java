@@ -77,13 +77,13 @@ public class GameStateHub {
 
         this.stateMachine = StateMachineGateway.open();
         // Register lifecycle logging via dedicated handler file
-        registerStateConfig(contextService);
+        registerStateConfig(contextService, this.services);
         registerSignalHandler();
 
         this.stateMachine.start(GameSessionStateType.LOBBY.toStateName(), context);
     }
 
-    private void registerStateConfig(GameSessionStateContextService contextService) {
+    private void registerStateConfig(GameSessionStateContextService contextService, GameSessionServices services) {
         registerState(new LobbyGameSessionState(contextService, services));
         registerState(new TurnStartState(contextService));
         registerState(new TurnPersonalStartState(contextService, services));

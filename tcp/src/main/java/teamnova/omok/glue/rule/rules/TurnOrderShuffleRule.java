@@ -36,8 +36,7 @@ public final class TurnOrderShuffleRule implements Rule, TurnOrderRule {
     public boolean adjustTurnOrder(GameSessionRuleAccess access, RuleRuntimeContext runtime) {
         if (access == null || runtime == null
             || runtime.triggerKind() != RuleTriggerKind.TURN_ROUND_COMPLETED
-            || runtime.turnSnapshot() == null
-            || runtime.turnSnapshot().order() == null) {
+            || runtime.turnSnapshot() == null) {
             return false;
         }
         int currentRound = runtime.turnSnapshot().counters().roundNumber();
@@ -45,7 +44,15 @@ public final class TurnOrderShuffleRule implements Rule, TurnOrderRule {
         if (lastRound != null && lastRound == currentRound) {
             return false; // already applied this round
         }
-        List<String> order = runtime.turnSnapshot().order().userIds();
+        if (runtime.stateContext() == null || runtime.stateContext().turns() == null) {
+            return false;
+        }
+        var turnAccess = runtime.stateContext().turns();
+        var orderSnapshot = turnAccess.order();
+        if (orderSnapshot == null) {
+            return false;
+        }
+        List<String> order = orderSnapshot.userIds();
         if (order.size() <= 1) {
             return false;
         }
