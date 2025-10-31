@@ -75,11 +75,12 @@ public final class MoveValidatingState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
 
-        Integer currentIndex = services.turnService().currentPlayerIndex(context.turns());
-        if (currentIndex == null || currentIndex != playerIndex) {
+        if (currentSnapshot == null || !userId.equals(currentSnapshot.currentPlayerId())) {
             invalidate(context, frame, MoveStatus.OUT_OF_TURN, currentSnapshot);
             return StateStep.transition(GameSessionStateType.TURN_WAITING.toStateName());
         }
+        // 참고: 순환 순서를 인덱스 배열(예: [2,1,3,4])로 저장해 비교하는 방식도 가능하지만,
+        // 현재는 TurnOrder의 userId와 비교해 검증하고, 돌 저장 시 고정 참가자 인덱스를 사용한다.
 
         if (!services.boardService().isEmpty(context.board(), x, y)) {
             invalidate(context, frame, MoveStatus.CELL_OCCUPIED, currentSnapshot);
