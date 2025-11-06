@@ -24,6 +24,7 @@ class AuthProviderRepository {
 
     public function findByUserId($userId)
     {
+
         $st = $this->pdo->prepare('SELECT provider, provider_user_id, linked_at FROM teamnova_omok_db.auth_providers WHERE user_id = :uid ORDER BY linked_at DESC LIMIT 1');
         $st->execute(array(':uid' => $userId));
         $row = $st->fetch();
