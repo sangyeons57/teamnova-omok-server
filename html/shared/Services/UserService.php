@@ -1,14 +1,17 @@
 <?php
 require_once __DIR__ . '/../Repositories/UserRepository.php';
+require_once __DIR__ . '/../Repositories/AuthProviderRepository.php';
 require_once __DIR__ . '/../Constants/UserStatus.php';
 
 class UserService
 {
     private UserRepository $users;
+    private AuthProviderRepository $authProviders;
 
-    public function __construct(UserRepository $users)
+    public function __construct(UserRepository $users, AuthProviderRepository $authProviders)
     {
         $this->users = $users;
+        $this->authProviders = $authProviders;
     }
 
     /**
@@ -87,6 +90,8 @@ class UserService
         if ($row === null) {
             return false;
         }
+
+        $this->authProviders->deleteByUserId($userId);
 
         if (isset($row['status']) && (string)$row['status'] === UserStatus::INACTIVE) {
             return true; // 이미 비활성화됨(멱등)

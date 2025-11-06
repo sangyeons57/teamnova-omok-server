@@ -63,4 +63,10 @@ class AuthProviderRepository {
         $row = $st->fetch();
         return $row ?: null;
     }
+
+    public function deleteByUserId(string $userId): void
+    {
+        $st = $this->pdo->prepare('DELETE FROM teamnova_omok_db.auth_providers WHERE user_id = :uid');
+        $st->execute(array(':uid' => $userId));
+    }
 }

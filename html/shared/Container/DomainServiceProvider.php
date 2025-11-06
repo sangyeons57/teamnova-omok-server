@@ -21,7 +21,10 @@ class DomainServiceProvider implements ServiceProvider
         });
 
         $c->set(UserService::class, function (Container $c) {
-            return new UserService($c->get(UserRepository::class));
+            return new UserService(
+                $c->get(UserRepository::class),
+                $c->get(AuthProviderRepository::class)
+            );
         });
     }
 }
