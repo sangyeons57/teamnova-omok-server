@@ -559,4 +559,19 @@ public class GameSession implements GameSessionAccess {
     public void clearPendingBoardSnapshot() {
         postGameRuntimeStore.clearPendingBoardSnapshot();
     }
+
+    @Override
+    public GameSession getPendingRematchSession() {
+        return postGameRuntimeStore.getPendingRematchSession();
+    }
+
+    @Override
+    public void setPendingRematchSession(GameSession session) {
+        postGameRuntimeStore.setPendingRematchSession(session);
+    }
+
+    @Override
+    public void clearPendingRematchSession() {
+        postGameRuntimeStore.clearPendingRematchSession();
+    }
 }
