@@ -33,9 +33,17 @@ public final class GameSessionRematchService {
         runtime.ensure(rematch);
         // Notify both sessions: a rematch has been created
         messenger.broadcastRematchStarted(previous, rematch, participants);
+        return rematch;
+    }
 
+    public static void finalizeAndJoin(GameSessionServices services, GameSession rematch) {
+        Objects.requireNonNull(services, "services");
+        if (rematch == null) {
+            return;
+        }
+        GameSessionMessenger messenger = services.messenger();
         // Bind participants' client sessions to the new rematch for session-scoped routing
-        for (String uid : participants) {
+        for (String uid : rematch.getUserIds()) {
             ClientSessionManager.getInstance()
                 .findSession(uid)
                 .ifPresent(handle -> handle.bindGameSession(rematch.sessionId()));
@@ -43,6 +51,5 @@ public final class GameSessionRematchService {
 
         // Broadcast join for the new session so clients can transition immediately
         messenger.broadcastJoin(rematch);
-        return rematch;
     }
 }

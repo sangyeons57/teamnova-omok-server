@@ -94,7 +94,7 @@ public class GameStateHub {
         registerState(new TurnEndState(contextService, services));
         registerState(new PostGameDecisionWaitingState(contextService, services.turnService()));
         registerState(new PostGameDecisionResolvingState(contextService));
-        registerState(new SessionRematchPreparingState(contextService));
+        registerState(new SessionRematchPreparingState(contextService, services));
         registerState(new SessionTerminatingState(contextService));
         registerState(new CompletedGameSessionState(contextService, services.turnService()));
     }

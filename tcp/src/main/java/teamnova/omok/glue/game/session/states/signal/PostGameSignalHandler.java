@@ -122,11 +122,12 @@ public final class PostGameSignalHandler implements StateSignalListener {
             switch (resolution.type()) {
                 case REMATCH -> {
                     // Create a new session for rematch participants and notify clients
-                    GameSessionRematchService.createAndBroadcast(
+                    var rematch = GameSessionRematchService.createAndBroadcast(
                         services,
                         context.session(),
                         resolution.rematchParticipants()
                     );
+                    contextService.postGame().queuePendingRematchSession(context, rematch);
                 }
                 case TERMINATE -> {
                     // Announce termination and who is disconnected

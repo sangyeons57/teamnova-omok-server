@@ -2,6 +2,7 @@ package teamnova.omok.glue.game.session.states.manage;
 
 import java.util.Objects;
 
+import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
@@ -75,6 +76,18 @@ public final class GameSessionPostGameContextService {
     public void clearDecisionDeadline(GameSessionStateContext context) {
         Objects.requireNonNull(context, "context");
         context.postGameRuntime().clearPostGameDecisionDeadline();
+    }
+
+    public void queuePendingRematchSession(GameSessionStateContext context, GameSession session) {
+        Objects.requireNonNull(context, "context");
+        context.postGameRuntime().setPendingRematchSession(session);
+    }
+
+    public GameSession consumePendingRematchSession(GameSessionStateContext context) {
+        Objects.requireNonNull(context, "context");
+        GameSession session = context.postGameRuntime().getPendingRematchSession();
+        context.postGameRuntime().clearPendingRematchSession();
+        return session;
     }
 
     public void queueGameCompletion(GameSessionStateContext context, GameCompletionNotice notice) {
