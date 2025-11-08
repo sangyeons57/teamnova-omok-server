@@ -1,10 +1,15 @@
 package teamnova.omok.glue.game.session.states.state;
 
+import java.util.List;
 import java.util.Objects;
 
+import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
+import teamnova.omok.glue.game.session.model.result.PostGameDecisionStatus;
+import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.PostGameDecisionEvent;
 import teamnova.omok.glue.game.session.states.event.ReadyEvent;
@@ -12,9 +17,6 @@ import teamnova.omok.glue.game.session.states.event.TimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionStatus;
-import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
@@ -26,16 +28,24 @@ import teamnova.omok.modules.state_machine.models.StateStep;
  */
 public class CompletedGameSessionState implements BaseState {
     private final GameSessionStateContextService contextService;
+    private final GameSessionServices services;
     private final GameTurnService turnService;
 
     public CompletedGameSessionState(GameSessionStateContextService contextService,
-                                     GameTurnService turnService) {
+                                     GameSessionServices services) {
         this.contextService = Objects.requireNonNull(contextService, "contextService");
-        this.turnService = Objects.requireNonNull(turnService, "turnService");
+        this.services = Objects.requireNonNull(services, "services");
+        this.turnService = services.turnService();
     }
     @Override
     public StateName name() {
         return GameSessionStateType.COMPLETED.toStateName();
+    }
+
+    @Override
+    public <I extends StateContext> StateStep onEnter(I context) {
+        cleanup((GameSessionStateContext) context);
+        return StateStep.stay();
     }
 
     @Override
@@ -98,5 +108,32 @@ public class CompletedGameSessionState implements BaseState {
             )
         );
         return StateStep.stay();
+    }
+
+    private void cleanup(GameSessionStateContext context) {
+        var session = context.session();
+        var sessionId = session.sessionId();
+
+        // Stop outstanding timers before clearing repository/runtime
+        services.turnTimeoutScheduler().cancel(sessionId);
+        services.decisionTimeoutScheduler().cancel(sessionId);
+
+        List<String> userIds = List.copyOf(session.getUserIds());
+        session.lock().lock();
+        try {
+            for (String userId : userIds) {
+                session.markDisconnected(userId);
+            }
+        } finally {
+            session.lock().unlock();
+        }
+        for (String userId : userIds) {
+            ClientSessionManager.getInstance()
+                .findSession(userId)
+                .ifPresent(handle -> handle.unbindGameSession(session.sessionId()));
+        }
+
+        services.repository().removeById(sessionId);
+        services.runtime().remove(sessionId);
     }
 }

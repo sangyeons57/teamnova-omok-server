@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
@@ -79,20 +78,12 @@ public final class TurnEndState implements BaseState {
         int connected = total - dc;
 
         if (connected <= 0) {
-            // All participants left: terminate session immediately
-            services.turnTimeoutScheduler().cancel(session.sessionId());
-            services.decisionTimeoutScheduler().cancel(session.sessionId());
+            // All participants left: broadcast termination and hand cleanup to Completed state
             services.messenger().broadcastSessionTerminated(session, List.copyOf(session.disconnectedUsersView()));
-            services.repository().removeById(session.sessionId()).ifPresent(services.runtime()::remove);
-
-            for (String uid : session.getUserIds()) {
-                ClientSessionManager.getInstance()
-                        .findSession(uid)
-                        .ifPresent(h -> h.unbindGameSession(session.sessionId()));
-            }
-
-            // Session runtime removed; stay indicates no further transition within this state machine tick
-            return new AbandonmentResult(StateStep.stay(), false);
+            return new AbandonmentResult(
+                StateStep.transition(GameSessionStateType.COMPLETED.toStateName()),
+                false
+            );
         }
 
         if (connected == 1 && !ctx.outcomes().isGameFinished()) {

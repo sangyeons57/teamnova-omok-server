@@ -8,7 +8,6 @@ import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
-import teamnova.omok.glue.game.session.services.GameSessionRematchService;
 import teamnova.omok.glue.game.session.states.GameStateHub;
 import teamnova.omok.glue.game.session.states.event.DecisionTimeoutEvent;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
@@ -118,22 +117,8 @@ public final class PostGameSignalHandler implements StateSignalListener {
         PostGameDecisionUpdate update = contextService.postGame().consumeDecisionUpdate(context);
         if (update != null) services.messenger().broadcastPostGameDecisionUpdate(context.session(), update);
         PostGameResolution resolution = contextService.postGame().consumePostGameResolution(context);
-        if (resolution != null) {
-            switch (resolution.type()) {
-                case REMATCH -> {
-                    // Create a new session for rematch participants and notify clients
-                    var rematch = GameSessionRematchService.createAndBroadcast(
-                        services,
-                        context.session(),
-                        resolution.rematchParticipants()
-                    );
-                    contextService.postGame().queuePendingRematchSession(context, rematch);
-                }
-                case TERMINATE -> {
-                    // Announce termination and who is disconnected
-                    services.messenger().broadcastSessionTerminated(context.session(), resolution.disconnected());
-                }
-            }
+        if (resolution != null && resolution.type() == PostGameResolution.ResolutionType.TERMINATE) {
+            services.messenger().broadcastSessionTerminated(context.session(), resolution.disconnected());
         }
     }
 

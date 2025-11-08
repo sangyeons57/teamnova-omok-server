@@ -1,6 +1,5 @@
 package teamnova.omok.glue.game.session.interfaces.session;
 
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
@@ -50,10 +49,4 @@ public interface GameSessionPostGameRuntimeAccess {
     void setPendingBoardSnapshot(BoardSnapshotUpdate update);
 
     void clearPendingBoardSnapshot();
-
-    GameSession getPendingRematchSession();
-
-    void setPendingRematchSession(GameSession session);
-
-    void clearPendingRematchSession();
 }

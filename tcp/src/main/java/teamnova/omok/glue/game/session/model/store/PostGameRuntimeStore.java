@@ -1,7 +1,6 @@
 package teamnova.omok.glue.game.session.model.store;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionPostGameRuntimeAccess;
-import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
@@ -20,7 +19,6 @@ public final class PostGameRuntimeStore implements GameSessionPostGameRuntimeAcc
     private long postGameDecisionDeadline;
     private GameCompletionNotice pendingGameCompletion;
     private BoardSnapshotUpdate pendingBoardSnapshot;
-    private GameSession pendingRematchSession;
 
     @Override
     public PostGameDecisionResult getPendingDecisionResult() {
@@ -127,18 +125,4 @@ public final class PostGameRuntimeStore implements GameSessionPostGameRuntimeAcc
         this.pendingBoardSnapshot = null;
     }
 
-    @Override
-    public GameSession getPendingRematchSession() {
-        return pendingRematchSession;
-    }
-
-    @Override
-    public void setPendingRematchSession(GameSession session) {
-        this.pendingRematchSession = session;
-    }
-
-    @Override
-    public void clearPendingRematchSession() {
-        this.pendingRematchSession = null;
-    }
 }

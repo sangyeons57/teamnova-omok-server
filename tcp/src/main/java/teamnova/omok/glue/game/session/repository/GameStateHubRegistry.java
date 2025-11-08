@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import teamnova.omok.glue.game.session.interfaces.*;
+import teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.game.session.states.GameStateHub;
@@ -20,9 +21,9 @@ public final class GameStateHubRegistry implements GameSessionRuntime {
     private final GameScoreService scoreService;
     private final GameSessionStateContextService contextService;
     private final GameSessionMessenger messenger;
-    private final teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler turnTimeoutScheduler;
-    private final teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler decisionTimeoutScheduler;
-    private final teamnova.omok.glue.game.session.interfaces.GameSessionRepository repository;
+    private final TurnTimeoutScheduler turnTimeoutScheduler;
+    private final DecisionTimeoutScheduler decisionTimeoutScheduler;
+    private final GameSessionRepository repository;
 
     public GameStateHubRegistry(GameSessionRepository repository,
                                 GameBoardService boardService,
@@ -30,8 +31,8 @@ public final class GameStateHubRegistry implements GameSessionRuntime {
                                 GameScoreService scoreService,
                                 GameSessionStateContextService contextService,
                                 GameSessionMessenger messenger,
-                                teamnova.omok.glue.game.session.interfaces.manager.TurnTimeoutScheduler turnTimeoutScheduler,
-                                teamnova.omok.glue.game.session.interfaces.DecisionTimeoutScheduler decisionTimeoutScheduler) {
+                                TurnTimeoutScheduler turnTimeoutScheduler,
+                                DecisionTimeoutScheduler decisionTimeoutScheduler) {
         this.repository = repository;
         this.boardService = boardService;
         this.turnService = turnService;

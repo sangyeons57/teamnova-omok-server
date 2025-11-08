@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
@@ -68,12 +69,6 @@ public final class PostGameDecisionWaitingState implements BaseState {
         if (event instanceof ReadyEvent readyEvent) {
             return handleReady(gameContext, readyEvent);
         }
-        if (event instanceof MoveEvent moveEvent) {
-            return handleMove(gameContext, moveEvent);
-        }
-        if (event instanceof TimeoutEvent timeoutEvent) {
-            return handleTurnTimeout(gameContext, timeoutEvent);
-        }
         return StateStep.stay();
     }
 
@@ -131,16 +126,7 @@ public final class PostGameDecisionWaitingState implements BaseState {
             ));
             return StateStep.stay();
         }
-        // If the player chose to LEAVE, mark them disconnected immediately
-        if (event.decision() == PostGameDecision.LEAVE) {
-            var session = context.session();
-            session.lock().lock();
-            try {
-                session.markDisconnected(event.userId());
-            } finally {
-                session.lock().unlock();
-            }
-        }
+        applyDecisionSideEffects(context, event.userId(), event.decision());
         contextService.postGame().queueDecisionResult(context,
             PostGameDecisionResult.accepted(event.userId(), event.requestId(), event.decision())
         );
@@ -183,15 +169,6 @@ public final class PostGameDecisionWaitingState implements BaseState {
         return StateStep.stay();
     }
 
-    private StateStep handleMove(GameSessionStateContext context,
-                                 MoveEvent event) {
-        return StateStep.stay();
-    }
-
-    private StateStep handleTurnTimeout(GameSessionStateContext context,
-                                        TimeoutEvent event) {
-        return StateStep.stay();
-    }
 
     private boolean allDecided(GameSessionStateContext context) {
         return context.postGame().postGameDecisionsView().size() >= context.participants().getUserIds().size();
@@ -201,16 +178,27 @@ public final class PostGameDecisionWaitingState implements BaseState {
         for (String userId : context.participants().getUserIds()) {
             if (!context.postGame().hasPostGameDecision(userId)) {
                 context.postGame().recordPostGameDecision(userId, PostGameDecision.LEAVE);
-                // Mark undecided users as disconnected on timeout expiry
-                var session = context.session();
-                session.lock().lock();
-                try {
-                    session.markDisconnected(userId);
-                } finally {
-                    session.lock().unlock();
-                }
+                applyDecisionSideEffects(context, userId, PostGameDecision.LEAVE);
             }
         }
+    }
+
+    private void applyDecisionSideEffects(GameSessionStateContext context,
+                                          String userId,
+                                          PostGameDecision decision) {
+        if (decision != PostGameDecision.LEAVE && decision != PostGameDecision.REMATCH) {
+            return;
+        }
+        var session = context.session();
+        session.lock().lock();
+        try {
+            session.markDisconnected(userId);
+        } finally {
+            session.lock().unlock();
+        }
+        ClientSessionManager.getInstance()
+            .findSession(userId)
+            .ifPresent(handle -> handle.unbindGameSession(session.sessionId()));
     }
 
     private PostGameDecisionUpdate snapshotUpdate(GameSessionStateContext context) {

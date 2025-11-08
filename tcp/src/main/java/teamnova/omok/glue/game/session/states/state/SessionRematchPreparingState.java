@@ -1,5 +1,7 @@
 package teamnova.omok.glue.game.session.states.state;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.model.GameSession;
@@ -36,8 +38,13 @@ public final class SessionRematchPreparingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
-        GameSession rematch = contextService.postGame().consumePendingRematchSession(context);
-        if (rematch != null) {
+        List<String> participants = new ArrayList<>(context.postGame().rematchRequestsView());
+        if (participants.size() >= 2) {
+            GameSession rematch = GameSessionRematchService.createAndBroadcast(
+                services,
+                context.session(),
+                participants
+            );
             GameSessionRematchService.finalizeAndJoin(services, rematch);
         }
         contextService.postGame().clearDecisionDeadline(context);

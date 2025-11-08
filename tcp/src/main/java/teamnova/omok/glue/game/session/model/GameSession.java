@@ -215,16 +215,7 @@ public class GameSession implements GameSessionAccess {
         if (userId == null || decision == null || !containsUser(userId)) {
             return false;
         }
-        boolean recorded = postGameStore.recordDecision(userId, decision);
-        if (!recorded) {
-            return false;
-        }
-        if (decision == PostGameDecision.REMATCH) {
-            clearDisconnected(userId);
-        } else {
-            markDisconnected(userId);
-        }
-        return true;
+        return postGameStore.recordDecision(userId, decision);
     }
 
     @Override
@@ -560,18 +551,4 @@ public class GameSession implements GameSessionAccess {
         postGameRuntimeStore.clearPendingBoardSnapshot();
     }
 
-    @Override
-    public GameSession getPendingRematchSession() {
-        return postGameRuntimeStore.getPendingRematchSession();
-    }
-
-    @Override
-    public void setPendingRematchSession(GameSession session) {
-        postGameRuntimeStore.setPendingRematchSession(session);
-    }
-
-    @Override
-    public void clearPendingRematchSession() {
-        postGameRuntimeStore.clearPendingRematchSession();
-    }
 }
