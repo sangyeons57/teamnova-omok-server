@@ -44,7 +44,9 @@ public class CompletedGameSessionState implements BaseState {
 
     @Override
     public <I extends StateContext> StateStep onEnter(I context) {
-        cleanup((GameSessionStateContext) context);
+        GameSessionStateContext ctx = (GameSessionStateContext) context;
+        System.out.println("[SESSION][" + ctx.session().sessionId() + "] Game session completed");
+        cleanup(ctx);
         return StateStep.stay();
     }
 
