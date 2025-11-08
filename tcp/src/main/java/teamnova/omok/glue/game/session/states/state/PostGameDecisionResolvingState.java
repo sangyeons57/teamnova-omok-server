@@ -33,6 +33,8 @@ public final class PostGameDecisionResolvingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
+        System.out.println("[SESSION][" + context.session().sessionId() + "] PostGameDecisionResolvingState");
+
         List<String> rematch = new ArrayList<>(context.postGame().rematchRequestsView());
         List<String> disconnected = new ArrayList<>(context.participants().disconnectedUsersView());
         if (rematch.size() >= 2) {

@@ -73,6 +73,8 @@ public final class PostGameDecisionWaitingState implements BaseState {
     }
 
     private StateStep onEnterInternal(GameSessionStateContext context) {
+        System.out.println("[SESSION][" + context.session().sessionId() + "] PostGameDecisionWaitingState");
+
         context.postGame().resetPostGameDecisions();
         long now = System.currentTimeMillis();
         long deadline = now + GameSession.POST_GAME_DECISION_DURATION_MILLIS;
