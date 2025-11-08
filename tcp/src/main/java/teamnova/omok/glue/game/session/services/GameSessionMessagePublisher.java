@@ -1,7 +1,5 @@
 package teamnova.omok.glue.game.session.services;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -13,20 +11,16 @@ import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.message.encoder.BoardSnapshotMessageEncoder;
-import teamnova.omok.glue.message.encoder.ErrorMessageEncoder;
 import teamnova.omok.glue.message.encoder.GameSessionCompletedMessageEncoder;
 import teamnova.omok.glue.message.encoder.GameSessionPlayerDisconnectedMessageEncoder;
 import teamnova.omok.glue.message.encoder.GameSessionRematchStartedMessageEncoder;
 import teamnova.omok.glue.message.encoder.GameSessionStartedMessageEncoder;
 import teamnova.omok.glue.message.encoder.GameSessionTerminatedMessageEncoder;
 import teamnova.omok.glue.message.encoder.JoinSessionMessageEncoder;
-import teamnova.omok.glue.message.encoder.MoveAckMessageEncoder;
-import teamnova.omok.glue.message.encoder.PostGameDecisionAckMessageEncoder;
 import teamnova.omok.glue.message.encoder.PostGameDecisionPromptMessageEncoder;
 import teamnova.omok.glue.message.encoder.PostGameDecisionUpdateMessageEncoder;
 import teamnova.omok.glue.message.encoder.ReadyStateMessageEncoder;
@@ -144,42 +138,6 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
             String.format("user=%s reason=%s", userId, reason));
     }
 
-    @Override
-    public void respondReady(String userId,
-                             long requestId,
-                             GameSessionAccess session,
-                             ReadyResult result) {
-        // Per new protocol: response only needs requestId; keep frame Type for debugging/correlation
-        byte[] payload = new byte[0];
-        send(session, userId, Type.READY_IN_GAME_SESSION, requestId, payload);
-    }
-
-    @Override
-    public void respondMove(String userId,
-                            long requestId,
-                            GameSessionAccess session,
-                            TurnPersonalFrame frame) {
-        // Per client spec: MOVE ACK payload must be {"status":"<OK|ERROR>"}
-        byte[] payload = MoveAckMessageEncoder.encode(session, frame);
-        send(session, userId, Type.PLACE_STONE, requestId, payload);
-    }
-
-    @Override
-    public void respondPostGameDecision(String userId,
-                                        long requestId,
-                                        PostGameDecisionResult result) {
-        // Per client spec: POST_GAME_DECISION ACK payload must be {"status":"<status_label>","decision":"<decision_label>","reason":"<reason_label>"}
-        byte[] payload = PostGameDecisionAckMessageEncoder.encode(result);
-        send(null, userId, Type.POST_GAME_DECISION, requestId, payload);
-    }
-
-    @Override
-    public void respondError(String userId, Type type, long requestId, String message) {
-        // Per new protocol: response only needs requestId; keep frame Type for debugging/correlation
-        byte[] payload = new byte[0];
-        send(null, userId, type, requestId, payload);
-    }
-
     private void broadcast(GameSessionAccess session,
                            Type type,
                            byte[] payload,
@@ -193,27 +151,11 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
         }
     }
 
-    private void send(GameSessionAccess session,
-                      String userId,
-                      Type type,
-                      long requestId,
-                      byte[] payload,
-                      String... details) {
-        Collection<String> recipients =
-            userId != null ? Collections.singletonList(userId) : Collections.emptyList();
-        logOutbound(session, type, "send", requestId, recipients, details);
-        if (session != null) {
-            directory.send(session, userId, type, requestId, payload);
-        } else {
-            directory.send(userId, type, requestId, payload);
-        }
-    }
-
     private void logOutbound(GameSessionAccess session,
                              Type type,
                              String channel,
                              long requestId,
-                             Collection<String> recipients,
+                             List<String> recipients,
                              String... details) {
         GameSessionLogger.outbound(session, type, channel, requestId, recipients, details);
     }

@@ -57,16 +57,16 @@ public final class PostGameSignalHandler implements StateSignalListener {
             if (kind == LifecycleEventKind.ON_START) {
                 drainWaiting();
             }
-            // ON_UPDATE: drain decision results (ACKs) and incremental updates
+            // ON_UPDATE: drain incremental updates only
             if (kind == LifecycleEventKind.ON_UPDATE) {
-                drainDecisionAcksAndUpdates();
+                drainDecisionUpdates();
             }
         } else if (type == GameSessionStateType.POST_GAME_DECISION_RESOLVING) {
             // All players have decided before deadline; ensure the decision timer is cancelled.
             if (kind == LifecycleEventKind.ON_START) {
                 services.decisionTimeoutScheduler().cancel(context.session().sessionId());
-                // Drain any remaining acks/updates before resolution broadcast
-                drainDecisionAcksAndUpdates();
+                // Drain any remaining updates before resolution broadcast
+                drainDecisionUpdates();
                 drainResolving();
             }
         } else if (type == GameSessionStateType.COMPLETED) {
@@ -95,17 +95,11 @@ public final class PostGameSignalHandler implements StateSignalListener {
                 });
             }
         }
-        // Also drain any pending decision ACKs/updates queued during onEnter
-        drainDecisionAcksAndUpdates();
+        // Also drain any pending decision updates queued during onEnter
+        drainDecisionUpdates();
     }
 
-    private void drainDecisionAcksAndUpdates() {
-        // Drain decision results: send ACK per requestId
-        while (true) {
-            var result = contextService.postGame().consumeDecisionResult(context);
-            if (result == null) break;
-            services.messenger().respondPostGameDecision(result.userId(), result.requestId(), result);
-        }
+    private void drainDecisionUpdates() {
         // Drain decision update snapshot if queued
         var update = contextService.postGame().consumeDecisionUpdate(context);
         if (update != null) {

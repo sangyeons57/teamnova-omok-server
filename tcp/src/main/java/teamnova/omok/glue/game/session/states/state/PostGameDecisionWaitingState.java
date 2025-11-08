@@ -20,8 +20,6 @@ import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateType;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionStatus;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
@@ -94,44 +92,21 @@ public final class PostGameDecisionWaitingState implements BaseState {
     private StateStep handleDecision(GameSessionStateContext context,
                                      PostGameDecisionEvent event) {
         if (!context.participants().containsUser(event.userId())) {
-            contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
-                event.userId(),
-                PostGameDecisionStatus.INVALID_PLAYER,
-                event.requestId()
-            ));
             return StateStep.stay();
         }
         long deadline = contextService.postGame().decisionDeadline(context);
         long now = System.currentTimeMillis();
         if (deadline > 0 && now > deadline) {
-            contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
-                event.userId(),
-                PostGameDecisionStatus.TIME_WINDOW_CLOSED,
-                event.requestId()
-            ));
             return StateStep.stay();
         }
         if (context.postGame().hasPostGameDecision(event.userId())) {
-            contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
-                event.userId(),
-                PostGameDecisionStatus.ALREADY_DECIDED,
-                event.requestId()
-            ));
             return StateStep.stay();
         }
         boolean recorded = context.postGame().recordPostGameDecision(event.userId(), event.decision());
         if (!recorded) {
-            contextService.postGame().queueDecisionResult(context, PostGameDecisionResult.rejected(
-                event.userId(),
-                PostGameDecisionStatus.ALREADY_DECIDED,
-                event.requestId()
-            ));
             return StateStep.stay();
         }
         applyDecisionSideEffects(context, event.userId(), event.decision());
-        contextService.postGame().queueDecisionResult(context,
-            PostGameDecisionResult.accepted(event.userId(), event.requestId(), event.decision())
-        );
         contextService.postGame().queueDecisionUpdate(context, snapshotUpdate(context));
         if (allDecided(context)) {
             return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_RESOLVING.toStateName());

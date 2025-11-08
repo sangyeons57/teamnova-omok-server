@@ -7,8 +7,6 @@ import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionStatus;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.states.event.MoveEvent;
 import teamnova.omok.glue.game.session.states.event.PostGameDecisionEvent;
@@ -102,13 +100,6 @@ public class CompletedGameSessionState implements BaseState {
 
     private StateStep handlePostGameDecision(GameSessionStateContext context,
                                              PostGameDecisionEvent event) {
-        contextService.postGame().queueDecisionResult(context,
-            PostGameDecisionResult.rejected(
-                event.userId(),
-                PostGameDecisionStatus.SESSION_CLOSED,
-                event.requestId()
-            )
-        );
         return StateStep.stay();
     }
 

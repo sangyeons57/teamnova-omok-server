@@ -43,11 +43,12 @@ public final class PostGameDecisionResolvingState implements BaseState {
                 PostGameResolution.rematch(rematch, disconnected)
             );
             return StateStep.transition(GameSessionStateType.SESSION_REMATCH_PREPARING.toStateName());
+        } else {
+            contextService.postGame().queuePostGameResolution(
+                context,
+                PostGameResolution.terminate(disconnected)
+            );
+            return StateStep.transition(GameSessionStateType.SESSION_TERMINATING.toStateName());
         }
-        contextService.postGame().queuePostGameResolution(
-            context,
-            PostGameResolution.terminate(disconnected)
-        );
-        return StateStep.transition(GameSessionStateType.SESSION_TERMINATING.toStateName());
     }
 }

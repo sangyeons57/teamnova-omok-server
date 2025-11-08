@@ -14,7 +14,6 @@ import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 import teamnova.omok.glue.game.session.model.result.ReadyResult;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
 import teamnova.omok.glue.game.session.model.store.BoardStore;
@@ -444,21 +443,6 @@ public class GameSession implements GameSessionAccess {
     @Override
     public List<TurnPersonalFrame> personalTurnFrames() {
         return turnRuntimeStore.personalTurnFrames();
-    }
-
-    @Override
-    public PostGameDecisionResult getPendingDecisionResult() {
-        return postGameRuntimeStore.getPendingDecisionResult();
-    }
-
-    @Override
-    public void setPendingDecisionResult(PostGameDecisionResult result) {
-        postGameRuntimeStore.setPendingDecisionResult(result);
-    }
-
-    @Override
-    public void clearPendingDecisionResult() {
-        postGameRuntimeStore.clearPendingDecisionResult();
     }
 
     @Override

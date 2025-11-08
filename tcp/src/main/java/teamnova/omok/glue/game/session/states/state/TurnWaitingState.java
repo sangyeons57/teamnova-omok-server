@@ -3,7 +3,6 @@ package teamnova.omok.glue.game.session.states.state;
 import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
@@ -25,14 +24,11 @@ import teamnova.omok.modules.state_machine.models.StateStep;
 public class TurnWaitingState implements BaseState {
     private final GameSessionStateContextService contextService;
     private final GameTurnService turnService;
-    private final GameSessionMessenger messenger;
 
     public TurnWaitingState(GameSessionStateContextService contextService,
-                            GameTurnService turnService,
-                            GameSessionMessenger messenger) {
+                            GameTurnService turnService) {
         this.contextService = Objects.requireNonNull(contextService, "contextService");
         this.turnService = Objects.requireNonNull(turnService, "turnService");
-        this.messenger = Objects.requireNonNull(messenger, "messenger");
     }
     @Override
     public StateName name() {
@@ -58,16 +54,12 @@ public class TurnWaitingState implements BaseState {
             GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
                 "reason=no-active-frame",
                 String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
-            // Always ACK MOVE, even when ignored due to errors
-            messenger.respondMove(event.userId(), event.requestId(), context.session(), null);
             return StateStep.stay();
         }
         if (frame.hasActiveMove()) {
             GameSessionLogger.event(context, GameSessionStateType.TURN_WAITING, "MoveEvent:ignored",
                 "reason=move-in-progress",
                 String.format("user=%s x=%d y=%d", event.userId(), event.x(), event.y()));
-            // Always ACK MOVE, even when a previous move is still being processed
-            messenger.respondMove(event.userId(), event.requestId(), context.session(), null);
             return StateStep.stay();
         }
         // Validate that the event user is the current player
@@ -81,8 +73,6 @@ public class TurnWaitingState implements BaseState {
                 snapshot == null
                     ? "snapshot=null"
                     : String.format("user=%s expected=%s", event.userId(), snapshot.currentPlayerId()));
-            // Always ACK MOVE for invalid/current-player mismatch as well
-            messenger.respondMove(event.userId(), event.requestId(), context.session(), null);
             return StateStep.stay();
         }
         GameSessionAccess session = context.session();

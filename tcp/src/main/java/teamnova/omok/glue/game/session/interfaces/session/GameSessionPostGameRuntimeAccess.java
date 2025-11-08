@@ -5,15 +5,8 @@ import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 
 public interface GameSessionPostGameRuntimeAccess {
-    PostGameDecisionResult getPendingDecisionResult();
-
-    void setPendingDecisionResult(PostGameDecisionResult result);
-
-    void clearPendingDecisionResult();
-
     PostGameDecisionUpdate getPendingDecisionUpdate();
 
     void setPendingDecisionUpdate(PostGameDecisionUpdate update);

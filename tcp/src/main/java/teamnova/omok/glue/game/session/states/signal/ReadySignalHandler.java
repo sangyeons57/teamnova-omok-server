@@ -10,11 +10,11 @@ import teamnova.omok.modules.state_machine.interfaces.StateSignalListener;
 import teamnova.omok.modules.state_machine.models.LifecycleEventKind;
 import teamnova.omok.modules.state_machine.models.StateName;
 
-/**
- * Handles READY flow via state-based signals.
-     * - LOBBY ON_UPDATE/ON_TRANSITION: drain ReadyResult and respond/broadcast accordingly.
-     * - GAME_SESSION_STARTED is broadcast exactly once here when all players become ready before leaving the lobby.
- */
+    /**
+     * Handles READY flow via state-based signals.
+         * - LOBBY ON_UPDATE/ON_TRANSITION: drain ReadyResult and broadcast state changes.
+         * - GAME_SESSION_STARTED is broadcast exactly once here when all players become ready before leaving the lobby.
+     */
 public final class ReadySignalHandler implements StateSignalListener {
     private final GameSessionStateContext context;
     private final GameSessionStateContextService contextService;
@@ -57,8 +57,6 @@ public final class ReadySignalHandler implements StateSignalListener {
         if (result == null) {
             return;
         }
-        // Respond to the requester
-        services.messenger().respondReady(result.userId(), result.requestId(), context.session(), result);
         // Broadcast state change
         if (result.stateChanged()) {
             services.messenger().broadcastReady(context.session(), result);

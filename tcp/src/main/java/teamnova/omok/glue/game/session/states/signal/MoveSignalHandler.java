@@ -56,10 +56,6 @@ public final class MoveSignalHandler implements StateSignalListener {
             return;
         }
         if (type == GameSessionStateType.TURN_PERSONAL_END) {
-            TurnPersonalFrame frame = context.turnRuntime().currentPersonalTurnFrame();
-            if (frame != null) {
-                services.messenger().respondMove(frame.userId(), frame.stonePlaceRequestId(), context.session(), frame);
-            }
             services.messenger().broadcastBoardSnapshot(context.session());
         }
     }

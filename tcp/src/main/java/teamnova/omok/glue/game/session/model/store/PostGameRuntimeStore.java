@@ -6,34 +6,17 @@ import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 
 /**
  * Holds transient post-game buffers for a {@link teamnova.omok.glue.game.session.model.GameSession}.
  */
 public final class PostGameRuntimeStore implements GameSessionPostGameRuntimeAccess {
-    private PostGameDecisionResult pendingDecisionResult;
     private PostGameDecisionUpdate pendingDecisionUpdate;
     private PostGameDecisionPrompt pendingDecisionPrompt;
     private PostGameResolution pendingPostGameResolution;
     private long postGameDecisionDeadline;
     private GameCompletionNotice pendingGameCompletion;
     private BoardSnapshotUpdate pendingBoardSnapshot;
-
-    @Override
-    public PostGameDecisionResult getPendingDecisionResult() {
-        return pendingDecisionResult;
-    }
-
-    @Override
-    public void setPendingDecisionResult(PostGameDecisionResult result) {
-        this.pendingDecisionResult = result;
-    }
-
-    @Override
-    public void clearPendingDecisionResult() {
-        this.pendingDecisionResult = null;
-    }
 
     @Override
     public PostGameDecisionUpdate getPendingDecisionUpdate() {

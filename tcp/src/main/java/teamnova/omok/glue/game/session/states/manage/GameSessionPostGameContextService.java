@@ -7,24 +7,11 @@ import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
 import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.messages.PostGameResolution;
-import teamnova.omok.glue.game.session.model.result.PostGameDecisionResult;
 
 /**
  * Stateless operations for managing post-game buffers within {@link GameSessionStateContext}.
  */
 public final class GameSessionPostGameContextService {
-
-    public void queueDecisionResult(GameSessionStateContext context, PostGameDecisionResult result) {
-        Objects.requireNonNull(context, "context");
-        context.postGameRuntime().setPendingDecisionResult(result);
-    }
-
-    public PostGameDecisionResult consumeDecisionResult(GameSessionStateContext context) {
-        Objects.requireNonNull(context, "context");
-        PostGameDecisionResult result = context.postGameRuntime().getPendingDecisionResult();
-        context.postGameRuntime().clearPendingDecisionResult();
-        return result;
-    }
 
     public void queueDecisionUpdate(GameSessionStateContext context, PostGameDecisionUpdate update) {
         Objects.requireNonNull(context, "context");

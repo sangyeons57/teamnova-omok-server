@@ -87,7 +87,7 @@ public class GameStateHub {
         registerState(new LobbyGameSessionState(contextService, services));
         registerState(new TurnStartState(contextService));
         registerState(new TurnPersonalStartState(contextService, services));
-        registerState(new TurnWaitingState(contextService, services.turnService(), services.messenger()));
+        registerState(new TurnWaitingState(contextService, services.turnService()));
         registerState(new MoveValidatingState(contextService, services));
         registerState(new MoveApplyingState(contextService, services));
         registerState(new TurnPersonalEndState(contextService, services));
