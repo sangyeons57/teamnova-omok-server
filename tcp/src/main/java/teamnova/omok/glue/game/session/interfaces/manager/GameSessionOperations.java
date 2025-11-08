@@ -12,8 +12,8 @@ public interface GameSessionOperations {
     Optional<GameSession> findByUser(String userId);
     void leaveByUser(String userId);
     void handleClientDisconnected(String userId);
-    boolean submitReady(String userId, long requestId);
+    void submitReady(String userId, long requestId);
     boolean submitMove(String userId, long requestId, int x, int y);
-    boolean submitPostGameDecision(String userId, long requestId, PostGameDecision decision);
+    void submitPostGameDecision(String userId, long requestId, PostGameDecision decision);
     void createFromGroup(NioReactorServer server, MatchGroup group);
 }

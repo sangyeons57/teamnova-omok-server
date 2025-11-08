@@ -55,10 +55,8 @@ public final class SessionEventService {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(decision, "decision");
         return withSession(userId, submission -> {
-            PostGameDecisionEvent event =
-                new PostGameDecisionEvent(userId, decision, submission.timestamp(), requestId);
-            GameSessionLogger.inbound(submission.session(), "POST_GAME_DECISION", userId, requestId,
-                "decision=" + decision);
+            PostGameDecisionEvent event = new PostGameDecisionEvent(userId, decision, submission.timestamp(), requestId);
+            GameSessionLogger.inbound(submission.session(), "POST_GAME_DECISION", userId, requestId, "decision=" + decision);
             submission.manager().submit(event);
         });
     }

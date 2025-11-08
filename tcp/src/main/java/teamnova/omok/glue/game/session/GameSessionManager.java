@@ -136,8 +136,8 @@ public final class GameSessionManager implements Closeable,
     }
 
     @Override
-    public boolean submitReady(String userId, long requestId) {
-        return eventService.submitReady(userId, requestId);
+    public void submitReady(String userId, long requestId) {
+        eventService.submitReady(userId, requestId);
     }
 
     @Override
@@ -146,8 +146,8 @@ public final class GameSessionManager implements Closeable,
     }
 
     @Override
-    public boolean submitPostGameDecision(String userId, long requestId, PostGameDecision decision) {
-        return eventService.submitPostGameDecision(userId, requestId, decision);
+    public void submitPostGameDecision(String userId, long requestId, PostGameDecision decision) {
+        eventService.submitPostGameDecision(userId, requestId, decision);
     }
 
     @Override

@@ -35,9 +35,6 @@ public class PostGameDecisionHandler implements FrameHandler {
         }
 
         GameSessionManager gameSessionManager = GameSessionManager.getInstance();
-        boolean accepted = gameSessionManager.submitPostGameDecision(userId, frame.requestId(), decision);
-        if (!accepted) {
-            // Session already closed; nothing to notify synchronously.
-        }
+        gameSessionManager.submitPostGameDecision(userId, frame.requestId(), decision);
     }
 }

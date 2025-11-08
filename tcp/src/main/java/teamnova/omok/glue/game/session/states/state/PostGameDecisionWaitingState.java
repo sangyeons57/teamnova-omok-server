@@ -163,19 +163,19 @@ public final class PostGameDecisionWaitingState implements BaseState {
     private void applyDecisionSideEffects(GameSessionStateContext context,
                                           String userId,
                                           PostGameDecision decision) {
-        if (decision != PostGameDecision.LEAVE && decision != PostGameDecision.REMATCH) {
-            return;
+        if (decision == PostGameDecision.LEAVE) {
+            var session = context.session();
+            session.lock().lock();
+            try {
+                session.markDisconnected(userId);
+            } finally {
+                session.lock().unlock();
+            }
+            ClientSessionManager.getInstance()
+                .findSession(userId)
+                .ifPresent(handle -> handle.unbindGameSession(session.sessionId()));
         }
-        var session = context.session();
-        session.lock().lock();
-        try {
-            session.markDisconnected(userId);
-        } finally {
-            session.lock().unlock();
-        }
-        ClientSessionManager.getInstance()
-            .findSession(userId)
-            .ifPresent(handle -> handle.unbindGameSession(session.sessionId()));
+        // REMATCH 선택자는 SessionRematchPreparingState에서 새 세션 배정 직전까지 기존 게임에 남겨 둔다.
     }
 
     private PostGameDecisionUpdate snapshotUpdate(GameSessionStateContext context) {
