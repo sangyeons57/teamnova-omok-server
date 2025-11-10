@@ -1,8 +1,11 @@
 package teamnova.omok.glue.client.session.states;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
+import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.states.event.AuthenticatedClientEvent;
 import teamnova.omok.glue.client.session.states.event.DisconnectClientEvent;
 import teamnova.omok.glue.client.session.states.event.ResetClientEvent;
@@ -29,6 +32,7 @@ public final class ClientStateHub {
     private final Handle stateMachine;
     private final ClientStateContext context;
     private ClientStateType currentType;
+    private final List<ClientSessionStateListener> stateListeners = new CopyOnWriteArrayList<>();
 
     public ClientStateHub(ClientSessionHandle session) {
         Objects.requireNonNull(session, "session");
@@ -68,8 +72,23 @@ public final class ClientStateHub {
     }
 
     private void handleTransition(StateName stateName) {
+        ClientStateType previous = currentType;
         currentType = ClientStateType.fromStateName(stateName);
         context.clientSession().model().updateState(currentType);
+        notifyStateListeners(previous, currentType);
+    }
+
+    private void notifyStateListeners(ClientStateType previous, ClientStateType current) {
+        if (stateListeners.isEmpty()) {
+            return;
+        }
+        for (ClientSessionStateListener listener : stateListeners) {
+            try {
+                listener.onStateChanged(context.clientSession(), previous, current);
+            } catch (RuntimeException ex) {
+                System.err.println("[CLIENT][state] listener failed: " + ex.getMessage());
+            }
+        }
     }
 
     public ClientStateType currentType() {
@@ -95,6 +114,12 @@ public final class ClientStateHub {
     public void submit(BaseEvent event) {
         Objects.requireNonNull(event, "event");
         stateMachine.submit(event);
+    }
+
+    public void addStateListener(ClientSessionStateListener listener) {
+        if (listener != null) {
+            stateListeners.add(listener);
+        }
     }
 
     public void process(long now) {

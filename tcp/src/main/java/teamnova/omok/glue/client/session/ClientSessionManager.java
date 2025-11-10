@@ -50,7 +50,9 @@ public final class ClientSessionManager implements ClientSessionLifecycleListene
     public ClientSessionHandle registerConnection(NioClientConnection connection, NioReactorServer server) {
         Objects.requireNonNull(connection, "connection");
         Objects.requireNonNull(server, "server");
-        return directory.register(connection, server, this);
+        ClientSessionHandle handle = directory.register(connection, server, this);
+        lifecycleService.registerStateObserver(handle);
+        return handle;
     }
 
     public GameSessionMessagePublisher gamePublisher() {

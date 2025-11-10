@@ -10,13 +10,14 @@ import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioClientConnection;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.core.nio.codec.DecodeFrame;
+import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
+import teamnova.omok.glue.client.session.interfaces.ClientSessionLifecycleListener;
+import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
+import teamnova.omok.glue.client.session.model.ClientSession;
+import teamnova.omok.glue.client.session.states.ClientStateHub;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.handler.register.Type;
-import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
-import teamnova.omok.glue.client.session.interfaces.ClientSessionLifecycleListener;
-import teamnova.omok.glue.client.session.model.ClientSession;
-import teamnova.omok.glue.client.session.states.ClientStateHub;
 
 /**
  * Glue-layer view of a connected client: combines transport, authentication state,
@@ -126,6 +127,10 @@ public final class ManagedClientSession implements ClientSessionHandle {
         return stateHub;
     }
 
+    public void addStateListener(ClientSessionStateListener listener) {
+        stateHub.addStateListener(listener);
+    }
+
     @Override
     public boolean isAuthenticated() {
         return model.isAuthenticated();
@@ -159,8 +164,8 @@ public final class ManagedClientSession implements ClientSessionHandle {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
-        lifecycleListener.onSessionClosed(this);
         stateHub.disconnect();
+        lifecycleListener.onSessionClosed(this);
         connection.close();
     }
 }

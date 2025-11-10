@@ -3,6 +3,7 @@ package teamnova.omok.glue.client.session.services;
 import java.util.Objects;
 
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
+import teamnova.omok.glue.client.session.states.manage.ClientStateType;
 import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.glue.manager.MatchingManager;
 
@@ -41,6 +42,24 @@ public final class ClientSessionLifecycleService {
 
     public void onSessionClosed(ClientSessionHandle session) {
         Objects.requireNonNull(session, "session");
+        directory.remove(session);
+    }
+
+    public void registerStateObserver(ClientSessionHandle session) {
+        if (session instanceof ManagedClientSession managed) {
+            managed.addStateListener(this::handleStateTransition);
+        }
+    }
+
+    private void handleStateTransition(ClientSessionHandle session,
+                                       ClientStateType previous,
+                                       ClientStateType current) {
+        if (current == ClientStateType.DISCONNECTED) {
+            handleDisconnected(session);
+        }
+    }
+
+    private void handleDisconnected(ClientSessionHandle session) {
         directory.remove(session);
         String userId = session.authenticatedUserId();
         if (userId != null) {
