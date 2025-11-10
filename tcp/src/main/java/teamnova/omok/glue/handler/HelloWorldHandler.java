@@ -1,7 +1,6 @@
 package teamnova.omok.glue.handler;
 
 import java.io.IOException;
-import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.handler.register.FrameHandler;
 import teamnova.omok.glue.message.decoder.HelloWorldDecoder;
@@ -28,8 +27,6 @@ public final class HelloWorldHandler implements FrameHandler {
         } catch (IOException e) {
             System.err.println("[HelloWorldHandler:] Failed to read remote address: " + e.getMessage());
         }
-        ClientSessionManager.getInstance()
-            .clientPublisher(session)
-            .hello(frame.requestId(), response);
+        session.sendHello(frame.requestId(), response);
     }
 }

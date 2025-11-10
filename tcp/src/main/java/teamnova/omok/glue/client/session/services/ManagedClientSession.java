@@ -4,20 +4,22 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioClientConnection;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.core.nio.codec.DecodeFrame;
-import java.util.Set;
-
+import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.model.ClientSession;
 import teamnova.omok.glue.client.state.ClientStateCommandBus;
 import teamnova.omok.glue.client.state.ClientStateHub;
+import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.glue.game.session.model.PlayerResult;
+import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.handler.register.Type;
 
@@ -133,6 +135,92 @@ public final class ManagedClientSession implements ClientSessionHandle {
     @Override
     public void cancelMatchmaking(long requestId) {
         stateCommands.cancelMatchmaking(requestId);
+    }
+
+    @Override
+    public void authenticateUser(String userId, String role, String scope) {
+        ClientSessionManager.getInstance().onAuthenticated(this, userId, role, scope);
+    }
+
+    @Override
+    public void clearAuthenticationBinding() {
+        ClientSessionManager.getInstance().onAuthenticationCleared(this);
+    }
+
+    @Override
+    public void sendAuthResult(long requestId, boolean success) {
+        ClientSessionManager.getInstance()
+            .clientPublisher(this)
+            .authResult(requestId, success);
+    }
+
+    @Override
+    public void sendHello(long requestId, String response) {
+        ClientSessionManager.getInstance()
+            .clientPublisher(this)
+            .hello(requestId, response);
+    }
+
+    @Override
+    public void sendPingPong(long requestId, byte[] payload) {
+        ClientSessionManager.getInstance()
+            .clientPublisher(this)
+            .pingPong(requestId, payload);
+    }
+
+    @Override
+    public boolean submitMove(long requestId, int x, int y) {
+        String userId = authenticatedUserId();
+        if (userId == null) {
+            return false;
+        }
+        return GameSessionManager.getInstance().submitMove(userId, requestId, x, y);
+    }
+
+    @Override
+    public void sendPlaceStoneError(long requestId, String message) {
+        ClientSessionManager.getInstance()
+            .clientPublisher(this)
+            .placeStoneError(requestId, message);
+    }
+
+    @Override
+    public void submitReady(long requestId) {
+        String userId = authenticatedUserId();
+        if (userId != null) {
+            GameSessionManager.getInstance().submitReady(userId, requestId);
+        }
+    }
+
+    @Override
+    public void leaveInGameSession(long requestId) {
+        if (!isAuthenticated()) {
+            return;
+        }
+        String userId = authenticatedUserId();
+        if (userId == null) {
+            return;
+        }
+        GameSessionManager gameManager = GameSessionManager.getInstance();
+        ClientSessionManager clientManager = ClientSessionManager.getInstance();
+        gameManager.findSession(userId).ifPresent(gs -> {
+            for (String uid : gs.getUserIds()) {
+                if (!uid.equals(userId)) {
+                    clientManager.clientPublisher(uid)
+                        .ifPresent(channel -> channel.notifyPeerLeft(userId));
+                }
+            }
+        });
+        gameManager.leaveSession(userId);
+        clientManager.clientPublisher(this).leaveInGameAck(requestId);
+    }
+
+    @Override
+    public void submitPostGameDecision(long requestId, PostGameDecision decision) {
+        String userId = authenticatedUserId();
+        if (userId != null && decision != null) {
+            GameSessionManager.getInstance().submitPostGameDecision(userId, requestId, decision);
+        }
     }
 
     ClientStateHub stateHub() {

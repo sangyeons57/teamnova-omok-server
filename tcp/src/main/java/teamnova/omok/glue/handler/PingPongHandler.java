@@ -1,6 +1,5 @@
 package teamnova.omok.glue.handler;
 
-import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.handler.register.FrameHandler;
 import teamnova.omok.core.nio.FramedMessage;
@@ -12,8 +11,6 @@ public class PingPongHandler implements FrameHandler {
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
         teamnova.omok.glue.client.session.log.ClientMessageLogger.inbound(session, teamnova.omok.glue.handler.register.Type.PINGPONG, frame.requestId());
-        ClientSessionManager.getInstance()
-            .clientPublisher(session)
-            .pingPong(frame.requestId(), frame.payload());
+        session.sendPingPong(frame.requestId(), frame.payload());
     }
 }
