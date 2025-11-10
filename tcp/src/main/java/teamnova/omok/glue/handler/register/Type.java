@@ -21,6 +21,7 @@ public enum Type {
     GAME_SESSION_PLAYER_DISCONNECTED(17),
     BOARD_UPDATED(18),
     LEAVE_MATCH(19),
+    RECONNECTING(20),
 
     ERROR(255),
     ;

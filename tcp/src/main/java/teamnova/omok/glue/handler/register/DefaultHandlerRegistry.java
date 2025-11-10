@@ -1,18 +1,10 @@
 package teamnova.omok.glue.handler.register;
 
-import teamnova.omok.glue.handler.AuthHandler;
-import teamnova.omok.glue.handler.PingPongHandler;
+import teamnova.omok.glue.handler.*;
 import teamnova.omok.glue.manager.DataManager;
 import teamnova.omok.glue.message.decoder.HelloWorldDecoder;
 import teamnova.omok.glue.handler.dispatcher.Dispatcher;
-import teamnova.omok.glue.handler.HelloWorldHandler;
 import teamnova.omok.glue.message.decoder.StringDecoder;
-import teamnova.omok.glue.handler.JoinMatchHandler;
-import teamnova.omok.glue.handler.LeaveInGameSessionHandler;
-import teamnova.omok.glue.handler.LeaveMatchHandler;
-import teamnova.omok.glue.handler.PostGameDecisionHandler;
-import teamnova.omok.glue.handler.PlaceStoneHandler;
-import teamnova.omok.glue.handler.ReadyInGameSessionHandler;
 
 import java.util.function.Supplier;
 
@@ -42,6 +34,7 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
         register(Type.READY_IN_GAME_SESSION, new ReadyInGameSessionHandler());
         register(Type.PLACE_STONE, new PlaceStoneHandler(stringDecoder));
         register(Type.POST_GAME_DECISION, new PostGameDecisionHandler(stringDecoder));
+        register(Type.RECONNECTING, new ReconnectingHandler(stringDecoder, DataManager.getInstance()));
     }
 
     public void register(Type type, FrameHandler frameHandler ) {

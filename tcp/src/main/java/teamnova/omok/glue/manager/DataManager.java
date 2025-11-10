@@ -1,7 +1,10 @@
 package teamnova.omok.glue.manager;
 
 import teamnova.omok.glue.data.DotenvService;
+import teamnova.omok.glue.data.JWTService;
 import teamnova.omok.glue.data.MysqlService;
+import teamnova.omok.glue.data.model.JWTPayload;
+import teamnova.omok.glue.data.model.JwtVerificationException;
 import teamnova.omok.glue.data.model.UserData;
 import teamnova.omok.glue.data.model.UserScoreData;
 
@@ -22,12 +25,16 @@ public class DataManager {
 
     private final DotenvService dotenvService;
     private final MysqlService mysqlService;
+    private final JWTService jwtService;
 
     private DataManager() {
         String basePath = System.getProperty("user.dir") + "/..";
         this.dotenvService = new DotenvService(basePath);
         this.mysqlService = new MysqlService(dotenvService);
+        this.jwtService = new JWTService(dotenvService);
     }
+
+    public JWTPayload verify(String token) throws JwtVerificationException { return jwtService.verify(token); }
 
     public String getFromDotEnv(String key) {
         return dotenvService.get(key);
