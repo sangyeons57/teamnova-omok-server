@@ -3,9 +3,10 @@ package teamnova.omok.glue.game.session.services;
 import java.util.List;
 import java.util.Objects;
 
-import teamnova.omok.glue.client.session.services.ClientSessionDirectory;
+import teamnova.omok.glue.client.session.services.ClientSessionStore;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
+import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.glue.game.session.log.GameSessionLogger;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.BoardSnapshotUpdate;
@@ -32,13 +33,13 @@ import teamnova.omok.glue.message.encoder.TurnStartedMessageEncoder;
  * All outbound traffic should flow through this publisher so we can maintain consistent logging.
  */
 public final class GameSessionMessagePublisher implements GameSessionMessenger {
-    private final ClientSessionDirectory directory;
+    private final ClientSessionStore store;
     private final teamnova.omok.glue.game.session.interfaces.GameBoardService boardService;
     private final RuleService ruleService;
 
-    public GameSessionMessagePublisher(ClientSessionDirectory directory,
+    public GameSessionMessagePublisher(ClientSessionStore store,
                                        teamnova.omok.glue.game.session.interfaces.GameBoardService boardService) {
-        this.directory = Objects.requireNonNull(directory, "directory");
+        this.store = Objects.requireNonNull(store, "store");
         this.boardService = Objects.requireNonNull(boardService, "boardService");
         this.ruleService = RuleService.getInstance();
     }
@@ -145,9 +146,61 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
         List<String> recipients = session != null ? session.getUserIds() : List.of();
         logOutbound(session, type, "broadcast", 0L, recipients, details);
         if (session != null) {
-            directory.broadcast(session, recipients, type, payload);
+            broadcastToGame(session, recipients, type, payload);
         } else {
-            directory.broadcast(recipients, type, payload);
+            broadcastDirect(recipients, type, payload);
+        }
+    }
+
+    private void broadcastToGame(GameSessionAccess session,
+                                 List<String> recipients,
+                                 Type type,
+                                 byte[] payload) {
+        if (recipients == null || recipients.isEmpty()) {
+            return;
+        }
+        for (String uid : recipients) {
+            deliverInGame(session, uid, type, payload);
+        }
+    }
+
+    private void broadcastDirect(List<String> recipients,
+                                 Type type,
+                                 byte[] payload) {
+        if (recipients == null || recipients.isEmpty()) {
+            return;
+        }
+        for (String uid : recipients) {
+            deliver(uid, type, payload);
+        }
+    }
+
+    private void deliver(String userId, Type type, byte[] payload) {
+        store.findByUser(userId)
+            .ifPresent(session -> session.enqueueResponse(type, 0L, payload));
+    }
+
+    private void deliverInGame(GameSessionAccess gameSession,
+                               String userId,
+                               Type type,
+                               byte[] payload) {
+        if (userId == null) {
+            return;
+        }
+        store.findByUser(userId).ifPresent(handle -> {
+            if (gameSession == null || gameSession.sessionId().equals(handle.currentGameSessionId())) {
+                handle.enqueueResponse(type, 0L, payload);
+            } else {
+                handleInGameMismatch(userId);
+            }
+        });
+    }
+
+    private void handleInGameMismatch(String userId) {
+        try {
+            GameSessionManager.getInstance().leaveByUser(userId);
+        } catch (Throwable ignore) {
+            // best-effort cleanup
         }
     }
 

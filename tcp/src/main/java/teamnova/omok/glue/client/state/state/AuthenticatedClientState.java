@@ -1,11 +1,11 @@
-package teamnova.omok.glue.client.session.states.state;
+package teamnova.omok.glue.client.state.state;
 
-import teamnova.omok.glue.client.session.states.event.DisconnectClientEvent;
-import teamnova.omok.glue.client.session.states.event.EnterGameClientEvent;
-import teamnova.omok.glue.client.session.states.event.ResetClientEvent;
-import teamnova.omok.glue.client.session.states.event.StartMatchingClientEvent;
-import teamnova.omok.glue.client.session.states.manage.ClientStateContext;
-import teamnova.omok.glue.client.session.states.manage.ClientStateType;
+import teamnova.omok.glue.client.state.event.DisconnectClientEvent;
+import teamnova.omok.glue.client.state.event.EnterGameClientEvent;
+import teamnova.omok.glue.client.state.event.ResetClientEvent;
+import teamnova.omok.glue.client.state.event.StartMatchingClientEvent;
+import teamnova.omok.glue.client.state.manage.ClientStateContext;
+import teamnova.omok.glue.client.state.manage.ClientStateType;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;

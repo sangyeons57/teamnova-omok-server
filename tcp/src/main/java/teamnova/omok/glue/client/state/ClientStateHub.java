@@ -1,4 +1,4 @@
-package teamnova.omok.glue.client.session.states;
+package teamnova.omok.glue.client.state;
 
 import java.util.List;
 import java.util.Objects;
@@ -6,16 +6,17 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
-import teamnova.omok.glue.client.session.states.event.AuthenticatedClientEvent;
-import teamnova.omok.glue.client.session.states.event.DisconnectClientEvent;
-import teamnova.omok.glue.client.session.states.event.ResetClientEvent;
-import teamnova.omok.glue.client.session.states.manage.ClientStateContext;
-import teamnova.omok.glue.client.session.states.manage.ClientStateType;
-import teamnova.omok.glue.client.session.states.state.AuthenticatedClientState;
-import teamnova.omok.glue.client.session.states.state.ConnectedClientState;
-import teamnova.omok.glue.client.session.states.state.DisconnectedClientState;
-import teamnova.omok.glue.client.session.states.state.InGameClientState;
-import teamnova.omok.glue.client.session.states.state.MatchingClientState;
+import teamnova.omok.glue.client.session.services.ClientSessionStore;
+import teamnova.omok.glue.client.state.event.AuthenticatedClientEvent;
+import teamnova.omok.glue.client.state.event.DisconnectClientEvent;
+import teamnova.omok.glue.client.state.event.ResetClientEvent;
+import teamnova.omok.glue.client.state.manage.ClientStateContext;
+import teamnova.omok.glue.client.state.manage.ClientStateType;
+import teamnova.omok.glue.client.state.state.AuthenticatedClientState;
+import teamnova.omok.glue.client.state.state.ConnectedClientState;
+import teamnova.omok.glue.client.state.state.DisconnectedClientState;
+import teamnova.omok.glue.client.state.state.InGameClientState;
+import teamnova.omok.glue.client.state.state.MatchingClientState;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
@@ -33,10 +34,13 @@ public final class ClientStateHub {
     private final ClientStateContext context;
     private ClientStateType currentType;
     private final List<ClientSessionStateListener> stateListeners = new CopyOnWriteArrayList<>();
+    private final Object processLock = new Object();
 
-    public ClientStateHub(ClientSessionHandle session) {
+    public ClientStateHub(ClientSessionHandle session,
+                          ClientSessionStore store) {
         Objects.requireNonNull(session, "session");
-        this.context = new ClientStateContext(session);
+        this.context = new ClientStateContext(session,
+            Objects.requireNonNull(store, "store"));
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.addStateSignalListener(new StateSignalListener() {
             private StateName pendingFrom;
@@ -74,7 +78,6 @@ public final class ClientStateHub {
     private void handleTransition(StateName stateName) {
         ClientStateType previous = currentType;
         currentType = ClientStateType.fromStateName(stateName);
-        context.clientSession().model().updateState(currentType);
         notifyStateListeners(previous, currentType);
     }
 
@@ -123,6 +126,12 @@ public final class ClientStateHub {
     }
 
     public void process(long now) {
-        stateMachine.process(context, now);
+        synchronized (processLock) {
+            stateMachine.process(context, now);
+        }
+    }
+
+    public void drainPending() {
+        process(System.currentTimeMillis());
     }
 }

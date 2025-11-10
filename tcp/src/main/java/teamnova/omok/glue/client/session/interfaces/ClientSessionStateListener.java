@@ -1,6 +1,6 @@
 package teamnova.omok.glue.client.session.interfaces;
 
-import teamnova.omok.glue.client.session.states.manage.ClientStateType;
+import teamnova.omok.glue.client.state.manage.ClientStateType;
 
 /**
  * Receives state transition notifications for managed client sessions.

@@ -2,7 +2,6 @@ package teamnova.omok.glue.client.session.model;
 
 import java.util.Objects;
 
-import teamnova.omok.glue.client.session.states.manage.ClientStateType;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 
@@ -14,7 +13,6 @@ public final class ClientSession {
     private volatile String userId;
     private volatile String role;
     private volatile String scope;
-    private volatile ClientStateType stateType = ClientStateType.CONNECTED;
 
     // Currently bound in-game session for scoping outbound traffic
     private volatile GameSessionId currentGameSessionId;
@@ -53,14 +51,6 @@ public final class ClientSession {
 
     public String scope() {
         return scope;
-    }
-
-    public ClientStateType stateType() {
-        return stateType;
-    }
-
-    public void updateState(ClientStateType type) {
-        this.stateType = Objects.requireNonNull(type, "type");
     }
 
     public GameSessionId currentGameSessionId() {

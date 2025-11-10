@@ -1,4 +1,4 @@
-package teamnova.omok.glue.client.session.states.event;
+package teamnova.omok.glue.client.state.event;
 
 import teamnova.omok.glue.game.session.states.GameStateHub;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;

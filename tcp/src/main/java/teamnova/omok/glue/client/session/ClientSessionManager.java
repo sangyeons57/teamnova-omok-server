@@ -8,9 +8,8 @@ import java.util.function.Consumer;
 import teamnova.omok.core.nio.NioClientConnection;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
-import teamnova.omok.glue.client.session.interfaces.ClientSessionLifecycleListener;
 import teamnova.omok.glue.client.session.model.ClientSession;
-import teamnova.omok.glue.client.session.services.ClientSessionDirectory;
+import teamnova.omok.glue.client.session.services.ClientSessionStore;
 import teamnova.omok.glue.client.session.services.ClientSessionLifecycleService;
 import teamnova.omok.glue.client.session.services.ClientSessionMessagePublisher;
 import teamnova.omok.glue.game.session.model.PlayerResult;
@@ -22,7 +21,7 @@ import teamnova.omok.glue.handler.register.Type;
  * Singleton facade that exposes session operations while delegating implementation
  * details to dedicated services.
  */
-public final class ClientSessionManager implements ClientSessionLifecycleListener {
+public final class ClientSessionManager {
     private static ClientSessionManager INSTANCE;
     public static ClientSessionManager Init() {
         INSTANCE = new ClientSessionManager();
@@ -36,13 +35,13 @@ public final class ClientSessionManager implements ClientSessionLifecycleListene
         return INSTANCE;
     }
 
-    private final ClientSessionDirectory directory = new ClientSessionDirectory();
+    private final ClientSessionStore store = new ClientSessionStore();
     private final ClientSessionMessagePublisher clientPublisher = new ClientSessionMessagePublisher();
     private final GameSessionMessagePublisher gamePublisher = new GameSessionMessagePublisher(
-        directory,
+        store,
         new BoardService()
     );
-    private final ClientSessionLifecycleService lifecycleService = new ClientSessionLifecycleService(directory, clientPublisher);
+    private final ClientSessionLifecycleService lifecycleService = new ClientSessionLifecycleService(store, clientPublisher);
 
     private ClientSessionManager() {
     }
@@ -50,9 +49,7 @@ public final class ClientSessionManager implements ClientSessionLifecycleListene
     public ClientSessionHandle registerConnection(NioClientConnection connection, NioReactorServer server) {
         Objects.requireNonNull(connection, "connection");
         Objects.requireNonNull(server, "server");
-        ClientSessionHandle handle = directory.register(connection, server, this);
-        lifecycleService.registerStateObserver(handle);
-        return handle;
+        return store.register(connection, server);
     }
 
     public GameSessionMessagePublisher gamePublisher() {
@@ -64,7 +61,7 @@ public final class ClientSessionManager implements ClientSessionLifecycleListene
     }
 
     public Optional<ClientSessionMessagePublisher.SessionChannel> clientPublisher(String userId) {
-        return directory.findByUser(userId).map(clientPublisher::session);
+        return store.findByUser(userId).map(clientPublisher::session);
     }
 
     public void onAuthenticated(ClientSessionHandle handle, String userId, String role, String scope) {
@@ -75,28 +72,31 @@ public final class ClientSessionManager implements ClientSessionLifecycleListene
         lifecycleService.onAuthenticationCleared(handle);
     }
 
-    @Override
-    public void onSessionClosed(ClientSessionHandle session) {
-        lifecycleService.onSessionClosed(session);
-    }
-
     public Optional<ClientSessionHandle> findSession(String userId) {
-        return directory.findByUser(userId);
+        return store.findByUser(userId);
     }
 
     public void forEachAuthenticated(Consumer<ClientSessionHandle> consumer) {
-        directory.forEachAuthenticated(consumer);
+        store.forEachAuthenticated(consumer);
     }
 
     public void send(String userId, Type type, long requestId, byte[] payload) {
-        directory.send(userId, type, requestId, payload);
+        store.findByUser(userId)
+            .ifPresent(session -> session.enqueueResponse(type, requestId, payload));
     }
 
     public void broadcast(Collection<String> userIds, Type type, byte[] payload) {
-        directory.broadcast(userIds, type, payload);
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+        for (String uid : userIds) {
+            send(uid, type, 0L, payload);
+        }
     }
 
     public ClientSession.ClientSessionMetrics recordOutcome(String userId, PlayerResult result) {
-        return directory.recordOutcome(userId, result);
+        return store.findByUser(userId)
+            .map(session -> session.registerOutcome(result))
+            .orElseGet(() -> new ClientSession.ClientSessionMetrics(0, 0, 0, 0));
     }
 }

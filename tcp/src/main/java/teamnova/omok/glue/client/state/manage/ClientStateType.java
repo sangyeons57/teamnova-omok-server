@@ -1,4 +1,4 @@
-package teamnova.omok.glue.client.session.states.manage;
+package teamnova.omok.glue.client.state.manage;
 
 import java.util.Arrays;
 import java.util.Map;

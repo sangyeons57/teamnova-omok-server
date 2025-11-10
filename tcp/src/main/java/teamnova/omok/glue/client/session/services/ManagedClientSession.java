@@ -11,10 +11,9 @@ import teamnova.omok.core.nio.NioClientConnection;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.core.nio.codec.DecodeFrame;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
-import teamnova.omok.glue.client.session.interfaces.ClientSessionLifecycleListener;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.model.ClientSession;
-import teamnova.omok.glue.client.session.states.ClientStateHub;
+import teamnova.omok.glue.client.state.ClientStateHub;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.handler.register.Type;
@@ -26,18 +25,16 @@ import teamnova.omok.glue.handler.register.Type;
 public final class ManagedClientSession implements ClientSessionHandle {
     private final NioClientConnection connection;
     private final NioReactorServer server;
-    private final ClientSessionLifecycleListener lifecycleListener;
     private final ClientSession model = new ClientSession();
     private final ClientStateHub stateHub;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public ManagedClientSession(NioClientConnection connection,
                                 NioReactorServer server,
-                                ClientSessionLifecycleListener lifecycleListener) {
+                                ClientSessionStore store) {
         this.connection = Objects.requireNonNull(connection, "connection");
         this.server = Objects.requireNonNull(server, "server");
-        this.lifecycleListener = Objects.requireNonNull(lifecycleListener, "lifecycleListener");
-        this.stateHub = new ClientStateHub(this);
+        this.stateHub = new ClientStateHub(this, Objects.requireNonNull(store, "store"));
     }
 
     @Override
@@ -165,7 +162,7 @@ public final class ManagedClientSession implements ClientSessionHandle {
             return;
         }
         stateHub.disconnect();
-        lifecycleListener.onSessionClosed(this);
+        stateHub.drainPending();
         connection.close();
     }
 }
