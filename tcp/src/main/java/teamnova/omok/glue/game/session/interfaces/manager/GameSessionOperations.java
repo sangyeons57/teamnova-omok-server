@@ -5,6 +5,7 @@ import java.util.Optional;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.modules.matching.models.MatchGroup;
 
 public interface GameSessionOperations {
@@ -15,5 +16,6 @@ public interface GameSessionOperations {
     void submitReady(String userId, long requestId);
     boolean submitMove(String userId, long requestId, int x, int y);
     void submitPostGameDecision(String userId, long requestId, PostGameDecision decision);
+    boolean handleClientReconnected(String userId, GameSessionId expectedSessionId);
     void createFromGroup(NioReactorServer server, MatchGroup group);
 }

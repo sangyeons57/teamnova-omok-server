@@ -1,11 +1,14 @@
 package teamnova.omok.glue.handler;
 
+import java.util.UUID;
+
 import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.log.ClientMessageLogger;
 import teamnova.omok.glue.data.model.JWTPayload;
 import teamnova.omok.glue.data.model.JwtVerificationException;
+import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.handler.register.FrameHandler;
 import teamnova.omok.glue.handler.register.Type;
 import teamnova.omok.glue.manager.DataManager;
@@ -20,36 +23,51 @@ public class ReconnectingHandler implements FrameHandler {
         this.dataManager = dataManager;
     }
 
-    /*
-    재연결 요청에 대해서 처리 하기위해 존제
-    또한 요청 처리가 끝난 후에 극 결과를 전달하기위해 존제
-     */
     @Override
     public void handle(NioReactorServer server, ClientSessionHandle session, FramedMessage frame) {
         ClientMessageLogger.inbound(session, Type.RECONNECTING, frame.requestId());
-        String[] parts = decoder.decode(frame.payload()).split(":", 2);
+        String decoded = decoder.decode(frame.payload());
+        if (decoded == null) {
+            session.sendReconnectResult(frame.requestId(), false, "INVALID_PAYLOAD");
+            return;
+        }
+        String[] parts = decoded.split(":", 2);
+        String jwt = parts.length > 0 ? parts[0].trim() : "";
+        String gameSessionToken = parts.length > 1 ? parts[1].trim() : "";
 
-        String jwt = parts[0];
-        String gameSessionId = parts[1]; // 있는 경우 값이 있고 비어있을수도 있음
-
-        if (jwt == null || jwt.isBlank()) {
-            //ClientSessionManager.getInstance().onAuthenticationCleared(session);
-            System.err.println("JWT payload missing");
-            sendResult(server, session, frame, false);
+        if (jwt.isBlank()) {
+            session.clearAuthenticationBinding();
+            session.sendReconnectResult(frame.requestId(), false, "MISSING_JWT");
             return;
         }
 
-        try {
-            JWTPayload payload = dataManager.verify(jwt.trim());
-
-            sendResult(server, session, frame, true);
-        } catch (JwtVerificationException e) {
-            //ClientSessionManager.getInstance().onAuthenticationCleared(session);
-            System.err.println("JWT verification failed: " + e.getMessage());
-            sendResult(server, session, frame, false);
+        boolean rejoinRequested = !gameSessionToken.isBlank();
+        GameSessionId expectedSessionId = null;
+        if (rejoinRequested) {
+            try {
+                expectedSessionId = new GameSessionId(UUID.fromString(gameSessionToken));
+            } catch (IllegalArgumentException ex) {
+                expectedSessionId = null; // treat as auth-only success
+            }
         }
-    }
 
-    private void sendResult(NioReactorServer server, ClientSessionHandle session, FramedMessage frame, boolean success) {
+        try {
+            JWTPayload payload = dataManager.verify(jwt);
+            session.authenticateUser(payload.userId(), payload.role(), payload.scope());
+            boolean rejoined = false;
+            if (rejoinRequested) {
+                session.beginReconnectFlow();
+                rejoined = expectedSessionId != null && session.reconnectGameSession(expectedSessionId);
+                session.finishReconnectFlow(rejoined);
+            }
+            String detail = rejoined ? "REJOINED" : "AUTH_ONLY";
+            session.sendReconnectResult(frame.requestId(), true, detail);
+        } catch (JwtVerificationException e) {
+            session.clearAuthenticationBinding();
+            if (rejoinRequested) {
+                session.finishReconnectFlow(false);
+            }
+            session.sendReconnectResult(frame.requestId(), false, "INVALID_TOKEN");
+        }
     }
 }

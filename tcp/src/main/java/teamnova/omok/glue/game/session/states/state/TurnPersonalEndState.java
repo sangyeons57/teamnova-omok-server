@@ -211,11 +211,6 @@ public final class TurnPersonalEndState implements BaseState {
         if (!services.boardService().hasFiveInARow(context.board(), x, y, stone)) {
             return false;
         }
-        for (String disconnectedId : context.participants().disconnectedUsersView()) {
-            if (!disconnectedId.equals(userId)) {
-                context.outcomes().updateOutcome(disconnectedId, PlayerResult.LOSS);
-            }
-        }
         List<String> userIds = context.participants().getUserIds();
         for (String uid : userIds) {
             if (uid.equals(userId)) {

@@ -69,6 +69,14 @@ public final class ClientSessionMessagePublisher {
             send(Type.LEAVE_IN_GAME_SESSION, 0L, encodeUtf8("PEER_LEFT:" + Objects.requireNonNull(peerId, "peerId")));
         }
 
+        public void reconnectResult(long requestId, boolean success, String detail) {
+            String prefix = success ? "OK" : "FAIL";
+            String payload = detail == null || detail.isBlank()
+                ? prefix
+                : prefix + ":" + detail;
+            send(Type.RECONNECTING, requestId, encodeUtf8(payload));
+        }
+
         private void send(Type type, long requestId, byte[] payload) {
             teamnova.omok.glue.client.session.log.ClientMessageLogger.outbound(handle, type, requestId);
             handle.enqueueResponse(type, requestId, payload == null ? new byte[0] : payload);

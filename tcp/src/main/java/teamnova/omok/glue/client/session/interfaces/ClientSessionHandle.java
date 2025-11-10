@@ -36,4 +36,12 @@ public interface ClientSessionHandle extends ManagedSessionTransport, ClientSess
     void leaveInGameSession(long requestId);
 
     void submitPostGameDecision(long requestId, PostGameDecision decision);
+
+    boolean reconnectGameSession(GameSessionId sessionId);
+
+    void sendReconnectResult(long requestId, boolean success, String detail);
+
+    void beginReconnectFlow();
+
+    void finishReconnectFlow(boolean success);
 }

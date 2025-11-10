@@ -2,7 +2,6 @@ package teamnova.omok.glue.game.session.states.state;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
@@ -47,19 +46,7 @@ public final class TurnEndState implements BaseState {
     @Override
     public <I extends StateContext> StateStep onEnter(I context) {
         GameSessionStateContext ctx = (GameSessionStateContext) context;
-        AbandonmentResult abandonment = handleAbandonmentIfNeeded(ctx);
-        if (abandonment != null) {
-            if (abandonment.requiresFinalize()) {
-                evaluateOutcomeRules(ctx);
-                if (ctx.outcomes().isGameFinished()) {
-                    return finalizeSession(ctx);
-                }
-            }
-            return abandonment.step();
-        }
-
         evaluateOutcomeRules(ctx);
-        finalizeDisconnectionsIfNeeded(ctx);
         if (ctx.outcomes().isGameFinished()) {
             return finalizeSession(ctx);
         }
@@ -69,47 +56,6 @@ public final class TurnEndState implements BaseState {
             fireRules(ctx, snapshot);
         }
         return StateStep.transition(GameSessionStateType.TURN_START.toStateName());
-    }
-
-    private AbandonmentResult handleAbandonmentIfNeeded(GameSessionStateContext ctx) {
-        var session = ctx.session();
-        int total = ctx.participants().getUserIds().size();
-        int dc = session.disconnectedUsersView().size();
-        int connected = total - dc;
-
-        if (connected <= 0) {
-            // All participants left: broadcast termination and hand cleanup to Completed state
-            services.messenger().broadcastSessionTerminated(session, List.copyOf(session.disconnectedUsersView()));
-            return new AbandonmentResult(
-                StateStep.transition(GameSessionStateType.COMPLETED.toStateName()),
-                false
-            );
-        }
-
-        if (connected == 1 && !ctx.outcomes().isGameFinished()) {
-            // Exactly one participant remains: award forfeit win
-            String winner = null;
-            for (String uid : ctx.participants().getUserIds()) {
-                if (!session.disconnectedUsersView().contains(uid)) {
-                    winner = uid; break;
-                }
-            }
-            if (winner != null) {
-                for (String uid : ctx.participants().getUserIds()) {
-                    if (uid.equals(winner)) ctx.outcomes().updateOutcome(uid, PlayerResult.WIN);
-                    else ctx.outcomes().updateOutcome(uid, PlayerResult.LOSS);
-                }
-                // Cancel any active timers now that the game is decided by forfeit
-                services.turnTimeoutScheduler().cancel(session.sessionId());
-                services.decisionTimeoutScheduler().cancel(session.sessionId());
-                // Allow outcome rules to adjust before finalization
-                return new AbandonmentResult(
-                    StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName()),
-                    true
-                );
-            }
-        }
-        return null;
     }
 
     private void fireRules(GameSessionStateContext context, TurnSnapshot snapshot) {
@@ -147,42 +93,6 @@ public final class TurnEndState implements BaseState {
         ruleService.applyOutcomeRules(context, runtime);
     }
 
-    private void finalizeDisconnectionsIfNeeded(GameSessionStateContext context) {
-        if (!context.lifecycle().isGameStarted() || context.outcomes().isGameFinished()) {
-            return;
-        }
-        List<String> participants = context.participants().getUserIds();
-        Set<String> disconnected = context.participants().disconnectedUsersView();
-        if (disconnected.isEmpty()) {
-            return;
-        }
-        int total = participants.size();
-        int connected = total - disconnected.size();
-        if (connected <= 1) {
-            // handled via handleAbandonment to avoid double-processing
-            return;
-        }
-        int decided = (int) participants.stream()
-            .map(context.outcomes()::outcomeFor)
-            .filter(result -> result != null && result != PlayerResult.PENDING)
-            .count();
-        if (decided + disconnected.size() < total) {
-            return;
-        }
-        GameSessionLogger.event(
-            context,
-            GameSessionStateType.TURN_END,
-            "FinalizeDisconnected",
-            String.format("disconnected=%d decided=%d total=%d", disconnected.size(), decided, total)
-        );
-        for (String userId : disconnected) {
-            PlayerResult current = context.outcomes().outcomeFor(userId);
-            if (current == null || current == PlayerResult.PENDING) {
-                context.outcomes().updateOutcome(userId, PlayerResult.LOSS);
-            }
-        }
-    }
-
     private void applyScoreAdjustments(GameSessionStateContext context) {
         GameSessionAccess session = context.session();
         List<String> users = context.participants().getUserIds();
@@ -209,6 +119,4 @@ public final class TurnEndState implements BaseState {
         return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());
     }
 
-    private record AbandonmentResult(StateStep step, boolean requiresFinalize) {
-    }
 }

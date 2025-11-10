@@ -14,6 +14,7 @@ public enum ClientStateType {
     AUTHENTICATED,
     MATCHING,
     IN_GAME,
+    RECONNECTING,
     DISCONNECTED;
 
     private static final Map<StateName, ClientStateType> LOOKUP =

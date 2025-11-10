@@ -14,6 +14,7 @@ import teamnova.omok.glue.client.state.state.ConnectedClientState;
 import teamnova.omok.glue.client.state.state.DisconnectedClientState;
 import teamnova.omok.glue.client.state.state.InGameClientState;
 import teamnova.omok.glue.client.state.state.MatchingClientState;
+import teamnova.omok.glue.client.state.state.ReconnectingClientState;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
@@ -64,6 +65,7 @@ public final class ClientStateHub {
         registerState(new MatchingClientState());
         registerState(new InGameClientState());
         registerState(new DisconnectedClientState());
+        registerState(new ReconnectingClientState());
 
         this.stateMachine.start(ClientStateType.CONNECTED.toStateName(), context);
     }

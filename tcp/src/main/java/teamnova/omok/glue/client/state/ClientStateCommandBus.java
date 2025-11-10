@@ -36,4 +36,12 @@ public final class ClientStateCommandBus {
     public void cancelMatchmaking(long requestId) {
         hub.submit(ClientStateEvents.cancelMatching(requestId));
     }
+
+    public void beginReconnect() {
+        hub.submit(ClientStateEvents.beginReconnecting());
+    }
+
+    public void finishReconnect(boolean success) {
+        hub.submit(ClientStateEvents.finishReconnecting(success));
+    }
 }

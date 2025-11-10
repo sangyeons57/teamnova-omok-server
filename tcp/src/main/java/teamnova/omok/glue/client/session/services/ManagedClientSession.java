@@ -169,6 +169,13 @@ public final class ManagedClientSession implements ClientSessionHandle {
     }
 
     @Override
+    public void sendReconnectResult(long requestId, boolean success, String detail) {
+        ClientSessionManager.getInstance()
+            .clientPublisher(this)
+            .reconnectResult(requestId, success, detail);
+    }
+
+    @Override
     public boolean submitMove(long requestId, int x, int y) {
         String userId = authenticatedUserId();
         if (userId == null) {
@@ -221,6 +228,25 @@ public final class ManagedClientSession implements ClientSessionHandle {
         if (userId != null && decision != null) {
             GameSessionManager.getInstance().submitPostGameDecision(userId, requestId, decision);
         }
+    }
+
+    @Override
+    public boolean reconnectGameSession(GameSessionId sessionId) {
+        String userId = authenticatedUserId();
+        if (userId == null) {
+            return false;
+        }
+        return GameSessionManager.getInstance().handleClientReconnected(userId, sessionId);
+    }
+
+    @Override
+    public void beginReconnectFlow() {
+        stateCommands.beginReconnect();
+    }
+
+    @Override
+    public void finishReconnectFlow(boolean success) {
+        stateCommands.finishReconnect(success);
     }
 
     ClientStateHub stateHub() {
