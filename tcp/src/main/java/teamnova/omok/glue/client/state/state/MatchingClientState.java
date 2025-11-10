@@ -22,9 +22,17 @@ public final class MatchingClientState implements BaseState {
     }
 
     @Override
+    public <I extends StateContext> StateStep onEnter(I context) {
+        ClientStateContext clientContext = (ClientStateContext) context;
+        clientContext.beginMatchingQueue();
+        return StateStep.stay();
+    }
+
+    @Override
     public <I extends StateContext> StateStep onEvent(I context, BaseEvent event) {
         ClientStateContext clientContext = (ClientStateContext) context;
-        if (event instanceof CancelMatchingClientEvent) {
+        if (event instanceof CancelMatchingClientEvent cancelMatching) {
+            clientContext.cancelMatchingQueue(cancelMatching.requestId());
             return StateStep.transition(ClientStateType.AUTHENTICATED.toStateName());
         }
         if (event instanceof EnterGameClientEvent enterGame) {
@@ -40,5 +48,11 @@ public final class MatchingClientState implements BaseState {
             return StateStep.transition(ClientStateType.CONNECTED.toStateName());
         }
         return StateStep.stay();
+    }
+
+    @Override
+    public <I extends StateContext> void onExit(I context) {
+        ClientStateContext clientContext = (ClientStateContext) context;
+        clientContext.cancelMatchingQueue(0L);
     }
 }

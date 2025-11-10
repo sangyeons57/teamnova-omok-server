@@ -10,9 +10,12 @@ import teamnova.omok.core.nio.FramedMessage;
 import teamnova.omok.core.nio.NioClientConnection;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.core.nio.codec.DecodeFrame;
+import java.util.Set;
+
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.model.ClientSession;
+import teamnova.omok.glue.client.state.ClientStateCommandBus;
 import teamnova.omok.glue.client.state.ClientStateHub;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
@@ -27,6 +30,7 @@ public final class ManagedClientSession implements ClientSessionHandle {
     private final NioReactorServer server;
     private final ClientSession model = new ClientSession();
     private final ClientStateHub stateHub;
+    private final ClientStateCommandBus stateCommands;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public ManagedClientSession(NioClientConnection connection,
@@ -35,6 +39,7 @@ public final class ManagedClientSession implements ClientSessionHandle {
         this.connection = Objects.requireNonNull(connection, "connection");
         this.server = Objects.requireNonNull(server, "server");
         this.stateHub = new ClientStateHub(this, Objects.requireNonNull(store, "store"));
+        this.stateCommands = new ClientStateCommandBus(this.stateHub);
     }
 
     @Override
@@ -120,6 +125,16 @@ public final class ManagedClientSession implements ClientSessionHandle {
         return model.currentGameSessionId();
     }
 
+    @Override
+    public void requestMatchmaking(long requestId, int rating, Set<Integer> matchSizes) {
+        stateCommands.requestMatchmaking(requestId, rating, matchSizes);
+    }
+
+    @Override
+    public void cancelMatchmaking(long requestId) {
+        stateCommands.cancelMatchmaking(requestId);
+    }
+
     ClientStateHub stateHub() {
         return stateHub;
     }
@@ -141,13 +156,13 @@ public final class ManagedClientSession implements ClientSessionHandle {
     @Override
     public void markAuthenticated(String userId, String role, String scope) {
         model.markAuthenticated(userId, role, scope);
-        stateHub.markAuthenticated();
+        stateCommands.markAuthenticated();
     }
 
     @Override
     public void clearAuthentication() {
         model.clearAuthentication();
-        stateHub.resetToConnected();
+        stateCommands.resetToConnected();
     }
 
     @Override
@@ -161,7 +176,7 @@ public final class ManagedClientSession implements ClientSessionHandle {
         if (!closed.compareAndSet(false, true)) {
             return;
         }
-        stateHub.disconnect();
+        stateCommands.disconnect();
         stateHub.drainPending();
         connection.close();
     }

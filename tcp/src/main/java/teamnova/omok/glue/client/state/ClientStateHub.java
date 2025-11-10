@@ -7,9 +7,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.services.ClientSessionStore;
-import teamnova.omok.glue.client.state.event.AuthenticatedClientEvent;
-import teamnova.omok.glue.client.state.event.DisconnectClientEvent;
-import teamnova.omok.glue.client.state.event.ResetClientEvent;
 import teamnova.omok.glue.client.state.manage.ClientStateContext;
 import teamnova.omok.glue.client.state.manage.ClientStateType;
 import teamnova.omok.glue.client.state.state.AuthenticatedClientState;
@@ -100,18 +97,6 @@ public final class ClientStateHub {
 
     public ClientStateContext context() {
         return context;
-    }
-
-    public void markAuthenticated() {
-        submit(new AuthenticatedClientEvent());
-    }
-
-    public void disconnect() {
-        submit(new DisconnectClientEvent());
-    }
-
-    public void resetToConnected() {
-        submit(new ResetClientEvent());
     }
 
     public void submit(BaseEvent event) {

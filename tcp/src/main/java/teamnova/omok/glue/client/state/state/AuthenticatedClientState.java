@@ -24,7 +24,8 @@ public final class AuthenticatedClientState implements BaseState {
     @Override
     public <I extends StateContext> StateStep onEvent(I context, BaseEvent event) {
         ClientStateContext clientContext = (ClientStateContext) context;
-        if (event instanceof StartMatchingClientEvent) {
+        if (event instanceof StartMatchingClientEvent startMatching) {
+            clientContext.prepareMatching(startMatching.matchSizes(), startMatching.rating(), startMatching.requestId());
             return StateStep.transition(ClientStateType.MATCHING.toStateName());
         }
         if (event instanceof EnterGameClientEvent enterGame) {
