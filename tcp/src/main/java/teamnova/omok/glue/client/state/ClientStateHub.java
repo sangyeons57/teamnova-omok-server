@@ -83,7 +83,7 @@ public final class ClientStateHub {
 
     private void notifyStateListeners(ClientStateType previous, ClientStateType current) {
         List<ClientSessionStateListener> stateListeners = this.stateListeners.get(new ClientStateTypeTransition(previous, current));
-        if (stateListeners.isEmpty()) {
+        if (stateListeners == null || stateListeners.isEmpty()) {
             return;
         }
         for (ClientSessionStateListener listener : stateListeners) {
