@@ -34,6 +34,7 @@ public final class ClientSessionModule implements ClientSessionHandle {
     private final NioReactorServer server;
     private ClientStateCommandBus stateCommands;
     private final AtomicBoolean transportClosed = new AtomicBoolean(false);
+    private final AtomicBoolean disconnected = new AtomicBoolean(false);
     private final AtomicBoolean terminated = new AtomicBoolean(false);
 
     private ClientSession model = new ClientSession();
@@ -293,10 +294,18 @@ public final class ClientSessionModule implements ClientSessionHandle {
 
     @Override
     public void close() {
-        if (!terminated.compareAndSet(false, true)) {
+        if (!disconnected.compareAndSet(false, true)) {
             return;
         }
         stateCommands.disconnect();
+        stateHub.drainPending();
+        shutdownTransport();
+    }
+
+    public void terminateSession() {
+        if (!terminated.compareAndSet(false, true)) {
+            return;
+        }
         stateCommands.terminate();
         stateHub.drainPending();
         shutdownTransport();
