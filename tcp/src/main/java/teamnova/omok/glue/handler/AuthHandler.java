@@ -35,14 +35,14 @@ public class AuthHandler implements FrameHandler {
             JWTPayload payload = dataManager.verify(jwt.trim());
             session.authenticateUser(payload.userId(), payload.role(), payload.scope());
             AuthResultStatus status = AuthResultStatus.SUCCESS;
-            if (session.currentGameSessionId() != null) {
-                boolean rejoined = false;
-                try {
-                    rejoined = session.reconnectGameSession();
-                } catch (RuntimeException ex) {
-                    System.err.println("Reconnect flow failed: " + ex.getMessage());
+            try {
+                boolean rejoined = session.reconnectGameSession();
+                if (rejoined) {
+                    status = AuthResultStatus.RECONNECTED;
                 }
-                status = rejoined ? AuthResultStatus.RECONNECTED : AuthResultStatus.FAILURE;
+            } catch (RuntimeException ex) {
+                System.err.println("Reconnect flow failed: " + ex.getMessage());
+                status = AuthResultStatus.FAILURE;
             }
             session.sendAuthResult(frame.requestId(), status);
         } catch (JwtVerificationException e) {
