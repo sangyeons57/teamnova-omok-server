@@ -77,7 +77,9 @@ public final class MatchingManager implements Closeable {
             if (result instanceof MatchResult.Success(MatchGroup group)) {
                 gameSessionManager.createFromGroup(srv, group);
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            System.err.println("[MATCH][loop] Uncaught error in tryMatchOnce: " + e);
+            e.printStackTrace();
             // keep loop running even if one iteration fails
         }
     }

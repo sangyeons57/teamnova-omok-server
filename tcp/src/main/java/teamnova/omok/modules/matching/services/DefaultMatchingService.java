@@ -2,6 +2,7 @@ package teamnova.omok.modules.matching.services;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import teamnova.omok.modules.matching.interfaces.MatchingService;
 import teamnova.omok.modules.matching.models.*;
@@ -22,9 +23,9 @@ public final class DefaultMatchingService implements MatchingService {
 
     public DefaultMatchingService(MatchingConfig cfg) {
         this.cfg = Objects.requireNonNull(cfg, "cfg");
-        ticketGroups.put(2, new ArrayList<>());
-        ticketGroups.put(3, new ArrayList<>());
-        ticketGroups.put(4, new ArrayList<>());
+        ticketGroups.put(2, new CopyOnWriteArrayList<>());
+        ticketGroups.put(3, new CopyOnWriteArrayList<>());
+        ticketGroups.put(4, new CopyOnWriteArrayList<>());
     }
 
     @Override
@@ -51,41 +52,47 @@ public final class DefaultMatchingService implements MatchingService {
         TicketInfo ticketInfo = globalQueue.poll();
         if (ticketInfo == null) return MatchResult.fail("No ticket available");
 
-        MatchGroup bestGroup = null;
-        for (int match : ticketInfo.getMatchSet()) {
+        boolean consumed = false;   // true when a success group is formed and ticket should NOT be returned
+        boolean reoffered = false;  // true when we explicitly re-queued the ticket on failure path
+        try {
+            MatchGroup bestGroup = null;
+            for (int match : ticketInfo.getMatchSet()) {
+                List<TicketInfo> pool = ticketGroups.get(match);
+                if (pool == null || pool.size() < match) continue;
 
-            List<TicketInfo> pool = ticketGroups.get(match);
-            if (pool == null || pool.size() < match) continue;
-
-            List<TicketInfo> neighborTicketInfos = getNeighborTickets(match, pool, ticketInfo);
-            MatchGroup group = buildGroup(neighborTicketInfos);
-            if (group != null && qualityCheck(group, bestGroup)) {
-                bestGroup = group;
-            }
-        }
-
-        if (bestGroup != null) {
-            // remove matched tickets from all structures
-            Set<String> ids = new HashSet<>();
-            for (MatchTicket mt : bestGroup.tickets()) ids.add(mt.id());
-            // remove selected ticket left out of queue already; remove others explicitly
-            for (TicketInfo t : new ArrayList<>(globalQueue)) {
-                if (ids.contains(t.getId())) globalQueue.remove(t);
-            }
-            for (List<TicketInfo> list : ticketGroups.values()) {
-                list.removeIf(t -> ids.contains(t.getId()));
+                // Build neighbors using the current snapshot of the pool (CopyOnWriteArrayList safe)
+                List<TicketInfo> neighborTicketInfos = getNeighborTickets(match, pool, ticketInfo);
+                MatchGroup group = buildGroup(neighborTicketInfos);
+                if (group != null && qualityCheck(group, bestGroup)) {
+                    bestGroup = group;
+                }
             }
 
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < bestGroup.tickets().size(); i++) {
-                if (i > 0) sb.append(',');
-                sb.append(bestGroup.tickets().get(i).id());
+            if (bestGroup != null) {
+                // remove matched tickets from all structures
+                Set<String> ids = new HashSet<>();
+                for (MatchTicket mt : bestGroup.tickets()) ids.add(mt.id());
+                // remove selected ticket left out of queue already; remove others explicitly
+                for (TicketInfo t : new ArrayList<>(globalQueue)) {
+                    if (ids.contains(t.getId())) globalQueue.remove(t);
+                }
+                for (List<TicketInfo> list : ticketGroups.values()) {
+                    list.removeIf(t -> ids.contains(t.getId()));
+                }
+                consumed = true; // do not return polled ticket on success
+                return MatchResult.success(bestGroup);
+            } else {
+                ticketInfo.addCredit();
+                globalQueue.offer(ticketInfo);
+                reoffered = true;
+                return MatchResult.fail("No group available");
             }
-            return MatchResult.success(bestGroup);
-        } else {
-            ticketInfo.addCredit();
-            globalQueue.offer(ticketInfo);
-            return MatchResult.fail("No group available");
+        } finally {
+            // If an exception occurs before success or explicit re-offer, ensure the polled ticket is restored.
+            if (!consumed && !reoffered && ticketInfo != null) {
+                // offer to the front to minimize starvation
+                globalQueue.offerFirst(ticketInfo);
+            }
         }
     }
 
