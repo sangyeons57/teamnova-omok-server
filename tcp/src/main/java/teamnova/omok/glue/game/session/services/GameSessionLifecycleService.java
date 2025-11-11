@@ -1,10 +1,10 @@
 package teamnova.omok.glue.game.session.services;
 
+import java.util.List;
 import java.util.Objects;
 
 import teamnova.omok.glue.client.session.ClientSessionManager;
-import teamnova.omok.glue.game.session.interfaces.GameTurnService;
-import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.GameSession;
 
 /**
  * Stateless helpers for disconnect and cleanup operations on game sessions.
@@ -38,6 +38,7 @@ public final class GameSessionLifecycleService {
             } catch (Throwable ignore) {
                 // best-effort unbind; do not block cleanup
             }
+            cleanupIfSessionFullyDisconnected(deps, session);
         });
     }
 
@@ -58,6 +59,7 @@ public final class GameSessionLifecycleService {
             if (newlyDisconnected) {
                 deps.messenger().broadcastPlayerDisconnected(session, userId, "DISCONNECTED");
             }
+            cleanupIfSessionFullyDisconnected(deps, session);
         });
     }
 
@@ -90,5 +92,49 @@ public final class GameSessionLifecycleService {
                 return true;
             })
             .orElse(false);
+    }
+
+    private static void cleanupIfSessionFullyDisconnected(GameSessionDependencies deps,
+                                                          GameSession session) {
+        Objects.requireNonNull(session, "session");
+        boolean shouldCleanup;
+        session.lock().lock();
+        try {
+            shouldCleanup = !session.getUserIds().isEmpty()
+                && session.disconnectedUsersView().containsAll(session.getUserIds());
+        } finally {
+            session.lock().unlock();
+        }
+        if (!shouldCleanup) {
+            return;
+        }
+        finalizeSession(deps, session);
+    }
+
+    private static void finalizeSession(GameSessionDependencies deps,
+                                        GameSession session) {
+        List<String> userIds = List.copyOf(session.getUserIds());
+        var sessionId = session.sessionId();
+        deps.turnTimeoutScheduler().cancel(sessionId);
+        deps.decisionTimeoutScheduler().cancel(sessionId);
+        deps.runtime().remove(sessionId);
+        boolean removed = deps.repository().removeById(sessionId).isPresent();
+        if (!removed) {
+            return;
+        }
+        try {
+            deps.messenger().broadcastSessionTerminated(session, userIds);
+        } catch (Throwable ignore) {
+            // ensure cleanup continues even if broadcasting fails
+        }
+        for (String userId : userIds) {
+            try {
+                ClientSessionManager.getInstance()
+                    .findSession(userId)
+                    .ifPresent(handle -> handle.unbindGameSession(sessionId));
+            } catch (Throwable ignore) {
+                // continue best-effort unbind
+            }
+        }
     }
 }

@@ -19,6 +19,7 @@ public final class ClientStateContext implements StateContext {
     private GameStateHub gameStateManager;
     private MatchingIntent pendingMatching;
     private boolean matchingQueued;
+    private long disconnectedAtMillis = -1L;
 
     public ClientStateContext() {
     }
@@ -122,6 +123,7 @@ public final class ClientStateContext implements StateContext {
         forceLeaveGameSession();
         removeSessionBinding();
         clearGame();
+        clearDisconnectionTimer();
     }
 
     private void forceLeaveGameSession() {
@@ -142,6 +144,21 @@ public final class ClientStateContext implements StateContext {
             ClientSessionStore.getInstance().unbindUser(userId, clientSession);
         }
         clientSession.model().clearAuthentication();
+    }
+
+    public void markDisconnectedNow() {
+        disconnectedAtMillis = System.currentTimeMillis();
+    }
+
+    public void clearDisconnectionTimer() {
+        disconnectedAtMillis = -1L;
+    }
+
+    public boolean hasExceededDisconnectGrace(long now, long graceMillis) {
+        if (disconnectedAtMillis <= 0 || graceMillis <= 0) {
+            return false;
+        }
+        return now - disconnectedAtMillis >= graceMillis;
     }
 
     private record MatchingIntent(Set<Integer> matchSizes, int rating, long requestId) {
