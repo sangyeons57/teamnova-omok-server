@@ -2,7 +2,6 @@ package teamnova.omok.glue.client.state.state;
 
 import teamnova.omok.glue.client.state.manage.ClientStateContext;
 import teamnova.omok.glue.client.state.manage.ClientStateType;
-import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
@@ -20,8 +19,7 @@ public class TerminatedClientState implements BaseState {
     }
 
     private StateStep internalOnEnter(ClientStateContext context) {
-        context.cancelMatchingQueue(0L);
-        context.clearGame();
+        context.terminateSession();
         return StateStep.stay();
     }
 }

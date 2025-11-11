@@ -1,6 +1,5 @@
 package teamnova.omok.glue.client.state.state;
 
-import teamnova.omok.glue.client.state.event.BeginReconnectingClientEvent;
 import teamnova.omok.glue.client.state.event.DisconnectClientEvent;
 import teamnova.omok.glue.client.state.event.EnterGameClientEvent;
 import teamnova.omok.glue.client.state.event.ResetClientEvent;
@@ -33,11 +32,7 @@ public final class AuthenticatedClientState implements BaseState {
             clientContext.attachGame(enterGame.gameStateManager());
             return StateStep.transition(ClientStateType.IN_GAME.toStateName());
         }
-        if (event instanceof BeginReconnectingClientEvent) {
-            return StateStep.transition(ClientStateType.RECONNECTING.toStateName());
-        }
         if (event instanceof DisconnectClientEvent) {
-            clientContext.clearGame();
             return StateStep.transition(ClientStateType.DISCONNECTED.toStateName());
         }
         if (event instanceof ResetClientEvent) {

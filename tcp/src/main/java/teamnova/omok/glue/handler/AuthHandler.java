@@ -2,6 +2,7 @@ package teamnova.omok.glue.handler;
 
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.log.ClientMessageLogger;
+import teamnova.omok.glue.client.session.model.AuthResultStatus;
 import teamnova.omok.glue.data.model.JWTPayload;
 import teamnova.omok.glue.data.model.JwtVerificationException;
 import teamnova.omok.glue.handler.register.FrameHandler;
@@ -26,18 +27,28 @@ public class AuthHandler implements FrameHandler {
         if (jwt == null || jwt.isBlank()) {
             session.clearAuthenticationBinding();
             System.err.println("JWT payload missing");
-            session.sendAuthResult(frame.requestId(), false);
+            session.sendAuthResult(frame.requestId(), AuthResultStatus.FAILURE);
             return;
         }
 
         try {
             JWTPayload payload = dataManager.verify(jwt.trim());
             session.authenticateUser(payload.userId(), payload.role(), payload.scope());
-            session.sendAuthResult(frame.requestId(), true);
+            AuthResultStatus status = AuthResultStatus.SUCCESS;
+            if (session.currentGameSessionId() != null) {
+                boolean rejoined = false;
+                try {
+                    rejoined = session.reconnectGameSession();
+                } catch (RuntimeException ex) {
+                    System.err.println("Reconnect flow failed: " + ex.getMessage());
+                }
+                status = rejoined ? AuthResultStatus.RECONNECTED : AuthResultStatus.FAILURE;
+            }
+            session.sendAuthResult(frame.requestId(), status);
         } catch (JwtVerificationException e) {
             session.clearAuthenticationBinding();
             System.err.println("JWT verification failed: " + e.getMessage());
-            session.sendAuthResult(frame.requestId(), false);
+            session.sendAuthResult(frame.requestId(), AuthResultStatus.FAILURE);
         }
     }
 }

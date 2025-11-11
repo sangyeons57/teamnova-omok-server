@@ -31,9 +31,13 @@ public final class ClientSessionStore {
     public ClientSessionHandle bindUser(ClientSessionHandle session, String userId) {
         Objects.requireNonNull(userId, "userId");
 
-        session.addStateListener(new ClientStateTypeTransition(ClientStateType.DISCONNECTED, ClientStateType.TERMINATED), (sessionHandle) -> {
-            sessionHandle.clearAuthentication();
-        });
+        session.addStateListener(
+            new ClientStateTypeTransition(ClientStateType.DISCONNECTED, ClientStateType.TERMINATED),
+            sessionHandle -> {
+                byUser.remove(userId, sessionHandle);
+                sessionHandle.model().clearAuthentication();
+            }
+        );
 
         return byUser.put(userId, session);
     }

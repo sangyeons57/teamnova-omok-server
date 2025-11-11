@@ -40,7 +40,6 @@ public final class MatchingClientState implements BaseState {
             return StateStep.transition(ClientStateType.IN_GAME.toStateName());
         }
         if (event instanceof DisconnectClientEvent) {
-            clientContext.clearGame();
             return StateStep.transition(ClientStateType.DISCONNECTED.toStateName());
         }
         if (event instanceof ResetClientEvent) {

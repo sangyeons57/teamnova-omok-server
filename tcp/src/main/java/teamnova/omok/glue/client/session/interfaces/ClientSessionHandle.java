@@ -2,12 +2,10 @@ package teamnova.omok.glue.client.session.interfaces;
 
 import java.util.Set;
 
-import teamnova.omok.glue.client.session.interfaces.transport.ManagedSessionTransport;
-import teamnova.omok.glue.client.session.interfaces.view.ClientSessionView;
-import teamnova.omok.glue.client.state.manage.ClientStateType;
 import teamnova.omok.glue.client.state.model.ClientStateTypeTransition;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
+import teamnova.omok.glue.client.session.model.AuthResultStatus;
 
 public interface ClientSessionHandle extends ManagedSessionTransport, ClientSessionView {
     // Bind the current in-game session to scope outbound traffic
@@ -23,7 +21,7 @@ public interface ClientSessionHandle extends ManagedSessionTransport, ClientSess
 
     void clearAuthenticationBinding();
 
-    void sendAuthResult(long requestId, boolean success);
+    void sendAuthResult(long requestId, AuthResultStatus status);
 
     void sendHello(long requestId, String response);
 
@@ -39,13 +37,13 @@ public interface ClientSessionHandle extends ManagedSessionTransport, ClientSess
 
     void submitPostGameDecision(long requestId, PostGameDecision decision);
 
-    boolean reconnectGameSession(GameSessionId sessionId);
-
-    void sendReconnectResult(long requestId, boolean success, String detail);
-
-    void beginReconnectFlow();
+    boolean reconnectGameSession();
 
     void addStateListener(ClientStateTypeTransition typeTransition, ClientSessionStateListener listener);
 
-    void finishReconnectFlow(boolean success);
+    /**
+     * Closes only the underlying transport (socket/channel) without triggering full
+     * session termination. Used when a new connection is taking over the session.
+     */
+    void shutdownTransport();
 }

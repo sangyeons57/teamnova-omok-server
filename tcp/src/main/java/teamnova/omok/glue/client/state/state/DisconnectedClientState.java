@@ -2,6 +2,7 @@ package teamnova.omok.glue.client.state.state;
 
 import teamnova.omok.glue.client.state.event.DisconnectClientEvent;
 import teamnova.omok.glue.client.state.event.ResetClientEvent;
+import teamnova.omok.glue.client.state.event.TerminateClientEvent;
 import teamnova.omok.glue.client.state.manage.ClientStateContext;
 import teamnova.omok.glue.client.state.manage.ClientStateType;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
@@ -9,6 +10,8 @@ import teamnova.omok.modules.state_machine.interfaces.BaseState;
 import teamnova.omok.modules.state_machine.interfaces.StateContext;
 import teamnova.omok.modules.state_machine.models.StateName;
 import teamnova.omok.modules.state_machine.models.StateStep;
+
+import javax.swing.plaf.nimbus.State;
 
 /**
  * Terminal state once the client session has been closed.
@@ -20,11 +23,13 @@ public final class DisconnectedClientState implements BaseState {
     }
 
     @Override
-    public <I extends StateContext> StateStep onEnter(I context) {
+    public <I extends StateContext> StateStep onUpdate(I context, long now) {
         ClientStateContext clientContext = (ClientStateContext) context;
-        clientContext.clearGame();
-        clientContext.cleanupDisconnected();
-        return StateStep.stay();
+        if (clientContext.gameStateManager() == null) {
+            return StateStep.transition(ClientStateType.TERMINATED.toStateName());
+        } else {
+            return StateStep.stay();
+        }
     }
 
     @Override
@@ -36,6 +41,9 @@ public final class DisconnectedClientState implements BaseState {
         }
         if (event instanceof DisconnectClientEvent) {
             return StateStep.stay();
+        }
+        if (event instanceof TerminateClientEvent) {
+            return StateStep.transition(ClientStateType.TERMINATED.toStateName());
         }
         return StateStep.stay();
     }

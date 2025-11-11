@@ -1,7 +1,6 @@
 package teamnova.omok.glue.game.session.interfaces;
 
 import java.util.List;
-import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionTurnAccess;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
@@ -12,9 +11,7 @@ import teamnova.omok.glue.game.session.model.vo.TurnTiming;
 public interface GameTurnService {
     TurnSnapshot start(GameSessionTurnAccess turns, List<String> userOrder, long now);
 
-    TurnSnapshot advanceSkippingDisconnected(GameSessionTurnAccess turns,
-                                             Set<String> disconnectedUserIds,
-                                             long now);
+    TurnSnapshot advance(GameSessionTurnAccess turns, long now);
 
     boolean isExpired(GameSessionTurnAccess turns, long now);
 

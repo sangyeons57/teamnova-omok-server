@@ -27,7 +27,6 @@ public final class ConnectedClientState implements BaseState {
             return StateStep.transition(ClientStateType.AUTHENTICATED.toStateName());
         }
         if (event instanceof DisconnectClientEvent) {
-            clientContext.clearGame();
             return StateStep.transition(ClientStateType.DISCONNECTED.toStateName());
         }
         if (event instanceof ResetClientEvent) {

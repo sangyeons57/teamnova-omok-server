@@ -26,6 +26,10 @@ public final class ClientStateCommandBus {
         hub.submit(ClientStateEvents.reset());
     }
 
+    public void terminate() {
+        hub.submit(ClientStateEvents.terminate());
+    }
+
     public void requestMatchmaking(long requestId, int rating, Set<Integer> matchSizes) {
         if (matchSizes == null || matchSizes.isEmpty()) {
             return;
@@ -35,13 +39,5 @@ public final class ClientStateCommandBus {
 
     public void cancelMatchmaking(long requestId) {
         hub.submit(ClientStateEvents.cancelMatching(requestId));
-    }
-
-    public void beginReconnect() {
-        hub.submit(ClientStateEvents.beginReconnecting());
-    }
-
-    public void finishReconnect(boolean success) {
-        hub.submit(ClientStateEvents.finishReconnecting(success));
     }
 }

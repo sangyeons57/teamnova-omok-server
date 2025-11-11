@@ -67,33 +67,6 @@ public final class SessionEventService {
         deps.decisionTimeoutScheduler().cancel(sessionId);
     }
 
-    public void skipTurnForDisconnected(GameSession session,
-                                        String userId,
-                                        int expectedTurnNumber) {
-        Objects.requireNonNull(session, "session");
-        Objects.requireNonNull(userId, "userId");
-        boolean shouldSubmit = false;
-        session.lock().lock();
-        try {
-            if (session.isGameStarted() && !session.isGameFinished()) {
-                var current = deps.turnService().snapshot(session);
-                shouldSubmit = current != null
-                    && current.turnNumber() == expectedTurnNumber
-                    && userId.equals(current.currentPlayerId());
-            }
-        } finally {
-            session.lock().unlock();
-        }
-        if (!shouldSubmit) {
-            return;
-        }
-        deps.turnTimeoutScheduler().cancel(session.sessionId());
-        GameStateHub manager = deps.runtime().ensure(session);
-        long now = System.currentTimeMillis();
-        TimeoutEvent event = new TimeoutEvent(expectedTurnNumber, now);
-        manager.submit(event);
-    }
-
     public void handleScheduledTimeout(GameSessionId sessionId,
                                        int expectedTurnNumber) {
         Objects.requireNonNull(sessionId, "sessionId");

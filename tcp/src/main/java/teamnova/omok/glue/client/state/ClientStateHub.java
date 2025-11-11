@@ -32,9 +32,8 @@ public final class ClientStateHub {
     private final Map<ClientStateTypeTransition, List<ClientSessionStateListener>> stateListeners = new ConcurrentHashMap<>();
     private final Object processLock = new Object();
 
-    public ClientStateHub(ClientSessionHandle session) {
-        Objects.requireNonNull(session, "session");
-        this.context = new ClientStateContext(session);
+    public ClientStateHub() {
+        this.context = new ClientStateContext();
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.addStateSignalListener(new StateSignalListener() {
             private StateName pendingFrom;
@@ -61,10 +60,15 @@ public final class ClientStateHub {
         registerState(new MatchingClientState());
         registerState(new InGameClientState());
         registerState(new DisconnectedClientState());
-        registerState(new ReconnectingClientState());
         registerState(new TerminatedClientState());
+    }
 
+    public void start() {
         this.stateMachine.start(ClientStateType.CONNECTED.toStateName(), context);
+    }
+
+    public void setClientSessionHandle(ClientSessionHandle sessionHandle) {
+        this.context.setClientSession(sessionHandle);
     }
 
     private void registerState(BaseState state) {

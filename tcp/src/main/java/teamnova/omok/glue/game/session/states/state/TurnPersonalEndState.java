@@ -2,7 +2,6 @@ package teamnova.omok.glue.game.session.states.state;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.log.GameSessionLogger;
@@ -83,9 +82,8 @@ public final class TurnPersonalEndState implements BaseState {
             return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
         }
 
-        TurnSnapshot nextSnapshot = turnService.advanceSkippingDisconnected(
+        TurnSnapshot nextSnapshot = turnService.advance(
             context.turns(),
-            context.participants().disconnectedUsersView(),
             frame.requestedAtMillis()
         );
         frame.nextSnapshot(nextSnapshot);
@@ -109,9 +107,8 @@ public final class TurnPersonalEndState implements BaseState {
         long occurredAt = frame.timeoutOccurredAtMillis() > 0
             ? frame.timeoutOccurredAtMillis()
             : System.currentTimeMillis();
-        TurnSnapshot nextSnapshot = turnService.advanceSkippingDisconnected(
+        TurnSnapshot nextSnapshot = turnService.advance(
             context.turns(),
-            context.participants().disconnectedUsersView(),
             occurredAt
         );
         frame.nextSnapshot(nextSnapshot);

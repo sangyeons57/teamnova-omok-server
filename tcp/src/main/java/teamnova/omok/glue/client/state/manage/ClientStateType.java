@@ -14,7 +14,6 @@ public enum ClientStateType {
     AUTHENTICATED,
     MATCHING,
     IN_GAME,
-    RECONNECTING,
     DISCONNECTED,
     TERMINATED;
 

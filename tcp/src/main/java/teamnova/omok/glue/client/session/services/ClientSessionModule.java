@@ -15,6 +15,7 @@ import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.model.ClientSession;
+import teamnova.omok.glue.client.session.model.AuthResultStatus;
 import teamnova.omok.glue.client.state.ClientStateCommandBus;
 import teamnova.omok.glue.client.state.ClientStateHub;
 import teamnova.omok.glue.client.state.model.ClientStateTypeTransition;
@@ -31,18 +32,22 @@ import teamnova.omok.glue.handler.register.Type;
 public final class ClientSessionModule implements ClientSessionHandle {
     private final NioClientConnection connection;
     private final NioReactorServer server;
-    private final ClientStateHub stateHub;
-    private final ClientStateCommandBus stateCommands;
-    private final AtomicBoolean closed = new AtomicBoolean(false);
+    private ClientStateCommandBus stateCommands;
+    private final AtomicBoolean transportClosed = new AtomicBoolean(false);
+    private final AtomicBoolean terminated = new AtomicBoolean(false);
 
     private ClientSession model = new ClientSession();
+    private ClientStateHub stateHub;
 
     public ClientSessionModule(NioClientConnection connection,
                                NioReactorServer server) {
         this.connection = Objects.requireNonNull(connection, "connection");
         this.server = Objects.requireNonNull(server, "server");
-        this.stateHub = new ClientStateHub(this);
+        this.stateHub = new ClientStateHub();
         this.stateCommands = new ClientStateCommandBus(this.stateHub);
+
+        this.stateHub.setClientSessionHandle(this);
+        this.stateHub.start();
     }
 
     @Override
@@ -109,11 +114,17 @@ public final class ClientSessionModule implements ClientSessionHandle {
     }
 
     @Override
+    public ClientStateHub getStateHub() { return stateHub; }
+
+    @Override
     public ClientSession model() { return model; }
 
     @Override
     public void attachClientSession(ClientSessionHandle clientSessionHandle) {
         this.model = clientSessionHandle.model();
+        this.stateHub = clientSessionHandle.getStateHub();
+        this.stateHub.setClientSessionHandle(this);
+        this.stateCommands = new ClientStateCommandBus(this.stateHub);
     }
 
     @Override
@@ -152,10 +163,10 @@ public final class ClientSessionModule implements ClientSessionHandle {
     }
 
     @Override
-    public void sendAuthResult(long requestId, boolean success) {
+    public void sendAuthResult(long requestId, AuthResultStatus status) {
         ClientSessionManager.getInstance()
             .clientPublisher(this)
-            .authResult(requestId, success);
+            .authResult(requestId, status);
     }
 
     @Override
@@ -170,13 +181,6 @@ public final class ClientSessionModule implements ClientSessionHandle {
         ClientSessionManager.getInstance()
             .clientPublisher(this)
             .pingPong(requestId, payload);
-    }
-
-    @Override
-    public void sendReconnectResult(long requestId, boolean success, String detail) {
-        ClientSessionManager.getInstance()
-            .clientPublisher(this)
-            .reconnectResult(requestId, success, detail);
     }
 
     @Override
@@ -235,22 +239,12 @@ public final class ClientSessionModule implements ClientSessionHandle {
     }
 
     @Override
-    public boolean reconnectGameSession(GameSessionId sessionId) {
+    public boolean reconnectGameSession() {
         String userId = authenticatedUserId();
         if (userId == null) {
             return false;
         }
-        return GameSessionManager.getInstance().handleClientReconnected(userId, sessionId);
-    }
-
-    @Override
-    public void beginReconnectFlow() {
-        stateCommands.beginReconnect();
-    }
-
-    @Override
-    public void finishReconnectFlow(boolean success) {
-        stateCommands.finishReconnect(success);
+        return GameSessionManager.getInstance().handleClientReconnected(userId);
     }
 
     @Override
@@ -287,12 +281,20 @@ public final class ClientSessionModule implements ClientSessionHandle {
     }
 
     @Override
+    public void shutdownTransport() {
+        if (transportClosed.compareAndSet(false, true)) {
+            connection.close();
+        }
+    }
+
+    @Override
     public void close() {
-        if (!closed.compareAndSet(false, true)) {
+        if (!terminated.compareAndSet(false, true)) {
             return;
         }
         stateCommands.disconnect();
+        stateCommands.terminate();
         stateHub.drainPending();
-        connection.close();
+        shutdownTransport();
     }
 }

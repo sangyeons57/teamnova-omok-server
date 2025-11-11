@@ -51,9 +51,7 @@ public class TurnService implements GameTurnService {
     }
 
     @Override
-    public TurnSnapshot advanceSkippingDisconnected(GameSessionTurnAccess store,
-                                                    Set<String> disconnectedUserIds,
-                                                    long now) {
+    public TurnSnapshot advance(GameSessionTurnAccess store, long now) {
         requireStore(store);
         TurnOrder order = ensureOrder(store);
         int current = Math.max(-1, store.getCurrentPlayerIndex());
@@ -67,15 +65,14 @@ public class TurnService implements GameTurnService {
         if (order != null && current >= 0 && current < order.size()) {
             currentPlayerId = order.userIdAt(current);
         }
-        boolean roundComplete = isRoundComplete(store, order, disconnectedUserIds, currentRound, currentPlayerId);
+        boolean roundComplete = isRoundComplete(store, order, currentRound, currentPlayerId);
         System.out.println("[TurnService] advance state order=" + order.userIds()
             + " currentIndex=" + current
-            + " disconnected=" + disconnectedUserIds
             + " round=" + currentRound
             + " actingPlayer=" + currentPlayerId
             + " roundComplete=" + roundComplete);
         Optional<TurnAdvanceStrategy.Result> candidate =
-            advanceStrategy.next(order, current, disconnectedUserIds);
+            advanceStrategy.next(order, current);
         if (candidate.isEmpty()) {
             store.setCurrentPlayerIndex(-1);
             TurnCounters updatedCounters;
@@ -203,7 +200,6 @@ public class TurnService implements GameTurnService {
 
     private boolean isRoundComplete(GameSessionTurnAccess store,
                                     TurnOrder order,
-                                    Set<String> disconnectedUserIds,
                                     int roundNumber,
                                     String lastActorId) {
         if (order == null) {
@@ -213,9 +209,8 @@ public class TurnService implements GameTurnService {
         if (orderUserIds.isEmpty()) {
             return false;
         }
-        Set<String> disconnected = disconnectedUserIds == null ? Set.of() : disconnectedUserIds;
         Set<String> acted = new HashSet<>();
-        if (lastActorId != null && !disconnected.contains(lastActorId)) {
+        if (lastActorId != null) {
             acted.add(lastActorId);
         }
         int normalizedRound = Math.max(1, roundNumber);
@@ -224,7 +219,7 @@ public class TurnService implements GameTurnService {
             if (frames != null && !frames.isEmpty()) {
                 for (TurnPersonalFrame frame : frames) {
                     String userId = frame.userId();
-                    if (userId == null || disconnected.contains(userId)) {
+                    if (userId == null) {
                         continue;
                     }
                     TurnSnapshot snapshot = frame.currentSnapshot();
@@ -238,9 +233,6 @@ public class TurnService implements GameTurnService {
             }
         }
         for (String userId : orderUserIds) {
-            if (disconnected.contains(userId)) {
-                continue;
-            }
             if (!acted.contains(userId)) {
                 return false;
             }

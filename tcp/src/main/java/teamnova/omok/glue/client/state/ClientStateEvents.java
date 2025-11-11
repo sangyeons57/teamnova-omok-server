@@ -4,12 +4,11 @@ import java.util.Collections;
 import java.util.Set;
 
 import teamnova.omok.glue.client.state.event.AuthenticatedClientEvent;
-import teamnova.omok.glue.client.state.event.BeginReconnectingClientEvent;
 import teamnova.omok.glue.client.state.event.CancelMatchingClientEvent;
 import teamnova.omok.glue.client.state.event.DisconnectClientEvent;
-import teamnova.omok.glue.client.state.event.FinishReconnectingClientEvent;
 import teamnova.omok.glue.client.state.event.ResetClientEvent;
 import teamnova.omok.glue.client.state.event.StartMatchingClientEvent;
+import teamnova.omok.glue.client.state.event.TerminateClientEvent;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
 
 /**
@@ -39,11 +38,7 @@ public final class ClientStateEvents {
         return new CancelMatchingClientEvent(requestId);
     }
 
-    public static BaseEvent beginReconnecting() {
-        return new BeginReconnectingClientEvent();
-    }
-
-    public static BaseEvent finishReconnecting(boolean success) {
-        return new FinishReconnectingClientEvent(success);
+    public static BaseEvent terminate() {
+        return new TerminateClientEvent();
     }
 }

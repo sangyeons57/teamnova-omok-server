@@ -15,15 +15,17 @@ import teamnova.omok.modules.state_machine.interfaces.StateContext;
  * Shared data for client-level state handling.
  */
 public final class ClientStateContext implements StateContext {
-    private final ClientSessionHandle clientSession;
+    private ClientSessionHandle clientSession;
     private GameStateHub gameStateManager;
     private MatchingIntent pendingMatching;
     private boolean matchingQueued;
 
-    public ClientStateContext(ClientSessionHandle clientSession) {
-        this.clientSession = Objects.requireNonNull(clientSession, "clientSession");
+    public ClientStateContext() {
     }
 
+    public void setClientSession(ClientSessionHandle clientSession) {
+        this.clientSession = Objects.requireNonNull(clientSession, "clientSession");
+    }
     public ClientSessionHandle clientSession() {
         return clientSession;
     }
@@ -90,10 +92,6 @@ public final class ClientStateContext implements StateContext {
         }
     }
 
-    public void cleanupDisconnected() {
-
-    }
-
     private void sendMatchJoinAck(long requestId, Set<Integer> matchSizes) {
         if (requestId <= 0) {
             return;
@@ -112,12 +110,38 @@ public final class ClientStateContext implements StateContext {
             .matchLeaveAck(requestId);
     }
 
-    private void notifyGameDisconnect(String userId) {
-        try {
-            GameSessionManager.getInstance().handleClientDisconnected(userId);
-        } catch (Throwable ignore) {
-            // swallow
+    /**
+     * Fully detaches this client from all managers and clears bindings once the session
+     * is terminating. Invoked from the {@code TERMINATED} state.
+     */
+    public void terminateSession() {
+        if (clientSession == null) {
+            return;
         }
+        cancelMatchingQueue(0L);
+        forceLeaveGameSession();
+        removeSessionBinding();
+        clearGame();
+    }
+
+    private void forceLeaveGameSession() {
+        String userId = clientSession.authenticatedUserId();
+        if (userId != null && !userId.isBlank()) {
+            try {
+                GameSessionManager.getInstance().leaveByUser(userId);
+            } catch (Throwable ignore) {
+                // best-effort cleanup
+            }
+        }
+        clientSession.model().clearGameSession();
+    }
+
+    private void removeSessionBinding() {
+        String userId = clientSession.authenticatedUserId();
+        if (userId != null && !userId.isBlank()) {
+            ClientSessionStore.getInstance().unbindUser(userId, clientSession);
+        }
+        clientSession.model().clearAuthentication();
     }
 
     private record MatchingIntent(Set<Integer> matchSizes, int rating, long requestId) {

@@ -151,18 +151,13 @@ public final class GameSessionManager implements Closeable,
     }
 
     @Override
-    public boolean handleClientReconnected(String userId, GameSessionId expectedSessionId) {
-        return GameSessionLifecycleService.handleClientReconnected(dependencies, eventService, userId, expectedSessionId);
+    public boolean handleClientReconnected(String userId) {
+        return GameSessionLifecycleService.handleClientReconnected(dependencies, eventService, userId);
     }
 
     @Override
     public void cancelAllTimers(GameSessionId sessionId) {
         eventService.cancelAllTimers(sessionId);
-    }
-
-    @Override
-    public void skipTurnForDisconnected(GameSession session, String userId, int expectedTurnNumber) {
-        eventService.skipTurnForDisconnected(session, userId, expectedTurnNumber);
     }
 
     @Override

@@ -34,7 +34,6 @@ public final class DefaultHandlerRegistry implements HandlerRegistry {
         register(Type.READY_IN_GAME_SESSION, new ReadyInGameSessionHandler());
         register(Type.PLACE_STONE, new PlaceStoneHandler(stringDecoder));
         register(Type.POST_GAME_DECISION, new PostGameDecisionHandler(stringDecoder));
-        register(Type.RECONNECTING, new ReconnectingHandler(stringDecoder, DataManager.getInstance()));
     }
 
     public void register(Type type, FrameHandler frameHandler ) {

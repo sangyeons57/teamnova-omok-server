@@ -1,7 +1,6 @@
 package teamnova.omok.glue.game.session.interfaces;
 
 import java.util.Optional;
-import java.util.Set;
 
 import teamnova.omok.glue.game.session.model.vo.TurnOrder;
 
@@ -10,8 +9,7 @@ import teamnova.omok.glue.game.session.model.vo.TurnOrder;
  */
 public interface TurnAdvanceStrategy {
 
-    Optional<Result> next(TurnOrder order, int currentIndex, Set<String> skip);
+    Optional<Result> next(TurnOrder order, int currentIndex);
 
     record Result(int nextIndex, boolean wrapped) { }
 }
-

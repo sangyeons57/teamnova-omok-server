@@ -28,11 +28,11 @@ public final class ClientSessionLifecycleService {
         session.markAuthenticated(userId, role, scope);
         ClientSessionHandle previous = store.bindUser(session, userId);
 
-        // 리커넥팅 상태 인 경우 실행 되는 기능
+        // 리커넥인 경우 실행 되는 기능
         if (previous != null && previous != session) {
             session.attachClientSession(previous);
             publisher.session(previous).notifyReplaced();
-            previous.close();
+            previous.shutdownTransport();
         }
     }
 

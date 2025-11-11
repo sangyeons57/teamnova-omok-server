@@ -1,4 +1,4 @@
-package teamnova.omok.glue.client.session.interfaces.transport;
+package teamnova.omok.glue.client.session.interfaces;
 
 import java.io.IOException;
 import java.net.SocketAddress;

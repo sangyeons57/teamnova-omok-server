@@ -1,7 +1,7 @@
-package teamnova.omok.glue.client.session.interfaces.view;
+package teamnova.omok.glue.client.session.interfaces;
 
-import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.model.ClientSession;
+import teamnova.omok.glue.client.state.ClientStateHub;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.handler.register.Type;
 
@@ -18,6 +18,8 @@ public interface ClientSessionView {
     void markAuthenticated(String userId, String role, String scope);
 
     void clearAuthentication();
+
+    ClientStateHub getStateHub();
 
     ClientSession model();
 

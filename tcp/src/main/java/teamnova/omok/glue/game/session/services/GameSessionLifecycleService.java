@@ -5,7 +5,6 @@ import java.util.Objects;
 import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.interfaces.GameTurnService;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
-import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 
 /**
  * Stateless helpers for disconnect and cleanup operations on game sessions.
@@ -64,13 +63,11 @@ public final class GameSessionLifecycleService {
 
     public static boolean handleClientReconnected(GameSessionDependencies deps,
                                                   SessionEventService events,
-                                                  String userId,
-                                                  GameSessionId expectedSessionId) {
+                                                  String userId) {
         Objects.requireNonNull(deps, "deps");
         Objects.requireNonNull(events, "events");
         Objects.requireNonNull(userId, "userId");
         return deps.repository().findByUserId(userId)
-            .filter(session -> expectedSessionId == null || session.sessionId().equals(expectedSessionId))
             .map(session -> {
                 session.lock().lock();
                 try {
