@@ -51,16 +51,14 @@ public final class GameSessionLifecycleService {
         Objects.requireNonNull(events, "events");
         Objects.requireNonNull(userId, "userId");
         deps.repository().findByUserId(userId).ifPresent(session -> {
-            boolean newlyDisconnected;
+            // 기존에는 sessionMarkDiscconnected에서 신규 연결 종료만 broadcast했으나 지금은 다 해보는중
             session.lock().lock();
             try {
-                newlyDisconnected = session.markDisconnected(userId);
+                session.markDisconnected(userId);
             } finally {
                 session.lock().unlock();
             }
-            if (newlyDisconnected) {
-                deps.messenger().broadcastPlayerDisconnected(session, userId, "DISCONNECTED");
-            }
+            deps.messenger().broadcastPlayerDisconnected(session, userId, "DISCONNECTED");
             cleanupIfSessionFullyDisconnected(deps, session);
         });
     }
