@@ -67,6 +67,7 @@ public final class GameSessionLifecycleService {
         Objects.requireNonNull(deps, "deps");
         Objects.requireNonNull(events, "events");
         Objects.requireNonNull(userId, "userId");
+        System.out.println("[RECONNECT][Lifecycle] attempt user=" + userId);
         return deps.repository().findByUserId(userId)
             .map(session -> {
                 session.lock().lock();
@@ -82,7 +83,10 @@ public final class GameSessionLifecycleService {
                 } catch (Throwable ignore) {
                     // best-effort bind
                 }
+                System.out.println("[RECONNECT][Lifecycle] rebound user=" + userId
+                    + " session=" + session.sessionId());
                 deps.messenger().broadcastBoardSnapshot(session);
+                System.out.println("[RECONNECT][Lifecycle] broadcast board snapshot for user=" + userId);
                 return true;
             })
             .orElse(false);

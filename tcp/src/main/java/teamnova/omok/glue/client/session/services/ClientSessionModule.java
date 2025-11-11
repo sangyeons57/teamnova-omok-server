@@ -244,7 +244,11 @@ public final class ClientSessionModule implements ClientSessionHandle {
         if (userId == null) {
             return false;
         }
-        return GameSessionManager.getInstance().handleClientReconnected(userId);
+        System.out.println("[RECONNECT][ClientSessionModule] user=" + userId
+            + " currentGameSessionId=" + model.currentGameSessionId());
+        boolean result = GameSessionManager.getInstance().handleClientReconnected(userId);
+        System.out.println("[RECONNECT][ClientSessionModule] user=" + userId + " rejoinResult=" + result);
+        return result;
     }
 
     @Override

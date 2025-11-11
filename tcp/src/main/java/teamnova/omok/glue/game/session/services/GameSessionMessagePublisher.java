@@ -92,6 +92,10 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
         boardBytes = ruleService.transformBoard(session, boardBytes);
         BoardSnapshotUpdate update = new BoardSnapshotUpdate(boardBytes, System.currentTimeMillis());
         byte[] payload = BoardSnapshotMessageEncoder.encode(session, update);
+        if (session != null) {
+            System.out.println("[RECONNECT][Messenger] broadcasting board snapshot session="
+                + session.sessionId() + " recipients=" + session.getUserIds());
+        }
         broadcast(session, Type.BOARD_UPDATED, payload);
     }
 
@@ -189,9 +193,18 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
             return;
         }
         store.findByUser(userId).ifPresent(handle -> {
+            String handleSessionStr = handle.currentGameSessionId() != null
+                ? handle.currentGameSessionId().toString()
+                : "null";
             if (gameSession == null || gameSession.sessionId().equals(handle.currentGameSessionId())) {
+                System.out.println("[RECONNECT][Messenger] deliver type=" + type
+                    + " user=" + userId + " session=" + handleSessionStr);
                 handle.enqueueResponse(type, 0L, payload);
             } else {
+                System.out.println("[RECONNECT][Messenger] mismatch user=" + userId
+                    + " expected=" + gameSession.sessionId()
+                    + " handleSession=" + handleSessionStr
+                    + " type=" + type + " -> forcing leave");
                 GameSessionManager.getInstance().leaveByUser(userId);
             }
         });
