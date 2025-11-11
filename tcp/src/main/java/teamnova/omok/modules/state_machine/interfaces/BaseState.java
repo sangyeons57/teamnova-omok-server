@@ -5,9 +5,7 @@ import teamnova.omok.modules.state_machine.models.StateStep;
 
 public interface BaseState {
 
-    default StateName name() {
-        return StateName.defaultState();
-    }
+    StateName name();
 
     default <I extends StateContext> StateStep onEnter(I context) {
         return StateStep.stay();

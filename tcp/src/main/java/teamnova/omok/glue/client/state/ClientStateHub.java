@@ -1,7 +1,9 @@
 package teamnova.omok.glue.client.state;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
@@ -9,12 +11,8 @@ import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.services.ClientSessionStore;
 import teamnova.omok.glue.client.state.manage.ClientStateContext;
 import teamnova.omok.glue.client.state.manage.ClientStateType;
-import teamnova.omok.glue.client.state.state.AuthenticatedClientState;
-import teamnova.omok.glue.client.state.state.ConnectedClientState;
-import teamnova.omok.glue.client.state.state.DisconnectedClientState;
-import teamnova.omok.glue.client.state.state.InGameClientState;
-import teamnova.omok.glue.client.state.state.MatchingClientState;
-import teamnova.omok.glue.client.state.state.ReconnectingClientState;
+import teamnova.omok.glue.client.state.model.ClientStateTypeTransition;
+import teamnova.omok.glue.client.state.state.*;
 import teamnova.omok.modules.state_machine.StateMachineGateway;
 import teamnova.omok.modules.state_machine.StateMachineGateway.Handle;
 import teamnova.omok.modules.state_machine.interfaces.BaseEvent;
@@ -31,14 +29,12 @@ public final class ClientStateHub {
     private final Handle stateMachine;
     private final ClientStateContext context;
     private ClientStateType currentType;
-    private final List<ClientSessionStateListener> stateListeners = new CopyOnWriteArrayList<>();
+    private final Map<ClientStateTypeTransition, List<ClientSessionStateListener>> stateListeners = new ConcurrentHashMap<>();
     private final Object processLock = new Object();
 
-    public ClientStateHub(ClientSessionHandle session,
-                          ClientSessionStore store) {
+    public ClientStateHub(ClientSessionHandle session) {
         Objects.requireNonNull(session, "session");
-        this.context = new ClientStateContext(session,
-            Objects.requireNonNull(store, "store"));
+        this.context = new ClientStateContext(session);
         this.stateMachine = StateMachineGateway.open();
         this.stateMachine.addStateSignalListener(new StateSignalListener() {
             private StateName pendingFrom;
@@ -66,6 +62,7 @@ public final class ClientStateHub {
         registerState(new InGameClientState());
         registerState(new DisconnectedClientState());
         registerState(new ReconnectingClientState());
+        registerState(new TerminatedClientState());
 
         this.stateMachine.start(ClientStateType.CONNECTED.toStateName(), context);
     }
@@ -81,20 +78,17 @@ public final class ClientStateHub {
     }
 
     private void notifyStateListeners(ClientStateType previous, ClientStateType current) {
+        List<ClientSessionStateListener> stateListeners = this.stateListeners.get(new ClientStateTypeTransition(previous, current));
         if (stateListeners.isEmpty()) {
             return;
         }
         for (ClientSessionStateListener listener : stateListeners) {
             try {
-                listener.onStateChanged(context.clientSession(), previous, current);
+                listener.onStateChanged(context.clientSession());
             } catch (RuntimeException ex) {
                 System.err.println("[CLIENT][state] listener failed: " + ex.getMessage());
             }
         }
-    }
-
-    public ClientStateType currentType() {
-        return currentType;
     }
 
     public ClientStateContext context() {
@@ -106,9 +100,9 @@ public final class ClientStateHub {
         stateMachine.submit(event);
     }
 
-    public void addStateListener(ClientSessionStateListener listener) {
+    public void addStateListener(ClientStateTypeTransition transition, ClientSessionStateListener listener) {
         if (listener != null) {
-            stateListeners.add(listener);
+            stateListeners.getOrDefault(transition, new CopyOnWriteArrayList<>()).add(listener);
         }
     }
 

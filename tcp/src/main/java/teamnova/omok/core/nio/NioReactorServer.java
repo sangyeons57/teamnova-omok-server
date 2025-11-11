@@ -14,9 +14,9 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import teamnova.omok.core.nio.codec.DecodeFrame;
+import teamnova.omok.glue.client.session.services.ClientSessionModule;
 import teamnova.omok.glue.handler.dispatcher.Dispatcher;
 import teamnova.omok.glue.handler.register.HandlerRegistry;
-import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 
 /**
@@ -99,11 +99,11 @@ public final class NioReactorServer implements Closeable {
         }
         client.configureBlocking(false);
         NioClientConnection connection = new NioClientConnection(client);
-        ClientSessionHandle session = ClientSessionManager.getInstance().registerConnection(connection, this);
+        ClientSessionHandle session = new ClientSessionModule(connection, this);
         SelectionKey clientKey = client.register(selector, SelectionKey.OP_READ, session);
         session.attachKey(clientKey);
         try {
-            System.out.printf("Accepted connection from %s%n", session.remoteAddress());
+            System.out.printf("Accepted connection from %s%n", connection.remoteAddress());
         } catch (IOException e) {
             System.err.println("Failed to read remote address: " + e.getMessage());
         }

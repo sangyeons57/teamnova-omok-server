@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import teamnova.omok.glue.client.session.services.ClientSessionStore;
+import teamnova.omok.glue.game.session.interfaces.GameBoardService;
 import teamnova.omok.glue.game.session.interfaces.GameSessionMessenger;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.GameSessionManager;
@@ -34,7 +35,7 @@ import teamnova.omok.glue.message.encoder.TurnStartedMessageEncoder;
  */
 public final class GameSessionMessagePublisher implements GameSessionMessenger {
     private final ClientSessionStore store;
-    private final teamnova.omok.glue.game.session.interfaces.GameBoardService boardService;
+    private final GameBoardService boardService;
     private final RuleService ruleService;
 
     public GameSessionMessagePublisher(ClientSessionStore store,
@@ -153,13 +154,13 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     private void broadcastToGame(GameSessionAccess session,
-                                 List<String> recipients,
+                                 List<String> participants,
                                  Type type,
                                  byte[] payload) {
-        if (recipients == null || recipients.isEmpty()) {
+        if (participants == null || participants.isEmpty()) {
             return;
         }
-        for (String uid : recipients) {
+        for (String uid : participants) {
             deliverInGame(session, uid, type, payload);
         }
     }
@@ -191,17 +192,9 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
             if (gameSession == null || gameSession.sessionId().equals(handle.currentGameSessionId())) {
                 handle.enqueueResponse(type, 0L, payload);
             } else {
-                handleInGameMismatch(userId);
+                GameSessionManager.getInstance().leaveByUser(userId);
             }
         });
-    }
-
-    private void handleInGameMismatch(String userId) {
-        try {
-            GameSessionManager.getInstance().leaveByUser(userId);
-        } catch (Throwable ignore) {
-            // best-effort cleanup
-        }
     }
 
     private void logOutbound(GameSessionAccess session,

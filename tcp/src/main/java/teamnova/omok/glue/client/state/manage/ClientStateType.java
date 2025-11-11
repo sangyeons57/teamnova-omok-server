@@ -15,7 +15,8 @@ public enum ClientStateType {
     MATCHING,
     IN_GAME,
     RECONNECTING,
-    DISCONNECTED;
+    DISCONNECTED,
+    TERMINATED;
 
     private static final Map<StateName, ClientStateType> LOOKUP =
         Arrays.stream(values())

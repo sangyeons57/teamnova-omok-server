@@ -35,21 +35,15 @@ public final class ClientSessionManager {
         return INSTANCE;
     }
 
-    private final ClientSessionStore store = new ClientSessionStore();
+    private final ClientSessionStore store = ClientSessionStore.getInstance();
     private final ClientSessionMessagePublisher clientPublisher = new ClientSessionMessagePublisher();
     private final GameSessionMessagePublisher gamePublisher = new GameSessionMessagePublisher(
         store,
         new BoardService()
     );
-    private final ClientSessionLifecycleService lifecycleService = new ClientSessionLifecycleService(store, clientPublisher);
+    private final ClientSessionLifecycleService lifecycleService = new ClientSessionLifecycleService();
 
     private ClientSessionManager() {
-    }
-
-    public ClientSessionHandle registerConnection(NioClientConnection connection, NioReactorServer server) {
-        Objects.requireNonNull(connection, "connection");
-        Objects.requireNonNull(server, "server");
-        return store.register(connection, server);
     }
 
     public GameSessionMessagePublisher gamePublisher() {
@@ -65,11 +59,11 @@ public final class ClientSessionManager {
     }
 
     public void onAuthenticated(ClientSessionHandle handle, String userId, String role, String scope) {
-        lifecycleService.onAuthenticated(handle, userId, role, scope);
+        lifecycleService.onAuthenticated(store, clientPublisher, handle, userId, role, scope);
     }
 
     public void onAuthenticationCleared(ClientSessionHandle handle) {
-        lifecycleService.onAuthenticationCleared(handle);
+        lifecycleService.onAuthenticationCleared(store, handle);
     }
 
     public Optional<ClientSessionHandle> findSession(String userId) {

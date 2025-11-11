@@ -17,6 +17,7 @@ import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.model.ClientSession;
 import teamnova.omok.glue.client.state.ClientStateCommandBus;
 import teamnova.omok.glue.client.state.ClientStateHub;
+import teamnova.omok.glue.client.state.model.ClientStateTypeTransition;
 import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
@@ -27,20 +28,20 @@ import teamnova.omok.glue.handler.register.Type;
  * Glue-layer view of a connected client: combines transport, authentication state,
  * and client-level state machine orchestration.
  */
-public final class ManagedClientSession implements ClientSessionHandle {
+public final class ClientSessionModule implements ClientSessionHandle {
     private final NioClientConnection connection;
     private final NioReactorServer server;
-    private final ClientSession model = new ClientSession();
     private final ClientStateHub stateHub;
     private final ClientStateCommandBus stateCommands;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public ManagedClientSession(NioClientConnection connection,
-                                NioReactorServer server,
-                                ClientSessionStore store) {
+    private ClientSession model = new ClientSession();
+
+    public ClientSessionModule(NioClientConnection connection,
+                               NioReactorServer server) {
         this.connection = Objects.requireNonNull(connection, "connection");
         this.server = Objects.requireNonNull(server, "server");
-        this.stateHub = new ClientStateHub(this, Objects.requireNonNull(store, "store"));
+        this.stateHub = new ClientStateHub(this);
         this.stateCommands = new ClientStateCommandBus(this.stateHub);
     }
 
@@ -108,8 +109,11 @@ public final class ManagedClientSession implements ClientSessionHandle {
     }
 
     @Override
-    public ClientSession model() {
-        return model;
+    public ClientSession model() { return model; }
+
+    @Override
+    public void attachClientSession(ClientSessionHandle clientSessionHandle) {
+        this.model = clientSessionHandle.model();
     }
 
     @Override
@@ -249,12 +253,9 @@ public final class ManagedClientSession implements ClientSessionHandle {
         stateCommands.finishReconnect(success);
     }
 
-    ClientStateHub stateHub() {
-        return stateHub;
-    }
-
-    public void addStateListener(ClientSessionStateListener listener) {
-        stateHub.addStateListener(listener);
+    @Override
+    public void addStateListener(ClientStateTypeTransition typeTransition, ClientSessionStateListener listener) {
+        stateHub.addStateListener(typeTransition, listener);
     }
 
     @Override

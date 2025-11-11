@@ -16,15 +16,12 @@ import teamnova.omok.modules.state_machine.interfaces.StateContext;
  */
 public final class ClientStateContext implements StateContext {
     private final ClientSessionHandle clientSession;
-    private final ClientSessionStore store;
     private GameStateHub gameStateManager;
     private MatchingIntent pendingMatching;
     private boolean matchingQueued;
 
-    public ClientStateContext(ClientSessionHandle clientSession,
-                              ClientSessionStore store) {
+    public ClientStateContext(ClientSessionHandle clientSession) {
         this.clientSession = Objects.requireNonNull(clientSession, "clientSession");
-        this.store = Objects.requireNonNull(store, "store");
     }
 
     public ClientSessionHandle clientSession() {
@@ -94,16 +91,7 @@ public final class ClientStateContext implements StateContext {
     }
 
     public void cleanupDisconnected() {
-        cancelMatchingQueue(0L);
-        store.remove(clientSession);
-        String userId = clientSession.authenticatedUserId();
-        if (userId != null) {
-            boolean removed = store.unbindUser(userId, clientSession);
-            if (removed) {
-                notifyGameDisconnect(userId);
-            }
-        }
-        clientSession.clearAuthentication();
+
     }
 
     private void sendMatchJoinAck(long requestId, Set<Integer> matchSizes) {

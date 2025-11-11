@@ -4,6 +4,8 @@ import java.util.Set;
 
 import teamnova.omok.glue.client.session.interfaces.transport.ManagedSessionTransport;
 import teamnova.omok.glue.client.session.interfaces.view.ClientSessionView;
+import teamnova.omok.glue.client.state.manage.ClientStateType;
+import teamnova.omok.glue.client.state.model.ClientStateTypeTransition;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 
@@ -42,6 +44,8 @@ public interface ClientSessionHandle extends ManagedSessionTransport, ClientSess
     void sendReconnectResult(long requestId, boolean success, String detail);
 
     void beginReconnectFlow();
+
+    void addStateListener(ClientStateTypeTransition typeTransition, ClientSessionStateListener listener);
 
     void finishReconnectFlow(boolean success);
 }
