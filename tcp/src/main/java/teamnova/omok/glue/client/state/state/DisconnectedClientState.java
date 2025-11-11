@@ -28,6 +28,7 @@ public final class DisconnectedClientState implements BaseState {
     public <I extends StateContext> StateStep onEnter(I context) {
         ClientStateContext clientContext = (ClientStateContext) context;
         clientContext.markDisconnectedNow();
+        clientContext.notifyGameSessionDisconnected();
         return StateStep.stay();
     }
 

@@ -149,6 +149,21 @@ public final class ClientStateContext implements StateContext {
     public void markDisconnectedNow() {
         disconnectedAtMillis = System.currentTimeMillis();
     }
+    
+    public void notifyGameSessionDisconnected() {
+        if (clientSession == null) {
+            return;
+        }
+        String userId = clientSession.authenticatedUserId();
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+        try {
+            GameSessionManager.getInstance().handleClientDisconnected(userId);
+        } catch (Throwable ignore) {
+            // best-effort notification
+        }
+    }
 
     public void clearDisconnectionTimer() {
         disconnectedAtMillis = -1L;
