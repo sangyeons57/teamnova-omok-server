@@ -5,6 +5,8 @@ import java.util.Objects;
 
 import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
+import teamnova.omok.glue.game.session.model.vo.TurnTiming;
 
 /**
  * Stateless helpers for disconnect and cleanup operations on game sessions.
@@ -87,7 +89,7 @@ public final class GameSessionLifecycleService {
                 }
                 System.out.println("[RECONNECT][Lifecycle] rebound user=" + userId
                     + " session=" + session.sessionId());
-                deps.messenger().broadcastBoardSnapshot(session);
+                broadcastTurnAndBoard(deps, session);
                 System.out.println("[RECONNECT][Lifecycle] broadcast board snapshot for user=" + userId);
                 return true;
             })
@@ -136,5 +138,36 @@ public final class GameSessionLifecycleService {
                 // continue best-effort unbind
             }
         }
+    }
+
+    private static void broadcastTurnAndBoard(GameSessionDependencies deps, GameSession session) {
+        TurnSnapshot snapshot = null;
+        try {
+            snapshot = deps.turnService().snapshot(session);
+        } catch (Throwable ignore) {
+            // snapshot best-effort
+        }
+        if (snapshot != null) {
+            deps.messenger().broadcastTurnStarted(session, adjustSnapshotForRemaining(snapshot));
+        }
+        deps.messenger().broadcastBoardSnapshot(session);
+    }
+
+    private static TurnSnapshot adjustSnapshotForRemaining(TurnSnapshot snapshot) {
+        if (snapshot.timing() == null) {
+            return snapshot;
+        }
+        long now = System.currentTimeMillis();
+        long endAt = snapshot.turnEndAt();
+        long remaining = Math.max(0L, endAt - now);
+        long adjustedEnd = now + remaining;
+        TurnTiming timing = TurnTiming.of(now, adjustedEnd);
+        return new TurnSnapshot(
+            snapshot.currentPlayerIndex(),
+            snapshot.currentPlayerId(),
+            snapshot.counters(),
+            timing,
+            snapshot.wrapped()
+        );
     }
 }
