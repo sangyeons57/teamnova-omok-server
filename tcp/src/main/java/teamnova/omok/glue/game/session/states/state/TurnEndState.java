@@ -9,6 +9,7 @@ import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
 import teamnova.omok.glue.game.session.log.GameSessionLogger;
+import teamnova.omok.glue.game.session.services.BoardVictoryResolver;
 import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
@@ -54,6 +55,19 @@ public final class TurnEndState implements BaseState {
         TurnSnapshot snapshot = turnContextService.peekTurnSnapshot(ctx);
         if (snapshot != null && snapshot.wrapped()) {
             fireRules(ctx, snapshot);
+            if (!ctx.outcomes().isGameFinished() && BoardVictoryResolver.resolve(
+                ctx.board(),
+                ctx.participants().getUserIds(),
+                ctx.outcomes(),
+                services.boardService(),
+                ctx.session().sessionId().asUuid().toString()
+            )) {
+                return finalizeSession(ctx);
+            }
+            evaluateOutcomeRules(ctx);
+            if (ctx.outcomes().isGameFinished()) {
+                return finalizeSession(ctx);
+            }
         }
         return StateStep.transition(GameSessionStateType.TURN_START.toStateName());
     }

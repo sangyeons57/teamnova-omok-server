@@ -11,6 +11,7 @@ import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.result.MoveStatus;
 import teamnova.omok.glue.game.session.model.runtime.TurnPersonalFrame;
+import teamnova.omok.glue.game.session.services.BoardVictoryResolver;
 import teamnova.omok.glue.game.session.services.RuleService;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 import teamnova.omok.glue.game.session.states.manage.GameSessionStateContextService;
@@ -90,6 +91,19 @@ public final class TurnPersonalEndState implements BaseState {
         if (nextSnapshot != null) {
             turnContextService.recordTurnSnapshot(context, nextSnapshot, frame.requestedAtMillis());
             fireRules(context, RuleTriggerKind.TURN_ADVANCE, nextSnapshot);
+            if (!context.outcomes().isGameFinished() && BoardVictoryResolver.resolve(
+                context.board(),
+                context.participants().getUserIds(),
+                context.outcomes(),
+                services.boardService(),
+                context.session().sessionId().asUuid().toString()
+            )) {
+                GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_END, "WinDetectedByRules",
+                    "trigger=TURN_ADVANCE");
+                completeWinningTurn(context, frame);
+                emitTurnEnded(context, frame);
+                return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
+            }
         }
         turnContextService.finalizeMoveOutcome(context, MoveStatus.SUCCESS);
         turnContextService.clearTurnCycle(context);
@@ -118,6 +132,19 @@ public final class TurnPersonalEndState implements BaseState {
         if (nextSnapshot != null) {
             turnContextService.recordTurnSnapshot(context, nextSnapshot, occurredAt);
             fireRules(context, RuleTriggerKind.TURN_ADVANCE, nextSnapshot);
+            if (!context.outcomes().isGameFinished() && BoardVictoryResolver.resolve(
+                context.board(),
+                context.participants().getUserIds(),
+                context.outcomes(),
+                services.boardService(),
+                context.session().sessionId().asUuid().toString()
+            )) {
+                GameSessionLogger.event(context, GameSessionStateType.TURN_PERSONAL_END, "WinDetectedByRules",
+                    "trigger=TURN_ADVANCE_TIMEOUT");
+                turnContextService.clearTurnCycle(context);
+                emitTurnEnded(context, frame);
+                return StateStep.transition(GameSessionStateType.TURN_END.toStateName());
+            }
         }
         turnContextService.clearTurnCycle(context);
         if (evaluateOutcomeRulesNow(context, "timeout")) {
