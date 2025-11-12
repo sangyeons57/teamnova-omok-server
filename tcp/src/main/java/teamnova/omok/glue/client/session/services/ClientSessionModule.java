@@ -12,17 +12,19 @@ import teamnova.omok.core.nio.NioClientConnection;
 import teamnova.omok.core.nio.NioReactorServer;
 import teamnova.omok.core.nio.codec.DecodeFrame;
 import teamnova.omok.glue.client.session.ClientSessionManager;
+import teamnova.omok.glue.client.session.model.AuthResultStatus;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionHandle;
 import teamnova.omok.glue.client.session.interfaces.ClientSessionStateListener;
 import teamnova.omok.glue.client.session.model.ClientSession;
-import teamnova.omok.glue.client.session.model.AuthResultStatus;
 import teamnova.omok.glue.client.state.ClientStateCommandBus;
 import teamnova.omok.glue.client.state.ClientStateHub;
+import teamnova.omok.glue.client.state.event.EnterGameClientEvent;
 import teamnova.omok.glue.client.state.model.ClientStateTypeTransition;
 import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.glue.game.session.model.PlayerResult;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
+import teamnova.omok.glue.game.session.states.GameStateHub;
 import teamnova.omok.glue.handler.register.Type;
 
 /**
@@ -255,6 +257,14 @@ public final class ClientSessionModule implements ClientSessionHandle {
     @Override
     public void addStateListener(ClientStateTypeTransition typeTransition, ClientSessionStateListener listener) {
         stateHub.addStateListener(typeTransition, listener);
+    }
+
+    @Override
+    public void enterGameSession(GameStateHub manager) {
+        if (manager == null) {
+            return;
+        }
+        stateHub.submit(new EnterGameClientEvent(manager));
     }
 
     @Override

@@ -7,6 +7,7 @@ import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
+import teamnova.omok.glue.game.session.states.GameStateHub;
 
 /**
  * Stateless helpers for disconnect and cleanup operations on game sessions.
@@ -79,9 +80,13 @@ public final class GameSessionLifecycleService {
                     session.lock().unlock();
                 }
                 try {
+                    GameStateHub manager = deps.runtime().ensure(session);
                     ClientSessionManager.getInstance()
                         .findSession(userId)
-                        .ifPresent(handle -> handle.bindGameSession(session.sessionId()));
+                        .ifPresent(handle -> {
+                            handle.bindGameSession(session.sessionId());
+                            handle.enterGameSession(manager);
+                        });
                 } catch (Throwable ignore) {
                     // best-effort bind
                 }

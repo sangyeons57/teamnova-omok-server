@@ -3,6 +3,7 @@ package teamnova.omok.glue.client.session.interfaces;
 import java.util.Set;
 
 import teamnova.omok.glue.client.state.model.ClientStateTypeTransition;
+import teamnova.omok.glue.game.session.states.GameStateHub;
 import teamnova.omok.glue.game.session.model.PostGameDecision;
 import teamnova.omok.glue.game.session.model.vo.GameSessionId;
 import teamnova.omok.glue.client.session.model.AuthResultStatus;
@@ -40,6 +41,8 @@ public interface ClientSessionHandle extends ManagedSessionTransport, ClientSess
     boolean reconnectGameSession();
 
     void addStateListener(ClientStateTypeTransition typeTransition, ClientSessionStateListener listener);
+
+    void enterGameSession(GameStateHub manager);
 
     /**
      * Closes only the underlying transport (socket/channel) without triggering full

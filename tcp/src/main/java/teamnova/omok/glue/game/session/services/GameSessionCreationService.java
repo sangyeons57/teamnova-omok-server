@@ -8,6 +8,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.states.GameStateHub;
 import teamnova.omok.modules.matching.models.MatchGroup;
 
 /**
@@ -24,15 +25,17 @@ public final class GameSessionCreationService {
 
         GameSession session = new GameSession(group.ids());
 
-
         deps.repository().save(session);
-        deps.runtime().ensure(session);
+        GameStateHub gameStateManager = deps.runtime().ensure(session);
 
         // Bind participants' client sessions to this new game session for scoped messaging
         for (String uid : session.getUserIds()) {
             ClientSessionManager.getInstance()
                 .findSession(uid)
-                .ifPresent(handle -> handle.bindGameSession(session.sessionId()));
+                .ifPresent(handle -> {
+                    handle.bindGameSession(session.sessionId());
+                    handle.enterGameSession(gameStateManager);
+                });
         }
 
         deps.messenger().broadcastJoin(session);

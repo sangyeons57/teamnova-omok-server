@@ -10,6 +10,7 @@ import teamnova.omok.glue.game.session.interfaces.GameSessionRuntime;
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
+import teamnova.omok.glue.game.session.states.GameStateHub;
 
 /**
  * Helper for creating and broadcasting rematch sessions.
@@ -42,11 +43,15 @@ public final class GameSessionRematchService {
             return;
         }
         GameSessionMessenger messenger = services.messenger();
+        GameStateHub manager = services.runtime().ensure(rematch);
         // Bind participants' client sessions to the new rematch for session-scoped routing
         for (String uid : rematch.getUserIds()) {
             ClientSessionManager.getInstance()
                 .findSession(uid)
-                .ifPresent(handle -> handle.bindGameSession(rematch.sessionId()));
+                .ifPresent(handle -> {
+                    handle.bindGameSession(rematch.sessionId());
+                    handle.enterGameSession(manager);
+                });
         }
 
         // Broadcast join for the new session so clients can transition immediately

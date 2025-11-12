@@ -52,10 +52,8 @@ public final class DefaultMatchingService implements MatchingService {
         TicketInfo ticketInfo = globalQueue.poll();
         if (ticketInfo == null) return MatchResult.fail("No ticket available");
 
-        boolean consumed = false;   // true when a success group is formed and ticket should NOT be returned
-        boolean reoffered = false;  // true when we explicitly re-queued the ticket on failure path
+        MatchGroup bestGroup = null;
         try {
-            MatchGroup bestGroup = null;
             for (int match : ticketInfo.getMatchSet()) {
                 List<TicketInfo> pool = ticketGroups.get(match);
                 if (pool == null || pool.size() < match) continue;
@@ -68,25 +66,21 @@ public final class DefaultMatchingService implements MatchingService {
                 }
             }
 
-            if (bestGroup != null) {
-                // remove matched tickets from all structures
-                for (MatchTicket mt : bestGroup.tickets()){
-                    cancel(mt.id());
-                }
-                consumed = true; // do not return polled ticket on success
-                return MatchResult.success(bestGroup);
-            } else {
-                ticketInfo.addCredit();
-                globalQueue.offer(ticketInfo);
-                reoffered = true;
-                return MatchResult.fail("No group available");
+        } catch (RuntimeException ex) {
+            globalQueue.offerFirst(ticketInfo);
+            throw ex;
+        }
+
+        if (bestGroup != null) {
+            // remove matched tickets from all structures
+            for (MatchTicket mt : bestGroup.tickets()){
+                cancel(mt.id());
             }
-        } finally {
-            // If an exception occurs before success or explicit re-offer, ensure the polled ticket is restored.
-            if (!consumed && !reoffered) {
-                // offer to the front to minimize starvation
-                globalQueue.offerFirst(ticketInfo);
-            }
+            return MatchResult.success(bestGroup);
+        } else {
+            ticketInfo.addCredit();
+            globalQueue.offer(ticketInfo);
+            return MatchResult.fail("No group available");
         }
     }
 
