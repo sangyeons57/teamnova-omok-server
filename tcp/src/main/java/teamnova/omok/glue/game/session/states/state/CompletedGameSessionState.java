@@ -124,8 +124,11 @@ public class CompletedGameSessionState implements BaseState {
             ClientSessionManager.getInstance()
                 .findSession(userId)
                 .ifPresent(handle -> {
-                    handle.unbindGameSession(session.sessionId());
-                    handle.exitGameSession();
+                    var currentSessionId = handle.currentGameSessionId();
+                    if (sessionId.equals(currentSessionId)) {
+                        handle.unbindGameSession(sessionId);
+                        handle.exitGameSession();
+                    }
                 });
         }
 
