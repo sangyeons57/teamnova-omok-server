@@ -13,6 +13,8 @@ public final class TurnStartedMessageEncoder {
         sb.append('{')
           .append("\"sessionId\":\"").append(session.sessionId().asUuid()).append('\"')
           .append(',')
+          .append("\"serverTime\":\"").append(System.currentTimeMillis()).append('\"')
+          .append(',')
           .append("\"turn\":");
 
         if (snapshot == null) {
