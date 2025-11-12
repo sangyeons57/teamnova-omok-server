@@ -21,7 +21,7 @@ import teamnova.omok.glue.handler.register.Type;
  */
 public final class NioClientConnection implements Closeable {
     private static final int BUFFER_SIZE = 4096;
-    private static final long IDLE_TIMEOUT_MILLIS = 60_000L;
+    private static final long IDLE_TIMEOUT_MILLIS = 90_000L;
 
     private final SocketChannel channel;
     private final ByteBuffer readBuffer = ByteBuffer.allocate(BUFFER_SIZE);

@@ -70,14 +70,8 @@ public final class DefaultMatchingService implements MatchingService {
 
             if (bestGroup != null) {
                 // remove matched tickets from all structures
-                Set<String> ids = new HashSet<>();
-                for (MatchTicket mt : bestGroup.tickets()) ids.add(mt.id());
-                // remove selected ticket left out of queue already; remove others explicitly
-                for (TicketInfo t : new ArrayList<>(globalQueue)) {
-                    if (ids.contains(t.getId())) globalQueue.remove(t);
-                }
-                for (List<TicketInfo> list : ticketGroups.values()) {
-                    list.removeIf(t -> ids.contains(t.getId()));
+                for (MatchTicket mt : bestGroup.tickets()){
+                    cancel(mt.id());
                 }
                 consumed = true; // do not return polled ticket on success
                 return MatchResult.success(bestGroup);
@@ -89,7 +83,7 @@ public final class DefaultMatchingService implements MatchingService {
             }
         } finally {
             // If an exception occurs before success or explicit re-offer, ensure the polled ticket is restored.
-            if (!consumed && !reoffered && ticketInfo != null) {
+            if (!consumed && !reoffered) {
                 // offer to the front to minimize starvation
                 globalQueue.offerFirst(ticketInfo);
             }
