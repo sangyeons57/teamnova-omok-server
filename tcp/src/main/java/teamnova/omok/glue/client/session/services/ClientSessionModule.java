@@ -19,6 +19,7 @@ import teamnova.omok.glue.client.session.model.ClientSession;
 import teamnova.omok.glue.client.state.ClientStateCommandBus;
 import teamnova.omok.glue.client.state.ClientStateHub;
 import teamnova.omok.glue.client.state.event.EnterGameClientEvent;
+import teamnova.omok.glue.client.state.event.LeaveGameClientEvent;
 import teamnova.omok.glue.client.state.model.ClientStateTypeTransition;
 import teamnova.omok.glue.game.session.GameSessionManager;
 import teamnova.omok.glue.game.session.model.PlayerResult;
@@ -265,6 +266,11 @@ public final class ClientSessionModule implements ClientSessionHandle {
             return;
         }
         stateHub.submit(new EnterGameClientEvent(manager));
+    }
+
+    @Override
+    public void exitGameSession() {
+        stateHub.submit(new LeaveGameClientEvent());
     }
 
     @Override

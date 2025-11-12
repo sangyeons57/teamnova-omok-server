@@ -44,6 +44,8 @@ public interface ClientSessionHandle extends ManagedSessionTransport, ClientSess
 
     void enterGameSession(GameStateHub manager);
 
+    void exitGameSession();
+
     /**
      * Closes only the underlying transport (socket/channel) without triggering full
      * session termination. Used when a new connection is taking over the session.

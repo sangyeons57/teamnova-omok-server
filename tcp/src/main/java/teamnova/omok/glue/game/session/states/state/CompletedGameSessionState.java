@@ -123,7 +123,10 @@ public class CompletedGameSessionState implements BaseState {
         for (String userId : userIds) {
             ClientSessionManager.getInstance()
                 .findSession(userId)
-                .ifPresent(handle -> handle.unbindGameSession(session.sessionId()));
+                .ifPresent(handle -> {
+                    handle.unbindGameSession(session.sessionId());
+                    handle.exitGameSession();
+                });
         }
 
         services.repository().removeById(sessionId);

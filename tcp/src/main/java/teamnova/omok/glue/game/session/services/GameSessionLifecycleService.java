@@ -37,7 +37,10 @@ public final class GameSessionLifecycleService {
             try {
                 ClientSessionManager.getInstance()
                     .findSession(userId)
-                    .ifPresent(h -> h.unbindGameSession(session.sessionId()));
+                    .ifPresent(h -> {
+                        h.unbindGameSession(session.sessionId());
+                        h.exitGameSession();
+                    });
             } catch (Throwable ignore) {
                 // best-effort unbind; do not block cleanup
             }
@@ -136,7 +139,10 @@ public final class GameSessionLifecycleService {
             try {
                 ClientSessionManager.getInstance()
                     .findSession(userId)
-                    .ifPresent(handle -> handle.unbindGameSession(sessionId));
+                    .ifPresent(handle -> {
+                        handle.unbindGameSession(sessionId);
+                        handle.exitGameSession();
+                    });
             } catch (Throwable ignore) {
                 // continue best-effort unbind
             }
