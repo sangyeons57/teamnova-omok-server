@@ -123,5 +123,17 @@ public class CompletedGameSessionState implements BaseState {
 
         services.repository().removeById(sessionId);
         services.runtime().remove(sessionId);
+
+        for (String userId : userIds) {
+            ClientSessionManager.getInstance()
+                .findSession(userId)
+                .ifPresent(handle -> {
+                    var currentSessionId = handle.currentGameSessionId();
+                    if (sessionId.equals(currentSessionId)) {
+                        handle.unbindGameSession(sessionId);
+                        handle.exitGameSession();
+                    }
+                });
+        }
     }
 }

@@ -103,6 +103,12 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
+    public void deliverGameCompleted(GameSessionAccess session, String targetUserId) {
+        byte[] payload = GameSessionCompletedMessageEncoder.encode(session);
+        sendToUser(session, targetUserId, Type.GAME_SESSION_COMPLETED, payload, "event=game-complete");
+    }
+
+    @Override
     public void deliverTurnStarted(GameSessionAccess session, TurnSnapshot snapshot, String targetUserId) {
         byte[] payload = TurnStartedMessageEncoder.encode(session, snapshot);
         sendToUser(session, targetUserId, Type.TURN_STARTED, payload,
@@ -122,9 +128,21 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     }
 
     @Override
+    public void deliverPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt, String targetUserId) {
+        byte[] payload = PostGameDecisionPromptMessageEncoder.encode(session, prompt);
+        sendToUser(session, targetUserId, Type.GAME_POST_DECISION_PROMPT, payload);
+    }
+
+    @Override
     public void broadcastPostGameDecisionUpdate(GameSessionAccess session, PostGameDecisionUpdate update) {
         byte[] payload = PostGameDecisionUpdateMessageEncoder.encode(session, update);
         broadcast(session, Type.GAME_POST_DECISION_UPDATE, payload);
+    }
+
+    @Override
+    public void deliverPostGameDecisionUpdate(GameSessionAccess session, PostGameDecisionUpdate update, String targetUserId) {
+        byte[] payload = PostGameDecisionUpdateMessageEncoder.encode(session, update);
+        sendToUser(session, targetUserId, Type.GAME_POST_DECISION_UPDATE, payload);
     }
 
     @Override

@@ -20,8 +20,11 @@ public interface GameSessionMessenger {
     void broadcastBoardSnapshot(GameSessionAccess session);
     void deliverBoardSnapshot(GameSessionAccess session, String targetUserId);
     void broadcastGameCompleted(GameSessionAccess session);
+    void deliverGameCompleted(GameSessionAccess session, String targetUserId);
     void broadcastPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt);
+    void deliverPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt, String targetUserId);
     void broadcastPostGameDecisionUpdate(GameSessionAccess session, PostGameDecisionUpdate update);
+    void deliverPostGameDecisionUpdate(GameSessionAccess session, PostGameDecisionUpdate update, String targetUserId);
     void broadcastSessionTerminated(GameSessionAccess session, List<String> disconnected);
     void broadcastRematchStarted(GameSessionAccess previous, GameSessionAccess rematch, List<String> participants);
     void broadcastPlayerDisconnected(GameSessionAccess session, String userId, String reason);

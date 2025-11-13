@@ -1,13 +1,19 @@
 package teamnova.omok.glue.game.session.services;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.model.GameSession;
+import teamnova.omok.glue.game.session.model.PostGameDecision;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionPrompt;
+import teamnova.omok.glue.game.session.model.messages.PostGameDecisionUpdate;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.vo.TurnTiming;
 import teamnova.omok.glue.game.session.states.GameStateHub;
+import teamnova.omok.glue.game.session.states.manage.GameSessionStateContext;
 
 /**
  * Stateless helpers for disconnect and cleanup operations on game sessions.
@@ -152,6 +158,9 @@ public final class GameSessionLifecycleService {
             deps.messenger().deliverTurnStarted(session, adjustSnapshotForRemaining(snapshot), userId);
         }
         deps.messenger().deliverBoardSnapshot(session, userId);
+        if (session.getGameEndedAt() > 0) {
+            deliverPostGameState(deps, session, userId);
+        }
     }
 
     private static TurnSnapshot adjustSnapshotForRemaining(TurnSnapshot snapshot) {
@@ -170,5 +179,29 @@ public final class GameSessionLifecycleService {
             timing,
             snapshot.wrapped()
         );
+    }
+
+    private static void deliverPostGameState(GameSessionDependencies deps,
+                                             GameSession session,
+                                             String userId) {
+        GameSessionStateContext context = new GameSessionStateContext(session);
+        deps.messenger().deliverGameCompleted(session, userId);
+        long deadline = deps.contextService().postGame().decisionDeadline(context);
+        if (deadline > 0) {
+            deps.messenger().deliverPostGamePrompt(session, new PostGameDecisionPrompt(deadline), userId);
+        }
+        PostGameDecisionUpdate update = buildPostGameDecisionUpdate(context);
+        deps.messenger().deliverPostGameDecisionUpdate(session, update, userId);
+    }
+
+    private static PostGameDecisionUpdate buildPostGameDecisionUpdate(GameSessionStateContext context) {
+        Map<String, PostGameDecision> decisions = context.postGame().postGameDecisionsView();
+        List<String> remaining = new ArrayList<>();
+        for (String userId : context.participants().getUserIds()) {
+            if (!decisions.containsKey(userId)) {
+                remaining.add(userId);
+            }
+        }
+        return new PostGameDecisionUpdate(decisions, remaining);
     }
 }
