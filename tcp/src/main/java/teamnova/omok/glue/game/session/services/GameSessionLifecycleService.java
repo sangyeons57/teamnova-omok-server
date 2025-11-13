@@ -95,8 +95,8 @@ public final class GameSessionLifecycleService {
                 }
                 System.out.println("[RECONNECT][Lifecycle] rebound user=" + userId
                     + " session=" + session.sessionId());
-                broadcastTurnAndBoard(deps, session);
-                System.out.println("[RECONNECT][Lifecycle] broadcast board snapshot for user=" + userId);
+                deliverTurnAndBoard(deps, session, userId);
+                System.out.println("[RECONNECT][Lifecycle] delivered turn and board snapshot for user=" + userId);
                 return true;
             })
             .orElse(false);
@@ -149,7 +149,7 @@ public final class GameSessionLifecycleService {
         }
     }
 
-    private static void broadcastTurnAndBoard(GameSessionDependencies deps, GameSession session) {
+    private static void deliverTurnAndBoard(GameSessionDependencies deps, GameSession session, String userId) {
         TurnSnapshot snapshot = null;
         try {
             snapshot = deps.turnService().snapshot(session);
@@ -157,9 +157,9 @@ public final class GameSessionLifecycleService {
             // snapshot best-effort
         }
         if (snapshot != null) {
-            deps.messenger().broadcastTurnStarted(session, adjustSnapshotForRemaining(snapshot));
+            deps.messenger().deliverTurnStarted(session, adjustSnapshotForRemaining(snapshot), userId);
         }
-        deps.messenger().broadcastBoardSnapshot(session);
+        deps.messenger().deliverBoardSnapshot(session, userId);
     }
 
     private static TurnSnapshot adjustSnapshotForRemaining(TurnSnapshot snapshot) {

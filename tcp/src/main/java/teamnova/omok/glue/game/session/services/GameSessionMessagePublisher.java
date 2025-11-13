@@ -61,14 +61,14 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     public void broadcastGameStart(GameSessionAccess session, TurnSnapshot turn) {
         byte[] payload = GameSessionStartedMessageEncoder.encode(session);
         broadcast(session, Type.GAME_SESSION_STARTED, payload,
-            turn != null ? "player=" + turn.currentPlayerId() : "player=-");
+                turn != null ? "player=" + turn.currentPlayerId() : "player=-");
     }
 
     @Override
     public void broadcastTurnStarted(GameSessionAccess session, TurnSnapshot snapshot) {
         byte[] payload = TurnStartedMessageEncoder.encode(session, snapshot);
         broadcast(session, Type.TURN_STARTED, payload,
-            snapshot != null ? "player=" + snapshot.currentPlayerId() : "player=-");
+                snapshot != null ? "player=" + snapshot.currentPlayerId() : "player=-");
     }
 
     @Override
@@ -88,13 +88,10 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
 
     @Override
     public void broadcastBoardSnapshot(GameSessionAccess session) {
-        byte[] boardBytes = boardService.snapshot(session);
-        boardBytes = ruleService.transformBoard(session, boardBytes);
-        BoardSnapshotUpdate update = new BoardSnapshotUpdate(boardBytes, System.currentTimeMillis());
-        byte[] payload = BoardSnapshotMessageEncoder.encode(session, update);
+        byte[] payload = buildBoardSnapshotPayload(session);
         if (session != null) {
             System.out.println("[RECONNECT][Messenger] broadcasting board snapshot session="
-                + session.sessionId() + " recipients=" + session.getUserIds());
+                    + session.sessionId() + " recipients=" + session.getUserIds());
         }
         broadcast(session, Type.BOARD_UPDATED, payload);
     }
@@ -103,6 +100,19 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     public void broadcastGameCompleted(GameSessionAccess session) {
         byte[] payload = GameSessionCompletedMessageEncoder.encode(session);
         broadcast(session, Type.GAME_SESSION_COMPLETED, payload, "event=game-complete");
+    }
+
+    @Override
+    public void deliverTurnStarted(GameSessionAccess session, TurnSnapshot snapshot, String targetUserId) {
+        byte[] payload = TurnStartedMessageEncoder.encode(session, snapshot);
+        sendToUser(session, targetUserId, Type.TURN_STARTED, payload,
+                snapshot != null ? "player=" + snapshot.currentPlayerId() : "player=-");
+    }
+
+    @Override
+    public void deliverBoardSnapshot(GameSessionAccess session, String targetUserId) {
+        byte[] payload = buildBoardSnapshotPayload(session);
+        sendToUser(session, targetUserId, Type.BOARD_UPDATED, payload);
     }
 
     @Override
@@ -121,8 +131,8 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     public void broadcastSessionTerminated(GameSessionAccess session, List<String> disconnected) {
         byte[] payload = GameSessionTerminatedMessageEncoder.encode(session, disconnected);
         String detail = !disconnected.isEmpty()
-            ? "disconnected=" + String.join(",", disconnected)
-            : "disconnected=none";
+                ? "disconnected=" + String.join(",", disconnected)
+                : "disconnected=none";
         broadcast(session, Type.GAME_SESSION_TERMINATED, payload, detail);
     }
 
@@ -132,8 +142,8 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
                                         List<String> participants) {
         byte[] payload = GameSessionRematchStartedMessageEncoder.encode(previous, rematch, participants);
         String detail = !participants.isEmpty()
-            ? "participants=" + String.join(",", participants)
-            : "participants=none";
+                ? "participants=" + String.join(",", participants)
+                : "participants=none";
         broadcast(previous, Type.GAME_SESSION_REMATCH_STARTED, payload, detail);
     }
 
@@ -141,7 +151,7 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
     public void broadcastPlayerDisconnected(GameSessionAccess session, String userId, String reason) {
         byte[] payload = GameSessionPlayerDisconnectedMessageEncoder.encode(session, userId, reason);
         broadcast(session, Type.GAME_SESSION_PLAYER_DISCONNECTED, payload,
-            String.format("user=%s reason=%s", userId, reason));
+                String.format("user=%s reason=%s", userId, reason));
     }
 
     private void broadcast(GameSessionAccess session,
@@ -180,9 +190,22 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
         }
     }
 
+    private void sendToUser(GameSessionAccess session,
+                            String userId,
+                            Type type,
+                            byte[] payload,
+                            String... details) {
+        if (userId == null) {
+            return;
+        }
+        List<String> recipients = List.of(userId);
+        logOutbound(session, type, "direct", 0L, recipients, details);
+        deliverInGame(session, userId, type, payload);
+    }
+
     private void deliver(String userId, Type type, byte[] payload) {
         store.findByUser(userId)
-            .ifPresent(session -> session.enqueueResponse(type, 0L, payload));
+                .ifPresent(session -> session.enqueueResponse(type, 0L, payload));
     }
 
     private void deliverInGame(GameSessionAccess gameSession,
@@ -194,17 +217,17 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
         }
         store.findByUser(userId).ifPresent(handle -> {
             String handleSessionStr = handle.currentGameSessionId() != null
-                ? handle.currentGameSessionId().toString()
-                : "null";
+                    ? handle.currentGameSessionId().toString()
+                    : "null";
             if (gameSession == null || gameSession.sessionId().equals(handle.currentGameSessionId())) {
                 System.out.println("[RECONNECT][Messenger] deliver type=" + type
-                    + " user=" + userId + " session=" + handleSessionStr);
+                        + " user=" + userId + " session=" + handleSessionStr);
                 handle.enqueueResponse(type, 0L, payload);
             } else {
                 System.out.println("[RECONNECT][Messenger] mismatch user=" + userId
-                    + " expected=" + gameSession.sessionId()
-                    + " handleSession=" + handleSessionStr
-                    + " type=" + type + " -> forcing leave");
+                        + " expected=" + gameSession.sessionId()
+                        + " handleSession=" + handleSessionStr
+                        + " type=" + type + " -> forcing leave");
                 GameSessionManager.getInstance().leaveByUser(userId);
             }
         });
@@ -217,5 +240,12 @@ public final class GameSessionMessagePublisher implements GameSessionMessenger {
                              List<String> recipients,
                              String... details) {
         GameSessionLogger.outbound(session, type, channel, requestId, recipients, details);
+    }
+
+    private byte[] buildBoardSnapshotPayload(GameSessionAccess session) {
+        byte[] boardBytes = boardService.snapshot(session);
+        boardBytes = ruleService.transformBoard(session, boardBytes);
+        BoardSnapshotUpdate update = new BoardSnapshotUpdate(boardBytes, System.currentTimeMillis());
+        return BoardSnapshotMessageEncoder.encode(session, update);
     }
 }

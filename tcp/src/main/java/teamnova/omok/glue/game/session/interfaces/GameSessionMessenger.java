@@ -14,9 +14,11 @@ public interface GameSessionMessenger {
     void broadcastReady(GameSessionAccess session, ReadyResult result);
     void broadcastGameStart(GameSessionAccess session, TurnSnapshot turn);
     void broadcastTurnStarted(GameSessionAccess session, TurnSnapshot snapshot);
+    void deliverTurnStarted(GameSessionAccess session, TurnSnapshot snapshot, String targetUserId);
     void broadcastTurnEnded(GameSessionAccess session, TurnPersonalFrame frame);
     // Convenience overload: broadcast current board snapshot using only session
     void broadcastBoardSnapshot(GameSessionAccess session);
+    void deliverBoardSnapshot(GameSessionAccess session, String targetUserId);
     void broadcastGameCompleted(GameSessionAccess session);
     void broadcastPostGamePrompt(GameSessionAccess session, PostGameDecisionPrompt prompt);
     void broadcastPostGameDecisionUpdate(GameSessionAccess session, PostGameDecisionUpdate update);
