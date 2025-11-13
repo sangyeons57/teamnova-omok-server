@@ -11,9 +11,9 @@ import java.util.Objects;
 /**
  * Holds configuration for how game rules should be selected. If a fixed rule list is
  * provided via environment or system properties it overrides the random selection.
- **/
+ */
 public final class RuleSelectionConfig {
-    private static volatile List<RuleId> FIXED_RULE_OVERRIDE = List.of(RuleId.GO_CAPTURE);
+    private static volatile List<RuleId> FIXED_RULE_OVERRIDE = List.of(RuleId.SEQUENTIAL_CONVERSION);
 
     private final List<RuleId> fixedRuleIds;
 
