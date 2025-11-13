@@ -1,6 +1,8 @@
 package teamnova.omok.glue.game.session.services;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import teamnova.omok.glue.client.session.ClientSessionManager;
@@ -11,6 +13,8 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.GameStateHub;
+import teamnova.omok.glue.manager.DataManager;
+import teamnova.omok.glue.data.model.UserScoreData;
 import teamnova.omok.glue.rule.runtime.RuleManager;
 
 /**
@@ -31,12 +35,23 @@ public final class GameSessionRematchService {
         GameSessionMessenger messenger = services.messenger();
 
         GameSession rematch = new GameSession(participants);
-        rematch.setRuleIds(RuleManager.getInstance().prepareRules());
+        Map<String, Integer> knownScores = collectParticipantScores(participants);
+        rematch.setRuleIds(RuleManager.getInstance().prepareRules(knownScores));
         repository.save(rematch);
         runtime.ensure(rematch);
         // Notify both sessions: a rematch has been created
         messenger.broadcastRematchStarted(previous, rematch, participants);
         return rematch;
+    }
+
+    private static Map<String, Integer> collectParticipantScores(List<String> participants) {
+        Map<String, Integer> knownScores = new HashMap<>();
+        DataManager dataManager = DataManager.getInstance();
+        for (String userId : participants) {
+            UserScoreData scoreData = dataManager.getUserScore(userId, UserScoreData.getDefault());
+            knownScores.put(userId, scoreData.score());
+        }
+        return knownScores;
     }
 
     public static void finalizeAndJoin(GameSessionServices services, GameSession rematch) {
