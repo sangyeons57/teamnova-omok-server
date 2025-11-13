@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.PlayerResult;
+import teamnova.omok.glue.client.session.ClientSessionManager;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.model.dto.TurnSnapshot;
 import teamnova.omok.glue.game.session.model.messages.GameCompletionNotice;
@@ -118,6 +119,21 @@ public final class TurnEndState implements BaseState {
         }
     }
 
+    private void unbindParticipants(GameSessionStateContext context) {
+        var session = context.session();
+        var sessionId = session.sessionId();
+        for (String userId : context.participants().getUserIds()) {
+            ClientSessionManager.getInstance()
+                .findSession(userId)
+                .ifPresent(handle -> {
+                    if (sessionId.equals(handle.currentGameSessionId())) {
+                        handle.unbindGameSession(sessionId);
+                        handle.exitGameSession();
+                    }
+                });
+        }
+    }
+
     private StateStep finalizeSession(GameSessionStateContext ctx) {
         ctx.session().lock().lock();
         try {
@@ -128,6 +144,7 @@ public final class TurnEndState implements BaseState {
             ctx.session().lock().unlock();
         }
         services.messenger().broadcastGameCompleted(ctx.session());
+        unbindParticipants(ctx);
         contextService.postGame().queueGameCompletion(ctx, new GameCompletionNotice());
         applyScoreAdjustments(ctx);
         return StateStep.transition(GameSessionStateType.POST_GAME_DECISION_WAITING.toStateName());

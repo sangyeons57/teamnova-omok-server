@@ -34,16 +34,7 @@ public final class GameSessionLifecycleService {
             if (newlyDisconnected) {
                 deps.messenger().broadcastPlayerDisconnected(session, userId, "LEFT");
             }
-            try {
-                ClientSessionManager.getInstance()
-                    .findSession(userId)
-                    .ifPresent(h -> {
-                        h.unbindGameSession(session.sessionId());
-                        h.exitGameSession();
-                    });
-            } catch (Throwable ignore) {
-                // best-effort unbind; do not block cleanup
-            }
+
             cleanupIfSessionFullyDisconnected(deps, session);
         });
     }
@@ -135,6 +126,7 @@ public final class GameSessionLifecycleService {
         } catch (Throwable ignore) {
             // ensure cleanup continues even if broadcasting fails
         }
+
         for (String userId : userIds) {
             try {
                 ClientSessionManager.getInstance()

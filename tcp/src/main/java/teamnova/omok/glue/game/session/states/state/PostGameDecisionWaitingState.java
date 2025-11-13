@@ -171,12 +171,6 @@ public final class PostGameDecisionWaitingState implements BaseState {
             } finally {
                 session.lock().unlock();
             }
-            ClientSessionManager.getInstance()
-                .findSession(userId)
-                .ifPresent(handle -> {
-                    handle.unbindGameSession(session.sessionId());
-                    handle.exitGameSession();
-                });
         }
         // REMATCH 선택자는 SessionRematchPreparingState에서 새 세션 배정 직전까지 기존 게임에 남겨 둔다.
     }
