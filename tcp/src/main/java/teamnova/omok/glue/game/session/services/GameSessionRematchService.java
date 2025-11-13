@@ -11,6 +11,7 @@ import teamnova.omok.glue.game.session.interfaces.session.GameSessionAccess;
 import teamnova.omok.glue.game.session.model.GameSession;
 import teamnova.omok.glue.game.session.model.dto.GameSessionServices;
 import teamnova.omok.glue.game.session.states.GameStateHub;
+import teamnova.omok.glue.rule.runtime.RuleManager;
 
 /**
  * Helper for creating and broadcasting rematch sessions.
@@ -30,6 +31,7 @@ public final class GameSessionRematchService {
         GameSessionMessenger messenger = services.messenger();
 
         GameSession rematch = new GameSession(participants);
+        rematch.setRuleIds(RuleManager.getInstance().prepareRules());
         repository.save(rematch);
         runtime.ensure(rematch);
         // Notify both sessions: a rematch has been created
